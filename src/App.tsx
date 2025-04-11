@@ -23,12 +23,12 @@ interface AuthContextProps {
   loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextProps>({
+export const AuthContext = createContext<AuthContextProps>({
   user: null,
   loading: true,
 });
 
-const useAuth = () => useContext(AuthContext);
+export const useAuth = () => useContext(AuthContext);
 
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -65,6 +65,7 @@ const App: React.FC = () => {
             <Route path="/profile" element={<Profile />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin-auth" element={<AdminAuth />} />
+            <Route path="/admin/login" element={<Navigate to="/admin-auth" replace />} />
             <Route path="/category/:categoryId" element={<CategoryQuizzes />} />
             <Route path="/quiz/:categoryId/:quizId" element={<Quiz />} />
             <Route path="/admin/mega-tests" element={<MegaTestManager />} />
@@ -81,4 +82,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-export { useAuth, AuthContext };

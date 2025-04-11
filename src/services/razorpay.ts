@@ -1,5 +1,8 @@
-
+import axios from 'axios';
+import { getAuthToken } from './api/auth';
 import { updateUserBalance } from './firebase/balance';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Function to load Razorpay script
 const loadRazorpayScript = (): Promise<boolean> => {
@@ -29,85 +32,100 @@ export const initiatePayment = async (
   email: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    console.log('Initiating Razorpay payment for user:', userId, 'amount:', amount);
-    
     // First load the Razorpay script
     const scriptLoaded = await loadRazorpayScript();
     if (!scriptLoaded) {
-      console.error('Failed to load Razorpay script');
       return { success: false, error: 'Failed to load Razorpay script' };
     }
+
+    // Get authentication token
+    let token;
+    try {
+      token = await getAuthToken();
+    } catch (error) {
+      return { success: false, error: 'Authentication failed. Please log in again.' };
+    }
+
+    // Create order on backend
+    const orderResponse = await axios.post(
+      `${API_URL}/payments/create-order`,
+      { amount, userId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    const { orderId } = orderResponse.data;
     
     return new Promise((resolve) => {
       try {
-        // Simple serializable payload for user data - prevents DataCloneError
-        const userInfo = {
-          id: userId,
-          displayName: name,
-          email: email
-        };
-        
         // @ts-ignore - Razorpay is loaded via script
         const options = {
-          key: "rzp_live_euXqao5sCXaBbs", // Razorpay Key ID
-          amount: amount * 100, // Amount in paise (100 paise = 1 INR)
+          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          amount: amount * 100, // Amount in paise
           currency: "INR",
           name: "RajTest",
-          description: "Add money to your RajTest account",
-          // Removed order_id as we're not creating an order from backend
-          handler: function(response: any) {
-            console.log('Payment successful, response:', JSON.stringify(response));
-            // Use a serializable copy of the response
-            const paymentData = JSON.parse(JSON.stringify(response));
-            
-            // Update balance in a separate function call
-            updateUserBalance(userId, amount)
-              .then((newBalance) => {
-                console.log('Balance updated successfully:', newBalance);
+          description: "Add money to your account",
+          order_id: orderId,
+          handler: async function(response: any) {
+            try {
+              // Verify payment on backend
+              const verifyResponse = await axios.post(
+                `${API_URL}/payments/verify`,
+                {
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  userId,
+                  amount
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`
+                  }
+                }
+              );
+
+              if (verifyResponse.data.success) {
                 resolve({ success: true });
-              })
-              .catch((error) => {
-                console.error('Error updating balance:', error);
-                resolve({ success: false, error: 'Payment succeeded but failed to update balance' });
+              } else {
+                resolve({ success: false, error: 'Payment verification failed' });
+              }
+            } catch (error: any) {
+              resolve({ 
+                success: false, 
+                error: error.response?.data?.error || 'Payment verification failed' 
               });
+            }
           },
           prefill: {
             name: name,
             email: email,
           },
           theme: {
-            color: "#3B82F6", // Primary color
+            color: "#3B82F6",
           },
           modal: {
             ondismiss: function() {
-              console.log('Payment modal dismissed');
               resolve({ success: false, error: 'Payment cancelled' });
             }
-          },
-          notes: {
-            // You can add custom notes here
-            userId: userId
           }
         };
 
-        console.log('Creating Razorpay instance with options:', 
-          JSON.stringify({
-            ...options,
-            key: "***" // Mask the key in logs
-          })
-        );
-        
         // @ts-ignore - Razorpay is loaded via script
         const razorpayInstance = new window.Razorpay(options);
         razorpayInstance.open();
       } catch (error) {
-        console.error('Error creating Razorpay instance:', error);
         resolve({ success: false, error: 'Failed to initialize payment' });
       }
     });
-  } catch (error) {
-    console.error('Razorpay payment error:', error);
-    return { success: false, error: 'Payment failed' };
+  } catch (error: any) {
+    return { 
+      success: false,
+      error: error.response?.data?.error || 'Failed to create payment order' 
+    };
   }
 };
 

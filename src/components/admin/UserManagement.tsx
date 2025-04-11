@@ -1,15 +1,14 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { updateUserRole } from '@/services/firebase/admin';
+import { getAllUsers, getAllBalances, updateUserRole, User, UserBalance } from '@/services/api/admin';
 
 interface UserManagementProps {
-  users?: any[];
-  balances?: any[];
+  users?: User[];
+  balances?: UserBalance[];
   isLoading: boolean;
   usersError?: Error;
   balancesError?: Error;
@@ -30,7 +29,7 @@ export const UserManagement = ({
   const balanceMap = balances?.reduce((acc, balance) => {
     acc[balance.userId] = balance.amount || 0;
     return acc;
-  }, {}) || {};
+  }, {} as Record<string, number>) || {};
   
   const filteredUsers = users?.filter(user => 
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -56,12 +55,15 @@ export const UserManagement = ({
     let message = 'Failed to load data';
     let solution = '';
     
-    if (error.code === 'permission-denied') {
-      message = 'Permission denied when accessing Firestore';
-      solution = 'You need to update your Firestore security rules to allow reading users collection.';
-    } else if (error.code === 'not-found') {
-      message = 'Database collection not found';
-      solution = 'Make sure your Firestore database has the required collections.';
+    if (error.response?.status === 401) {
+      message = 'Unauthorized access';
+      solution = 'Please make sure you are logged in as an admin.';
+    } else if (error.response?.status === 403) {
+      message = 'Access forbidden';
+      solution = 'You do not have permission to access this resource.';
+    } else if (error.response?.status === 404) {
+      message = 'Resource not found';
+      solution = 'The requested resource could not be found.';
     }
     
     return (
@@ -73,7 +75,7 @@ export const UserManagement = ({
             <p className="text-amber-700 mt-1">{error.message}</p>
             {solution && <p className="text-amber-700 mt-2 font-medium">{solution}</p>}
             <div className="mt-3 bg-amber-100 p-2 rounded text-xs font-mono overflow-auto">
-              <p>Error code: {error.code || 'unknown'}</p>
+              <p>Error code: {error.response?.status || 'unknown'}</p>
             </div>
           </div>
         </div>
@@ -101,16 +103,6 @@ export const UserManagement = ({
         
         {isLoading ? (
           <div className="animate-pulse py-4">Loading users...</div>
-        ) : usersError ? (
-          <div className="text-center py-4">
-            <Button 
-              variant="outline" 
-              onClick={() => refetchUsers()}
-              className="mx-auto"
-            >
-              Retry Loading Users
-            </Button>
-          </div>
         ) : !users?.length ? (
           <div className="text-center text-muted-foreground py-8">No users found</div>
         ) : (

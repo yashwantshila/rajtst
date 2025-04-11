@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, BookOpen, Wallet, Trophy, Gift, FileText, ScrollText, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { getAllUsers, getAllBalances } from '../services/firebase/admin';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { QuizManagement } from '@/components/admin/QuizManagement';
@@ -15,6 +14,7 @@ import { TermsAndConditionsManager } from '../components/admin/TermsAndCondition
 import { AboutUsManager } from '../components/admin/AboutUsManager';
 import MegaTestManager from './admin/MegaTestManager';
 import PrizeClaimsManager from './admin/PrizeClaimsManager';
+import { getAllUsers, getAllBalances } from '@/services/api/admin';
 
 const ADMIN_EMAILS = ['admin@example.com', 'ij@gmail.com', 'test@example.com'];
 const HARDCODED_ADMIN_EMAIL = 'ww@gmail.com';

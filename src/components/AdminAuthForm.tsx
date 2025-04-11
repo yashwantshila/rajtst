@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,9 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
-// Hardcoded admin credentials
-const ADMIN_EMAIL = 'ww@gmail.com';
-const ADMIN_PASSWORD = '123';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 const AdminAuthForm = () => {
   const navigate = useNavigate();
@@ -22,19 +19,29 @@ const AdminAuthForm = () => {
     setIsLoading(true);
     
     try {
-      // Check against hardcoded admin credentials
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      const response = await fetch(`${API_URL}/auth/admin/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         // Set admin session in localStorage
         localStorage.setItem('adminAuth', JSON.stringify({
-          email: ADMIN_EMAIL,
+          email: data.email,
           isAdmin: true,
+          token: data.token,
           loginTime: new Date().toISOString()
         }));
         
         toast.success('Admin login successful');
         navigate('/admin');
       } else {
-        toast.error('Invalid admin credentials');
+        toast.error(data.error || 'Invalid admin credentials');
       }
     } catch (error: any) {
       toast.error(error?.message || 'Failed to login as admin');

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerUser, loginUser, resetPassword } from '../services/firebase/auth';
+import { loginUser, registerUser, resetPassword } from '../services/api/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +27,20 @@ const AuthForm = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(loginEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
+    // Validate password length
+    if (loginPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -34,20 +48,8 @@ const AuthForm = () => {
       toast.success('Logged in successfully');
       navigate('/');
     } catch (error: any) {
-      // Handle specific Firebase auth errors
-      if (error.code === 'auth/invalid-credential') {
-        toast.error('Invalid email or password. Please check your credentials and try again.');
-      } else if (error.code === 'auth/user-not-found') {
-        toast.error('No account found with this email address.');
-      } else if (error.code === 'auth/wrong-password') {
-        toast.error('Incorrect password. Please try again.');
-      } else if (error.code === 'auth/too-many-requests') {
-        toast.error('Too many failed login attempts. Please try again later.');
-      } else if (error.code === 'auth/user-disabled') {
-        toast.error('This account has been disabled. Please contact support.');
-      } else {
-        toast.error('Failed to login. Please try again.');
-      }
+      // Display the specific error message from Firebase
+      toast.error(error.message || 'Failed to login');
     } finally {
       setIsLoading(false);
     }
@@ -55,6 +57,26 @@ const AuthForm = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(registerEmail)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    
+    // Validate password length
+    if (registerPassword.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+    
+    // Validate username
+    if (registerUsername.length < 3) {
+      toast.error('Username must be at least 3 characters long');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -62,7 +84,8 @@ const AuthForm = () => {
       toast.success('Account created successfully');
       navigate('/');
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to register');
+      // Display the specific error message from Firebase
+      toast.error(error.message || 'Failed to register');
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +100,7 @@ const AuthForm = () => {
       toast.success('Password reset email sent. Please check your inbox.');
       setIsResetMode(false);
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to send reset email');
+      toast.error(error.response?.data?.error || 'Failed to send reset email');
     } finally {
       setIsLoading(false);
     }
