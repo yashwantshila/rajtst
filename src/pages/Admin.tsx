@@ -8,7 +8,6 @@ import { useQuery } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { QuizManagement } from '@/components/admin/QuizManagement';
-import { WithdrawalManagement } from '../components/admin/WithdrawalManagement';
 import { PrivacyPolicyManager } from '../components/admin/PrivacyPolicyManager';
 import { TermsAndConditionsManager } from '../components/admin/TermsAndConditionsManager';
 import { AboutUsManager } from '../components/admin/AboutUsManager';
@@ -98,10 +97,6 @@ const Admin = () => {
               <Users className="h-4 w-4" />
               <span>Users</span>
             </TabsTrigger>
-            <TabsTrigger value="withdraw" className="flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              <span>Withdrawals</span>
-            </TabsTrigger>
             <TabsTrigger value="quiz" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               <span>Quizzes</span>
@@ -137,10 +132,6 @@ const Admin = () => {
               balancesError={balancesError}
               refetchUsers={refetchUsers} 
             />
-          </TabsContent>
-          
-          <TabsContent value="withdraw">
-            <WithdrawalManagement />
           </TabsContent>
           
           <TabsContent value="quiz">
