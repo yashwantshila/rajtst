@@ -58,16 +58,13 @@ const Quiz = () => {
       }
     });
 
-    const finalScore = attemptedQuestions > 0 
-      ? Math.round((correctAnswers / attemptedQuestions) * 100)
-      : 0;
-    setScore(finalScore);
+    setScore(correctAnswers);
     setIsSubmitted(true);
 
     const skippedCount = skippedQuestions.size;
     const message = skippedCount > 0 
-      ? `Quiz completed! Your score: ${finalScore}% (${skippedCount} question${skippedCount > 1 ? 's' : ''} skipped)`
-      : `Quiz completed! Your score: ${finalScore}%`;
+      ? `Quiz completed! Your score: ${correctAnswers} out of ${attemptedQuestions} (${skippedCount} question${skippedCount > 1 ? 's' : ''} skipped)`
+      : `Quiz completed! Your score: ${correctAnswers} out of ${attemptedQuestions}`;
     toast.success(message);
   };
 
@@ -135,7 +132,7 @@ const Quiz = () => {
             <CardHeader>
               <CardTitle className="text-2xl">Quiz Results</CardTitle>
               <CardDescription className="text-lg">
-                You scored {score}% on {quiz.title}
+                You scored {score} out of {quiz.questions.length} on {quiz.title}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">

@@ -34,6 +34,16 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
             ...doc.data(),
             id: doc.id,
           })) as MegaTestLeaderboardEntry[];
+
+          // Sort entries by score (descending) and then by completion time (ascending)
+          entries.sort((a, b) => {
+            if (a.score !== b.score) {
+              return b.score - a.score; // Higher score first
+            }
+            // If scores are equal, faster completion gets higher rank
+            return a.completionTime - b.completionTime;
+          });
+
           resolve(entries);
           unsubscribe();
         });
@@ -103,6 +113,9 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
     }
   };
 
+  // Get top 3 entries for the main view
+  const topThreeEntries = filteredData.slice(0, 3);
+
   return (
     <Card className={standalone ? "w-full" : "w-full max-w-md"}>
       <CardHeader>
@@ -132,72 +145,123 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
         )}
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {currentEntries.map((entry, index) => (
-            <div
-              key={entry.userId}
-              className={`flex items-center justify-between p-3 rounded-lg ${
-                entry.userId === user?.uid
-                  ? 'bg-primary/10 border border-primary'
-                  : 'bg-muted/50'
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-8">
-                  {getRankIcon(startIndex + index + 1) || (
-                    <span className="text-muted-foreground">{startIndex + index + 1}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {entry.userPhotoURL ? (
-                    <img
-                      src={entry.userPhotoURL}
-                      alt={entry.userName}
-                      className="w-6 h-6 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-4 w-4 text-muted-foreground" />
+        {standalone ? (
+          <>
+            <div className="space-y-4">
+              {currentEntries.map((entry, index) => (
+                <div
+                  key={entry.userId}
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    entry.userId === user?.uid
+                      ? 'bg-primary/10 border border-primary'
+                      : 'bg-muted/50'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center w-8">
+                      {getRankIcon(startIndex + index + 1) || (
+                        <span className="text-muted-foreground">{startIndex + index + 1}</span>
+                      )}
                     </div>
-                  )}
-                  <span className="font-medium">{entry.userName}</span>
+                    <div className="flex items-center gap-2">
+                      {entry.userPhotoURL ? (
+                        <img
+                          src={entry.userPhotoURL}
+                          alt={entry.userName}
+                          className="w-6 h-6 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                      <span className="font-medium">{entry.userName}</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div className="font-semibold">{entry.score} points</div>
+                    <div className="text-sm text-muted-foreground">
+                      {Math.floor(entry.completionTime / 60)}m {entry.completionTime % 60}s
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!leaderboardData || leaderboardData.length === 0) && (
+                <div className="text-center text-muted-foreground py-4">
+                  No entries yet
+                </div>
+              )}
+              {filteredData.length === 0 && searchQuery && (
+                <div className="text-center text-muted-foreground py-4">
+                  No results found
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-4">
+            {topThreeEntries.map((entry, index) => (
+              <div
+                key={entry.userId}
+                className={`flex items-center justify-between p-3 rounded-lg ${
+                  entry.userId === user?.uid
+                    ? 'bg-primary/10 border border-primary'
+                    : 'bg-muted/50'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center w-8">
+                    {getRankIcon(index + 1)}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {entry.userPhotoURL ? (
+                      <img
+                        src={entry.userPhotoURL}
+                        alt={entry.userName}
+                        className="w-6 h-6 rounded-full"
+                      />
+                    ) : (
+                      <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <span className="font-medium">{entry.userName}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <div className="font-semibold">{entry.score} points</div>
+                  <div className="text-sm text-muted-foreground">
+                    {Math.floor(entry.completionTime / 60)}m {entry.completionTime % 60}s
+                  </div>
                 </div>
               </div>
-              <div className="font-semibold">{entry.score} points</div>
-            </div>
-          ))}
-          {(!leaderboardData || leaderboardData.length === 0) && (
-            <div className="text-center text-muted-foreground py-4">
-              No entries yet
-            </div>
-          )}
-          {filteredData.length === 0 && searchQuery && (
-            <div className="text-center text-muted-foreground py-4">
-              No results found
-            </div>
-          )}
-        </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm">
-              Page {currentPage} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+            ))}
+            {(!leaderboardData || leaderboardData.length === 0) && (
+              <div className="text-center text-muted-foreground py-4">
+                No entries yet
+              </div>
+            )}
           </div>
         )}
       </CardContent>

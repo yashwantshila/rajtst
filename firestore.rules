@@ -11,6 +11,13 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
     
+    function isValidMegaTestRegistration(megaTestId, userId) {
+      return isAuthenticated() &&
+        userId == request.auth.uid &&
+        exists(/databases/$(database)/documents/mega-tests/$(megaTestId)) &&
+        get(/databases/$(database)/documents/mega-tests/$(megaTestId)).data.status == 'registration';
+    }
+    
     // Admin collection rules
     match /admins/{adminId} {
       allow read: if isAuthenticated();
@@ -32,10 +39,13 @@ service cloud.firestore {
     }
     
     // Balance collection rules
-    match /balances/{userId} {
+    match /balance/{userId} {
       allow read: if isAuthenticated() && 
         (userId == request.auth.uid || isAdmin());
-      allow write: if isAdmin();
+      allow write: if isAuthenticated() && 
+        (userId == request.auth.uid || 
+         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['amount', 'lastUpdated']) && 
+          isValidMegaTestRegistration(request.resource.data.megaTestId, userId)));
     }
     
     // Withdrawal collection rules
@@ -90,10 +100,7 @@ service cloud.firestore {
       // Participants subcollection
       match /participants/{userId} {
         allow read: if isAuthenticated();
-        allow create: if isAuthenticated() && 
-          userId == request.auth.uid &&
-          exists(/databases/$(database)/documents/mega-tests/$(megaTestId)) &&
-          get(/databases/$(database)/documents/mega-tests/$(megaTestId)).data.status == 'registration';
+        allow create: if isValidMegaTestRegistration(megaTestId, userId);
       }
       
       // Leaderboard subcollection - anyone can read

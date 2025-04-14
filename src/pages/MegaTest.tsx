@@ -26,6 +26,9 @@ const MegaTest = () => {
   const [score, setScore] = useState(0);
   const [hasAlreadySubmitted, setHasAlreadySubmitted] = useState(false);
   const [isQuizStarted, setIsQuizStarted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [timerActive, setTimerActive] = useState(false);
+  const [startTime, setStartTime] = useState<number>(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ['mega-test', megaTestId],
@@ -52,7 +55,47 @@ const MegaTest = () => {
 
   const { megaTest, questions } = data || { megaTest: null, questions: [] };
 
+  // Start timer when quiz starts
+  useEffect(() => {
+    if (isQuizStarted && megaTest && !timerActive) {
+      const timeLimitInSeconds = megaTest.timeLimit * 60;
+      setTimeLeft(timeLimitInSeconds);
+      setTimerActive(true);
+    }
+  }, [isQuizStarted, megaTest, timerActive]);
+
+  // Timer countdown
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (timerActive && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            handleTimeUp();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [timerActive, timeLeft]);
+
+  const handleTimeUp = () => {
+    setTimerActive(false);
+    toast.error('Time is up! Your quiz will be submitted automatically.');
+    handleSubmit();
+  };
+
+  const formatTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   const handleAnswerSelect = (questionId: string, answerId: string) => {
+    // Remove from skipped questions if it was previously skipped
     if (skippedQuestions.has(questionId)) {
       setSkippedQuestions(prev => {
         const newSkipped = new Set(prev);
@@ -70,13 +113,10 @@ const MegaTest = () => {
   const handleSkipQuestion = () => {
     const currentQuestion = questions[currentQuestionIndex];
     if (currentQuestion) {
-      setSkippedQuestions(prev => new Set([...prev, currentQuestion.id]));
-      // Remove any previous answer if it exists
-      setSelectedAnswers(prev => {
-        const newAnswers = { ...prev };
-        delete newAnswers[currentQuestion.id];
-        return newAnswers;
-      });
+      // Only add to skipped questions if no answer is selected
+      if (!selectedAnswers[currentQuestion.id]) {
+        setSkippedQuestions(prev => new Set([...prev, currentQuestion.id]));
+      }
       handleNextQuestion();
     }
   };
@@ -106,11 +146,13 @@ const MegaTest = () => {
       }
     });
 
+    const completionTime = Math.floor((Date.now() - startTime) / 1000); // Convert to seconds
+
     setScore(totalScore);
     setIsSubmitted(true);
 
     try {
-      await submitMegaTestResult(megaTest.id, user.uid, totalScore);
+      await submitMegaTestResult(megaTest.id, user.uid, totalScore, completionTime);
       toast.success('Quiz submitted successfully!');
     } catch (error) {
       toast.error('Failed to submit quiz. Please try again.');
@@ -119,6 +161,7 @@ const MegaTest = () => {
 
   const startQuiz = () => {
     setIsQuizStarted(true);
+    setStartTime(Date.now());
   };
 
   const currentQuestion = questions[currentQuestionIndex];
@@ -155,85 +198,134 @@ const MegaTest = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/')}
+            className="hover:bg-background/60"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Button>
-          <div className="text-sm font-medium">
-            Question {currentQuestionIndex + 1} of {questions.length}
+          <div className="flex items-center gap-4">
+            <div className="text-sm font-medium bg-muted px-3 py-1 rounded-full flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              {formatTime(timeLeft)}
+            </div>
+            <div className="text-sm font-medium bg-muted px-3 py-1 rounded-full">
+              Question {currentQuestionIndex + 1} of {questions.length}
+            </div>
+            <div className="text-sm font-medium bg-muted px-3 py-1 rounded-full">
+              {totalAnswered} answered, {totalSkipped} skipped
+            </div>
           </div>
         </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="mb-6">
-              <Progress
-                value={(currentQuestionIndex / questions.length) * 100}
-                className="h-2"
-              />
-            </div>
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-6">
+            <Progress
+              value={(currentQuestionIndex / questions.length) * 100}
+              className="h-2"
+            />
+          </div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentQuestionIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                {questions[currentQuestionIndex] && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">
-                        {questions[currentQuestionIndex].text}
-                      </h3>
-                      <RadioGroup
-                        value={selectedAnswers[questions[currentQuestionIndex].id] || ''}
-                        onValueChange={(value) =>
-                          handleAnswerSelect(questions[currentQuestionIndex].id, value)
-                        }
-                      >
-                        {questions[currentQuestionIndex].options.map((option) => (
-                          <div key={option.id} className="flex items-center space-x-2">
-                            <RadioGroupItem value={option.id} id={option.id} />
-                            <Label htmlFor={option.id}>{option.text}</Label>
-                          </div>
-                        ))}
-                      </RadioGroup>
-                    </div>
-
-                    <div className="flex justify-between pt-4">
-                      <Button
-                        variant="outline"
-                        onClick={handlePrevQuestion}
-                        disabled={currentQuestionIndex === 0}
-                      >
-                        <ChevronLeft className="h-4 w-4 mr-2" />
-                        Previous
-                      </Button>
-                      <div className="space-x-2">
-                        <Button
-                          variant="outline"
-                          onClick={handleSkipQuestion}
-                        >
-                          Skip
-                        </Button>
-                        {currentQuestionIndex === questions.length - 1 ? (
-                          <Button onClick={handleSubmit}>Submit</Button>
-                        ) : (
-                          <Button onClick={handleNextQuestion}>
-                            Next
-                            <ChevronRight className="h-4 w-4 ml-2" />
-                          </Button>
-                        )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentQuestionIndex}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="text-xl">Question {currentQuestionIndex + 1}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {currentQuestion && (
+                    <>
+                      <div className="text-lg font-medium">
+                        {currentQuestion.text}
                       </div>
-                    </div>
+                      <div className="space-y-3">
+                        <RadioGroup
+                          value={selectedAnswers[currentQuestion.id] || ''}
+                          onValueChange={(value) => {
+                            if (value !== selectedAnswers[currentQuestion.id]) {
+                              handleAnswerSelect(currentQuestion.id, value);
+                            }
+                          }}
+                          className="space-y-3"
+                        >
+                          {currentQuestion.options.map((option) => (
+                            <div
+                              key={option.id}
+                              onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
+                              className={`flex items-center space-x-3 p-4 rounded-lg border transition-colors cursor-pointer ${
+                                selectedAnswers[currentQuestion.id] === option.id
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-muted hover:border-primary/50 hover:bg-muted/50'
+                              }`}
+                            >
+                              <RadioGroupItem
+                                value={option.id}
+                                id={option.id}
+                                className="h-5 w-5"
+                              />
+                              <Label
+                                htmlFor={option.id}
+                                className="text-base cursor-pointer flex-1"
+                              >
+                                {option.text}
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+                <CardContent className="flex justify-between items-center pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevQuestion}
+                    disabled={currentQuestionIndex === 0}
+                    className="gap-2"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={handleSkipQuestion}
+                      className="gap-2"
+                    >
+                      Skip
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={handleNextQuestion}
+                      disabled={currentQuestionIndex === questions.length - 1 || !selectedAnswers[currentQuestion.id]}
+                      className="gap-2"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
                   </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </AnimatePresence>
+
+          {currentQuestionIndex === questions.length - 1 && (
+            <div className="flex justify-end">
+              <Button
+                size="lg"
+                onClick={handleSubmit}
+                className="gap-2"
+              >
+                Submit Test
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -332,9 +424,9 @@ const MegaTest = () => {
             <CardContent>
               <div className="space-y-4">
                 <p>This mega test contains {questions.length} questions.</p>
-                <p>You will have to answer all questions to complete the test.</p>
+                <p>You will have {megaTest?.timeLimit || 60} minutes to complete the test.</p>
                 <p>You can skip questions and come back to them later.</p>
-                <p>Once you submit, you cannot change your answers.</p>
+                <p>Once you submit or time runs out, you cannot change your answers.</p>
               </div>
               <div className="mt-6">
                 <Button size="lg" className="w-full" onClick={startQuiz}>

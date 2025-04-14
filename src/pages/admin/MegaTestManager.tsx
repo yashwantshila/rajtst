@@ -41,6 +41,7 @@ const MegaTestManager = () => {
     resultTime: '',
     entryFee: 0,
     prizes: [] as { rank: number; prize: string }[],
+    timeLimit: 60, // Default 60 minutes
   });
 
   const [questionForm, setQuestionForm] = useState({
@@ -96,6 +97,7 @@ const MegaTestManager = () => {
         resultTime: '',
         entryFee: 0,
         prizes: [],
+        timeLimit: 60,
       });
       toast.success('Mega test created successfully');
     },
@@ -123,6 +125,7 @@ const MegaTestManager = () => {
         resultTime: '',
         entryFee: 0,
         prizes: [],
+        timeLimit: 60,
       });
       toast.success('Mega test updated successfully');
     },
@@ -186,6 +189,7 @@ const MegaTestManager = () => {
       resultTime: format(megaTest.resultTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
       entryFee: megaTest.entryFee,
       prizes: [],
+      timeLimit: megaTest.timeLimit || 60,
     });
     setIsEditDialogOpen(true);
   };
@@ -247,6 +251,7 @@ const MegaTestManager = () => {
       resultTime: format(megaTest.resultTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
       entryFee: megaTest.entryFee,
       prizes: [],
+      timeLimit: megaTest.timeLimit || 60,
     });
     setIsQuestionsDialogOpen(true);
   };
@@ -428,6 +433,18 @@ const MegaTestManager = () => {
                   step="1"
                   value={formData.entryFee}
                   onChange={(e) => setFormData({ ...formData, entryFee: parseInt(e.target.value) || 0 })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="timeLimit">Time Limit (minutes)</Label>
+                <Input
+                  id="timeLimit"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={formData.timeLimit}
+                  onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 60 })}
                   required
                 />
               </div>
@@ -674,6 +691,7 @@ const MegaTestManager = () => {
                       resultTime: '',
                       entryFee: 0,
                       prizes: [],
+                      timeLimit: 60,
                     });
                   }
                 }}
@@ -803,6 +821,18 @@ const MegaTestManager = () => {
                 step="1"
                 value={formData.entryFee}
                 onChange={(e) => setFormData({ ...formData, entryFee: parseInt(e.target.value) || 0 })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-timeLimit">Time Limit (minutes)</Label>
+              <Input
+                id="edit-timeLimit"
+                type="number"
+                min="1"
+                step="1"
+                value={formData.timeLimit}
+                onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 60 })}
                 required
               />
             </div>

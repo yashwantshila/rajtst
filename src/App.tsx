@@ -17,6 +17,7 @@ import LeaderboardPage from './pages/LeaderboardPage';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsAndConditions from './pages/TermsAndConditions';
 import AboutUs from './pages/AboutUs';
+import Guide from './pages/Guide';
 
 interface AuthContextProps {
   user: User | null;
@@ -74,6 +75,7 @@ const App: React.FC = () => {
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/about-us" element={<AboutUs />} />
+            <Route path="/guide" element={<Guide />} />
           </Routes>
         </Router>
       </AuthProvider>

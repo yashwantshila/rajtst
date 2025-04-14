@@ -207,6 +207,7 @@ export interface MegaTest {
   updatedAt: Timestamp;
   status: 'upcoming' | 'registration' | 'ongoing' | 'completed';
   entryFee: number;
+  timeLimit: number; // Time limit in minutes
 }
 
 export interface MegaTestQuestion {
@@ -226,6 +227,7 @@ export interface MegaTestLeaderboardEntry {
   score: number;
   rank: number;
   submittedAt: Timestamp;
+  completionTime: number; // Time taken to complete the quiz in seconds
 }
 
 export interface MegaTestPrize {
@@ -308,7 +310,8 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
       totalQuestions: data.questions.length,
       status: 'upcoming',
       createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      timeLimit: data.timeLimit || 60 // Default to 60 minutes if not specified
     });
     
     // Create questions in subcollection
@@ -417,7 +420,8 @@ export const hasUserSubmittedMegaTest = async (megaTestId: string, userId: strin
 export const submitMegaTestResult = async (
   megaTestId: string, 
   userId: string, 
-  score: number
+  score: number,
+  completionTime: number // Time taken to complete the quiz in seconds
 ): Promise<boolean> => {
   try {
     const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
@@ -425,15 +429,23 @@ export const submitMegaTestResult = async (
     const leaderboard = leaderboardSnapshot.docs.map(doc => doc.data() as MegaTestLeaderboardEntry);
     
     // Add new result
-    leaderboard.push({
+    const newEntry = {
       userId,
       score,
       rank: 0,
-      submittedAt: serverTimestamp() as Timestamp
-    });
+      submittedAt: serverTimestamp() as Timestamp,
+      completionTime
+    };
+    leaderboard.push(newEntry);
     
-    // Sort by score and update ranks
-    leaderboard.sort((a, b) => b.score - a.score);
+    // Sort by score (descending) and then by completion time (ascending)
+    leaderboard.sort((a, b) => {
+      if (a.score !== b.score) {
+        return b.score - a.score; // Higher score first
+      }
+      // If scores are equal, faster completion gets higher rank
+      return a.completionTime - b.completionTime;
+    });
     
     // Update all leaderboard entries with new ranks
     const batch = writeBatch(db);

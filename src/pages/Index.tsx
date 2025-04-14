@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "../components/mode-toggle";
 import { logoutUser } from '../services/firebase/auth';
-import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard } from 'lucide-react';
+import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import MegaTestLeaderboard from "../components/MegaTestLeaderboard";
@@ -176,8 +176,13 @@ const Home = () => {
             <nav className="flex items-center space-x-2 lg:space-x-4">
               {isAuthenticated ? (
                 <>
-                  <Link to="/profile" className="text-sm font-medium hover:underline">
+                  <Link to="/profile" className="text-sm font-medium hover:underline flex items-center">
+                    <User className="h-4 w-4 mr-1" />
                     Profile
+                  </Link>
+                  <Link to="/guide" className="text-sm font-medium hover:underline flex items-center">
+                    <Book className="h-4 w-4 mr-1" />
+                    Guide
                   </Link>
                   {(isAdmin || isCustomAdmin) && (
                     <Link to="/admin" className="text-sm font-medium hover:underline flex items-center">
