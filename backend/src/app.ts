@@ -4,8 +4,13 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes';
+import { authLimiter, apiLimiter, adminLimiter } from './middleware/rateLimit';
+import { securityHeaders } from './middleware/securityHeaders';
 
 const app = express();
+
+// Apply security headers
+securityHeaders.forEach(middleware => app.use(middleware));
 
 // Configure CORS with specific options
 app.use(cors({
@@ -16,6 +21,11 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Apply rate limiting
+app.use('/api/auth', authLimiter); // Stricter limits for auth routes
+app.use('/api/admin', adminLimiter); // Admin-specific limits
+app.use('/api', apiLimiter); // General API limits
 
 // Routes
 app.use('/api/auth', authRoutes);

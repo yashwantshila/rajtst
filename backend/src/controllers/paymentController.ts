@@ -119,22 +119,45 @@ export const verifyPayment = async (req: Request, res: Response) => {
     if (expectedSignature === razorpay_signature) {
       console.log('Payment signature verified successfully');
       
-      // Payment is successful, update user's balance
-      const balanceRef = db.collection('balance').doc(userId);
-      const balanceDoc = await balanceRef.get();
-      
-      if (!balanceDoc.exists) {
-        console.log('User balance not found for userId:', userId);
-        return res.status(404).json({ error: 'User balance not found' });
-      }
+      // Use transaction to ensure data consistency when updating balance
+      const newBalance = await db.runTransaction(async (transaction) => {
+        const balanceRef = db.collection('balance').doc(userId);
+        const balanceDoc = await transaction.get(balanceRef);
+        
+        if (!balanceDoc.exists) {
+          // Create a new balance document if it doesn't exist
+          const initialBalance = Number(amount);
+          
+          transaction.set(balanceRef, {
+            amount: initialBalance,
+            currency: 'INR',
+            lastUpdated: new Date().toISOString()
+          });
+          
+          return initialBalance;
+        } else {
+          // Update existing balance
+          const currentBalance = balanceDoc.data()?.amount || 0;
+          const updatedBalance = currentBalance + Number(amount);
+          
+          transaction.update(balanceRef, {
+            amount: updatedBalance,
+            lastUpdated: new Date().toISOString()
+          });
+          
+          return updatedBalance;
+        }
+      });
 
-      const currentBalance = balanceDoc.data()?.amount || 0;
-      const newBalance = currentBalance + amount;
-
-      console.log('Updating user balance:', { userId, currentBalance, amount, newBalance });
-      await balanceRef.update({
-        amount: newBalance,
-        lastUpdated: new Date().toISOString()
+      // Save payment record to database
+      await db.collection('payments').add({
+        userId,
+        orderId: razorpay_order_id,
+        paymentId: razorpay_payment_id,
+        amount: Number(amount),
+        currency: 'INR',
+        status: 'completed',
+        timestamp: new Date().toISOString()
       });
 
       res.json({

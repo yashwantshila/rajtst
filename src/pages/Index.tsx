@@ -12,11 +12,17 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "../components/mode-toggle";
 import { logoutUser } from '../services/firebase/auth';
-import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User } from 'lucide-react';
+import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User, Menu } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import MegaTestLeaderboard from "../components/MegaTestLeaderboard";
 import MegaTestPrizes from "../components/MegaTestPrizes";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "../components/ui/dropdown-menu";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -173,7 +179,8 @@ const Home = () => {
             <span className="font-bold">RajTest</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <nav className="flex items-center space-x-2 lg:space-x-4">
+            {/* Desktop navigation */}
+            <nav className="hidden md:flex items-center space-x-4">
               {isAuthenticated ? (
                 <>
                   <Link to="/profile" className="text-sm font-medium hover:underline flex items-center">
@@ -206,6 +213,53 @@ const Home = () => {
                 </Link>
               )}
             </nav>
+            
+            {/* Mobile navigation */}
+            <div className="md:hidden flex items-center">
+              {isAuthenticated ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/guide" className="flex items-center">
+                        <Book className="h-4 w-4 mr-2" />
+                        Guide
+                      </Link>
+                    </DropdownMenuItem>
+                    {(isAdmin || isCustomAdmin) && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center">
+                          <ShieldAlert className="h-4 w-4 mr-2 text-amber-500" />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Link to="/auth" className="text-sm font-medium hover:underline">
+                  Sign In
+                </Link>
+              )}
+            </div>
+            
             <ModeToggle />
           </div>
         </div>
@@ -320,7 +374,7 @@ const Home = () => {
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold mb-4">Quiz Categories</h2>
+              <h2 className="text-2xl font-bold mb-4">FREE BUT PREMIUM QUIZZES</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {quizCategories && quizCategories.length > 0 ? (
                   quizCategories.map((category, index) => (
@@ -353,19 +407,19 @@ const Home = () => {
 
       <footer className="py-6 border-t mt-auto">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <div className="flex items-center justify-center space-x-4">
-            <p className="text-sm">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+            <p className="text-sm w-full mb-2 sm:mb-0 sm:w-auto">
               &copy; {new Date().getFullYear()} RajTest. All rights reserved.
             </p>
-            <span className="text-sm">•</span>
+            <span className="hidden sm:inline text-sm">•</span>
             <Link to="/privacy-policy" className="text-sm hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
-            <span className="text-sm">•</span>
+            <span className="hidden sm:inline text-sm">•</span>
             <Link to="/terms-and-conditions" className="text-sm hover:text-foreground transition-colors">
               Terms & Conditions
             </Link>
-            <span className="text-sm">•</span>
+            <span className="hidden sm:inline text-sm">•</span>
             <Link to="/about-us" className="text-sm hover:text-foreground transition-colors">
               About Us
             </Link>
