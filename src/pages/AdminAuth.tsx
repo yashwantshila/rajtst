@@ -1,25 +1,32 @@
-
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminAuthForm from '../components/AdminAuthForm';
+import { useSessionTimeout } from '../hooks/useSessionTimeout';
 
 const AdminAuth = () => {
   const navigate = useNavigate();
   
-  useEffect(() => {
-    // Check if admin is already logged in
+  // Check if admin is already logged in
+  const isAdminAuthenticated = () => {
     const adminAuth = localStorage.getItem('adminAuth');
     if (adminAuth) {
       try {
         const parsedAuth = JSON.parse(adminAuth);
-        // Check if the admin session exists and is valid
-        if (parsedAuth && parsedAuth.isAdmin) {
-          navigate('/admin');
-        }
+        return parsedAuth && parsedAuth.isAdmin;
       } catch (error) {
-        // Invalid session data, remove it
         localStorage.removeItem('adminAuth');
+        return false;
       }
+    }
+    return false;
+  };
+
+  // Use the session timeout hook
+  useSessionTimeout(isAdminAuthenticated());
+  
+  useEffect(() => {
+    if (isAdminAuthenticated()) {
+      navigate('/admin');
     }
   }, [navigate]);
   

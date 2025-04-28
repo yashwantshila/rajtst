@@ -23,6 +23,8 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "../components/ui/dropdown-menu";
+import { SessionTimer } from '../components/SessionTimer';
+import { useSessionTimeout } from '../hooks/useSessionTimeout';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -159,6 +161,8 @@ const Home = () => {
     }
   };
 
+  const { resetTimeout } = useSessionTimeout(!!user);
+
   if (isLoadingCategories || isLoadingMegaTests || isLoadingRegistrations || isLoadingSubmissions) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -197,6 +201,7 @@ const Home = () => {
                       Admin
                     </Link>
                   )}
+                  <SessionTimer isAuthenticated={isAuthenticated} onReset={resetTimeout} />
                   <Button 
                     variant="ghost" 
                     size="sm" 

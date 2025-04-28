@@ -14,6 +14,7 @@ import { useAuth } from '../App';
 import MegaTestLeaderboard from '../components/MegaTestLeaderboard';
 import { format } from 'date-fns';
 import MegaTestPrizes from '../components/MegaTestPrizes';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const MegaTest = () => {
   const { megaTestId } = useParams();
@@ -29,6 +30,43 @@ const MegaTest = () => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [timerActive, setTimerActive] = useState(false);
   const [startTime, setStartTime] = useState<number>(0);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+
+  // Load saved quiz state from localStorage
+  useEffect(() => {
+    if (megaTestId && user) {
+      const savedState = localStorage.getItem(`megaTest_${megaTestId}_${user.uid}`);
+      if (savedState) {
+        const { currentQuestionIndex: savedIndex, selectedAnswers: savedAnswers, skippedQuestions: savedSkipped, isStarted, startTime: savedStartTime } = JSON.parse(savedState);
+        setCurrentQuestionIndex(savedIndex);
+        setSelectedAnswers(savedAnswers);
+        setSkippedQuestions(new Set(savedSkipped));
+        setIsQuizStarted(isStarted);
+        setStartTime(savedStartTime);
+      }
+    }
+  }, [megaTestId, user]);
+
+  // Save quiz state to localStorage
+  useEffect(() => {
+    if (megaTestId && user && isQuizStarted) {
+      const stateToSave = {
+        currentQuestionIndex,
+        selectedAnswers,
+        skippedQuestions: Array.from(skippedQuestions),
+        isStarted: isQuizStarted,
+        startTime
+      };
+      localStorage.setItem(`megaTest_${megaTestId}_${user.uid}`, JSON.stringify(stateToSave));
+    }
+  }, [megaTestId, user, currentQuestionIndex, selectedAnswers, skippedQuestions, isQuizStarted, startTime]);
+
+  // Clear saved state when quiz is submitted
+  useEffect(() => {
+    if (isSubmitted && megaTestId && user) {
+      localStorage.removeItem(`megaTest_${megaTestId}_${user.uid}`);
+    }
+  }, [isSubmitted, megaTestId, user]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['mega-test', megaTestId],
@@ -59,10 +97,17 @@ const MegaTest = () => {
   useEffect(() => {
     if (isQuizStarted && megaTest && !timerActive) {
       const timeLimitInSeconds = megaTest.timeLimit * 60;
-      setTimeLeft(timeLimitInSeconds);
+      if (startTime) {
+        // Calculate remaining time based on startTime
+        const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+        const remainingTime = Math.max(0, timeLimitInSeconds - elapsedSeconds);
+        setTimeLeft(remainingTime);
+      } else {
+        setTimeLeft(timeLimitInSeconds);
+      }
       setTimerActive(true);
     }
-  }, [isQuizStarted, megaTest, timerActive]);
+  }, [isQuizStarted, megaTest, timerActive, startTime]);
 
   // Timer countdown
   useEffect(() => {
@@ -160,6 +205,10 @@ const MegaTest = () => {
   };
 
   const startQuiz = () => {
+    if (isQuizStarted) {
+      toast.error('You have already started this quiz');
+      return;
+    }
     setIsQuizStarted(true);
     setStartTime(Date.now());
   };
@@ -167,6 +216,19 @@ const MegaTest = () => {
   const currentQuestion = questions[currentQuestionIndex];
   const totalAnswered = Object.keys(selectedAnswers).length;
   const totalSkipped = skippedQuestions.size;
+
+  const handleBackClick = () => {
+    if (isSubmitted || !isQuizStarted) {
+      navigate('/');
+    } else {
+      setShowExitDialog(true);
+    }
+  };
+
+  const handleExitConfirm = () => {
+    handleSubmit();
+    navigate('/');
+  };
 
   if (isLoading) {
     return (
@@ -197,7 +259,7 @@ const MegaTest = () => {
         <div className="mb-6 flex justify-between items-center">
           <Button
             variant="ghost"
-            onClick={() => navigate('/')}
+            onClick={handleBackClick}
             className="hover:bg-background/60"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -216,6 +278,23 @@ const MegaTest = () => {
             </div>
           </div>
         </div>
+
+        <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Exit Mega Test?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to exit the mega test? Your current progress will be submitted automatically.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>No, Continue Test</AlertDialogCancel>
+              <AlertDialogAction onClick={handleExitConfirm}>
+                Yes, Exit Test
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         <div className="max-w-3xl mx-auto">
           <div className="mb-6">
@@ -380,66 +459,60 @@ const MegaTest = () => {
         Back to Home
       </Button>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>{megaTest.title}</CardTitle>
-              <CardDescription>{megaTest.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    {format(megaTest.testStartTime.toDate(), 'PPP p')} - {format(megaTest.testEndTime.toDate(), 'PPP p')}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">
-                    Entry Fee: ₹{megaTest.entryFee}
-                  </span>
-                </div>
+      <div className="max-w-2xl mx-auto">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>{megaTest.title}</CardTitle>
+            <CardDescription>{megaTest.description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  {format(megaTest.testStartTime.toDate(), 'PPP p')} - {format(megaTest.testEndTime.toDate(), 'PPP p')}
+                </span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">
+                  Entry Fee: ₹{megaTest.entryFee}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-amber-500" />
-                Prizes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MegaTestPrizes megaTestId={megaTest.id} />
-            </CardContent>
-          </Card>
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-amber-500" />
+              Prizes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MegaTestPrizes megaTestId={megaTest.id} />
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Test Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p>This mega test contains {questions.length} questions.</p>
-                <p>You will have {megaTest?.timeLimit || 60} minutes to complete the test.</p>
-                <p>You can skip questions and come back to them later.</p>
-                <p>Once you submit or time runs out, you cannot change your answers.</p>
-              </div>
-              <div className="mt-6">
-                <Button size="lg" className="w-full" onClick={startQuiz}>
-                  Start Test
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <div className="md:col-span-1">
-          <MegaTestLeaderboard megaTestId={megaTestId!} />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Test Information</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p>This mega test contains {questions.length} questions.</p>
+              <p>You will have {megaTest?.timeLimit || 60} minutes to complete the test.</p>
+              <p>You can skip questions and come back to them later.</p>
+              <p>Once you submit or time runs out, you cannot change your answers.</p>
+            </div>
+            <div className="mt-6">
+              <Button size="lg" className="w-full" onClick={startQuiz}>
+                Start Test
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const Quiz = () => {
   const { categoryId, quizId } = useParams();
@@ -19,6 +20,7 @@ const Quiz = () => {
   const [skippedQuestions, setSkippedQuestions] = useState<Set<string>>(new Set());
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState(0);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const { data: quiz, isLoading } = useQuery({
     queryKey: ['quiz', quizId],
@@ -101,6 +103,19 @@ const Quiz = () => {
     }
   };
 
+  const handleBackClick = () => {
+    if (isSubmitted) {
+      navigate(`/category/${categoryId}`);
+    } else {
+      setShowExitDialog(true);
+    }
+  };
+
+  const handleExitConfirm = () => {
+    handleSubmit();
+    navigate(`/category/${categoryId}`);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted py-8">
       <div className="container max-w-3xl mx-auto px-4">
@@ -108,12 +123,29 @@ const Quiz = () => {
           <Button
             variant="ghost"
             className="mb-4 hover:bg-background/60"
-            onClick={() => navigate(`/category/${categoryId}`)}
+            onClick={handleBackClick}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Category
           </Button>
         </div>
+
+        <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Exit Quiz?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to exit the quiz? Your current progress will be submitted automatically.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>No, Continue Quiz</AlertDialogCancel>
+              <AlertDialogAction onClick={handleExitConfirm}>
+                Yes, Exit Quiz
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
