@@ -1,4 +1,4 @@
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile, onIdTokenChanged } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { app, db } from '../firebase/config';
 
@@ -15,11 +15,53 @@ interface LoginResponse {
 
 interface RegisterResponse extends LoginResponse {}
 
+// Token refresh interval (in milliseconds)
+const TOKEN_REFRESH_INTERVAL = 55 * 60 * 1000; // 55 minutes
+
+// Function to start token refresh interval
+const startTokenRefresh = () => {
+  const auth = getAuth(app);
+  const user = auth.currentUser;
+  
+  if (user) {
+    // Refresh token immediately
+    user.getIdToken(true);
+    
+    // Set up interval to refresh token
+    setInterval(async () => {
+      try {
+        await user.getIdToken(true);
+        console.log('Token refreshed successfully');
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+      }
+    }, TOKEN_REFRESH_INTERVAL);
+  }
+};
+
+// Function to stop token refresh interval
+export const stopTokenRefresh = () => {
+  // Implementation needed
+};
+
+// Set up token refresh listener
+const auth = getAuth(app);
+onIdTokenChanged(auth, (user) => {
+  if (user) {
+    startTokenRefresh();
+  } else {
+    stopTokenRefresh();
+  }
+});
+
 export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
   try {
     const auth = getAuth(app);
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
+    
+    // Get fresh token
+    const token = await user.getIdToken(true);
     
     // Store user data in localStorage
     localStorage.setItem('user', JSON.stringify({
@@ -28,8 +70,11 @@ export const loginUser = async (email: string, password: string): Promise<LoginR
       username: user.displayName || '',
     }));
     
+    // Start token refresh interval
+    startTokenRefresh();
+    
     return {
-      token: await user.getIdToken(),
+      token,
       user: {
         id: user.uid,
         email: user.email,
@@ -117,10 +162,16 @@ export const resetPassword = async (email: string): Promise<void> => {
   await sendPasswordResetEmail(auth, email);
 };
 
-export const logoutUser = async (): Promise<void> => {
-  const auth = getAuth(app);
-  await signOut(auth);
-  localStorage.removeItem('user');
+export const logoutUser = async () => {
+  try {
+    const auth = getAuth(app);
+    await signOut(auth);
+    localStorage.removeItem('user');
+    stopTokenRefresh();
+  } catch (error) {
+    console.error('Error logging out:', error);
+    throw error;
+  }
 };
 
 export const getCurrentUser = (): { id: string; email: string; username: string } | null => {
@@ -132,8 +183,18 @@ export const getCurrentUser = (): { id: string; email: string; username: string 
 export const getAuthToken = async (): Promise<string> => {
   const auth = getAuth(app);
   const user = auth.currentUser;
+  
   if (!user) {
+    console.error('No authenticated user found');
     throw new Error('No authenticated user');
   }
-  return await user.getIdToken();
+  
+  try {
+    // Force refresh the token to ensure it's valid
+    const token = await user.getIdToken(true);
+    return token;
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    throw new Error('Failed to get authentication token');
+  }
 }; 

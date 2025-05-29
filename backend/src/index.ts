@@ -10,10 +10,17 @@ import './config/firebase.js';
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = parseInt(process.env.PORT || '8080', 10);
 
 // Middleware
-app.use(cors());
+// Configure CORS with specific options
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'https://raj-test-75qulz.web.app',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-rtb-fingerprint-id'],
+  credentials: true,
+  maxAge: 86400 // 24 hours
+}));
 app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
@@ -34,6 +41,8 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 // Start server
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
+  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Health check endpoint: /health');
 }); 

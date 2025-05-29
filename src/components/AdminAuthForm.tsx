@@ -2,11 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SanitizedInput } from '@/components/ui/sanitized-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { loginAdmin } from '@/services/api/adminAuth';
 
 const AdminAuthForm = () => {
   const navigate = useNavigate();
@@ -16,35 +16,29 @@ const AdminAuthForm = () => {
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email format and domain (gmail.com only)
+    const emailRegex = /^[^\s@]+@gmail\.com$/i;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid Gmail address (only gmail.com domain is allowed)');
+      return;
+    }
+    
+    // Validate password length
+    if (password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${API_URL}/auth/admin/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        // Set admin session in localStorage
-        localStorage.setItem('adminAuth', JSON.stringify({
-          email: data.email,
-          isAdmin: true,
-          token: data.token,
-          loginTime: new Date().toISOString()
-        }));
-        
-        toast.success('Admin login successful');
-        navigate('/admin');
-      } else {
-        toast.error(data.error || 'Invalid admin credentials');
-      }
+      await loginAdmin(email, password);
+      toast.success('Admin login successful');
+      navigate('/admin');
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to login as admin');
+      // Show user-friendly error message without logging to console
+      toast.error(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -62,13 +56,14 @@ const AdminAuthForm = () => {
           <CardContent className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label htmlFor="admin-email">Email</Label>
-              <Input
+              <SanitizedInput
                 id="admin-email"
                 type="email"
                 placeholder="admin@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={setEmail}
                 required
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">
@@ -80,6 +75,7 @@ const AdminAuthForm = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
               />
             </div>
           </CardContent>

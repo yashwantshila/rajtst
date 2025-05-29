@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { loginUser, registerUser, resetPassword } from '../services/api/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { SanitizedInput } from '@/components/ui/sanitized-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -25,13 +26,38 @@ const AuthForm = () => {
   const [registerPassword, setRegisterPassword] = useState('');
   const [registerUsername, setRegisterUsername] = useState('');
 
+  // Common passwords to check against
+  const commonPasswords = [
+    'password', '123456', 'qwerty', 'admin', 'welcome',
+    'letmein', 'monkey', 'dragon', 'baseball', 'football'
+  ];
+
+  const validatePassword = (password: string): { isValid: boolean; message: string } => {
+    // Check minimum length
+    if (password.length < 6) {
+      return { isValid: false, message: 'Password must be at least 6 characters long' };
+    }
+
+    // Check for at least one number
+    if (!/[0-9]/.test(password)) {
+      return { isValid: false, message: 'Password must contain at least one number' };
+    }
+
+    // Check for common passwords
+    if (commonPasswords.includes(password.toLowerCase())) {
+      return { isValid: false, message: 'Password is too common. Please choose a stronger password' };
+    }
+
+    return { isValid: true, message: 'Password is valid' };
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Validate email format and domain (gmail.com only)
+    const emailRegex = /^[^\s@]+@gmail\.com$/i;
     if (!emailRegex.test(loginEmail)) {
-      toast.error('Please enter a valid email address');
+      toast.error('Please enter a valid Gmail address (only gmail.com domain is allowed)');
       return;
     }
     
@@ -58,16 +84,17 @@ const AuthForm = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Validate email format and domain (gmail.com only)
+    const emailRegex = /^[^\s@]+@gmail\.com$/i;
     if (!emailRegex.test(registerEmail)) {
-      toast.error('Please enter a valid email address');
+      toast.error('Please enter a valid Gmail address (only gmail.com domain is allowed)');
       return;
     }
     
-    // Validate password length
-    if (registerPassword.length < 6) {
-      toast.error('Password must be at least 6 characters long');
+    // Validate password
+    const passwordValidation = validatePassword(registerPassword);
+    if (!passwordValidation.isValid) {
+      toast.error(passwordValidation.message);
       return;
     }
     
@@ -93,6 +120,14 @@ const AuthForm = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate email format and domain (gmail.com only)
+    const emailRegex = /^[^\s@]+@gmail\.com$/i;
+    if (!emailRegex.test(resetEmail)) {
+      toast.error('Please enter a valid Gmail address (only gmail.com domain is allowed)');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -118,12 +153,12 @@ const AuthForm = () => {
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label htmlFor="reset-email">Email</Label>
-                <Input
+                <SanitizedInput
                   id="reset-email"
                   type="email"
                   placeholder="name@example.com"
                   value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
+                  onChange={setResetEmail}
                   required
                 />
               </div>
@@ -166,12 +201,12 @@ const AuthForm = () => {
               <CardContent className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-email">Email</Label>
-                  <Input
+                  <SanitizedInput
                     id="login-email"
                     type="email"
                     placeholder="name@example.com"
                     value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
+                    onChange={setLoginEmail}
                     required
                   />
                 </div>
@@ -211,22 +246,22 @@ const AuthForm = () => {
               <CardContent className="space-y-4 pt-4">
                 <div className="space-y-2">
                   <Label htmlFor="register-username">Username</Label>
-                  <Input
+                  <SanitizedInput
                     id="register-username"
                     placeholder="johndoe"
                     value={registerUsername}
-                    onChange={(e) => setRegisterUsername(e.target.value)}
+                    onChange={setRegisterUsername}
                     required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="register-email">Email</Label>
-                  <Input
+                  <SanitizedInput
                     id="register-email"
                     type="email"
                     placeholder="name@example.com"
                     value={registerEmail}
-                    onChange={(e) => setRegisterEmail(e.target.value)}
+                    onChange={setRegisterEmail}
                     required
                   />
                 </div>
@@ -240,6 +275,17 @@ const AuthForm = () => {
                     onChange={(e) => setRegisterPassword(e.target.value)}
                     required
                   />
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium mb-1">Password Requirements:</p>
+                    <ul className="list-disc list-inside space-y-1">
+                      <li className={registerPassword.length >= 6 ? 'text-green-500' : 'text-red-500'}>
+                        At least 6 characters long
+                      </li>
+                      <li className={/[0-9]/.test(registerPassword) ? 'text-green-500' : 'text-red-500'}>
+                        At least one number
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </CardContent>
               

@@ -8,127 +8,172 @@ service cloud.firestore {
     
     function isAdmin() {
       return isAuthenticated() && 
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+        (request.auth.token.role == 'admin' || 
+         exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
     }
     
-    function isValidMegaTestRegistration(megaTestId, userId) {
-      return isAuthenticated() &&
-        userId == request.auth.uid &&
-        exists(/databases/$(database)/documents/mega-tests/$(megaTestId)) &&
-        get(/databases/$(database)/documents/mega-tests/$(megaTestId)).data.status == 'registration';
+    function isCurrentUser(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Admin collection rules
-    match /admins/{adminId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
+    function isUserVerified() {
+      return isAuthenticated() && request.auth.token.email_verified == true;
     }
     
-    // Content collection rules
-    match /content/{documentId} {
-      allow read: if true;  // Anyone can read content
-      allow write: if isAdmin();  // Only admins can write content
+    function hasUserDocument() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
     
-    // User collection rules
+    // Debug logging function
+    function debug(message) {
+      return true;
+    }
+    
+    // Resource validation functions
+    function isValidUserData(data) {
+      return data.email is string && 
+             data.email.matches('^[^@]+@gmail\\.com$') && 
+             data.username is string && 
+             data.username.size() >= 3 &&
+             data.createdAt is string;
+    }
+    
+    
+    function isValidWithdrawal(data) {
+      return data.userId is string && 
+             data.userId == request.auth.uid &&
+             data.amount is number && 
+             data.amount >= 50 && 
+             data.upiId is string && 
+             data.upiId.size() >= 5 &&
+             data.status is string &&
+             ['pending', 'completed', 'rejected'].hasAny([data.status]) &&
+             data.requestDate is string;
+    }
+    
+    function isValidQuizResult(data) {
+      return data.userId is string && 
+             data.userId == request.auth.uid &&
+             data.score is number && 
+             data.score >= 0 &&
+             data.totalQuestions is number && 
+             data.totalQuestions > 0 &&
+             data.completedAt is string;
+    }
+    
+    // Rate limiting functions
+    function notTooManyRequests() {
+      return request.time > resource.data.lastWithdrawalRequest + duration.value(24, 'h') ||
+        !('lastWithdrawalRequest' in resource.data);
+    }
+    
+    // Users collection rules
     match /users/{userId} {
-      allow read: if isAuthenticated() && 
-        (userId == request.auth.uid || isAdmin());
-      allow write: if isAuthenticated() && 
-        userId == request.auth.uid;
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
     
     // Balance collection rules
     match /balance/{userId} {
-      allow read: if isAuthenticated() && 
-        (userId == request.auth.uid || isAdmin());
-      allow write: if isAuthenticated() && 
-        (userId == request.auth.uid || 
-         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['amount', 'lastUpdated']) && 
-          isValidMegaTestRegistration(request.resource.data.megaTestId, userId)));
-    }
-    
-    // Withdrawal collection rules
-    match /withdrawals/{withdrawalId} {
-      allow read: if isAuthenticated() && 
-        ((resource.data.userId == request.auth.uid) || isAdmin());
-      allow create: if isAuthenticated() && 
-        request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin();
-      allow list: if isAuthenticated();
-    }
-    
-    // Quiz categories can be read by all authenticated users
-    match /quiz-categories/{categoryId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    
-    // Quizzes can be read by all authenticated users
-    match /quizzes/{quizId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    
-    // Questions can be read by authenticated users
-    match /questions/{questionId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-    
-    // User quiz attempts should only be readable/writable by the user who took the quiz or admins
-    match /quiz-attempts/{attemptId} {
-      allow create: if isAuthenticated();
-      allow read, update, delete: if isAuthenticated() && 
-        (request.auth.uid == resource.data.userId || isAdmin());
-    }
-
-    // Mega Tests collection rules
-    match /mega-tests/{megaTestId} {
-      // Anyone can read mega tests
       allow read: if true;
-      
-      // Only admins can create/update/delete mega tests
+      allow write: if isAuthenticated();
+    }
+    
+    // Withdrawals collection rules
+    match /withdrawals/{withdrawalId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Quiz categories
+    match /quiz-categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Quizzes
+    match /quizzes/{quizId} {
+      allow read: if true;
       allow write: if isAdmin();
       
-      // Questions subcollection
+      // Quiz questions
       match /questions/{questionId} {
-        allow read: if isAuthenticated();
+        allow read: if true;
         allow write: if isAdmin();
       }
       
-      // Participants subcollection
-      match /participants/{userId} {
-        allow read: if isAuthenticated();
-        allow create: if isValidMegaTestRegistration(megaTestId, userId);
+      // Quiz results
+      match /results/{resultId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+    
+    // Mega tests
+    match /mega-tests/{megaTestId} {
+      allow read: if true;
+      allow write: if isAdmin();
+      
+      // Mega test questions
+      match /questions/{questionId} {
+        allow read: if true;
+        allow write: if isAdmin();
       }
       
-      // Leaderboard subcollection - anyone can read
-      match /leaderboard/{userId} {
-        allow read: if true;
-        allow create, update: if isAuthenticated() && 
-          userId == request.auth.uid &&
-          exists(/databases/$(database)/documents/mega-tests/$(megaTestId)) &&
-          get(/databases/$(database)/documents/mega-tests/$(megaTestId)).data.status == 'ongoing' &&
-          exists(/databases/$(database)/documents/mega-tests/$(megaTestId)/participants/$(request.auth.uid)) &&
-          !exists(/databases/$(database)/documents/mega-tests/$(megaTestId)/leaderboard/$(request.auth.uid));
+      // Mega test participants
+      match /participants/{userId} {
+        allow read, write: if isAuthenticated();
       }
-
-      // Prizes subcollection - anyone can read, only admins can write
+      
+      // Mega test results
+      match /results/{resultId} {
+        allow read, write: if isAuthenticated();
+      }
+      
+      // Mega test leaderboard
+      match /leaderboard/{userId} {
+        allow read, write: if isAuthenticated();
+      }
+      
+      // Mega test prize-claims
+      match /prize-claims/{claimId} {
+        allow read, write: if isAuthenticated();
+      }
+      
+      // Mega test prizes
       match /prizes/{prizeId} {
         allow read: if true;
         allow write: if isAdmin();
       }
+    }
+    
+    // Prize collection
+    match /prizes/{prizeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Submissions collection 
+    match /submissions/{submissionId} {
+      allow read, write: if isAuthenticated();
+    }
 
-      // Prize claims subcollection
-      match /prize-claims/{claimId} {
-        allow read: if isAuthenticated() && 
-          (request.auth.uid == resource.data.userId || isAdmin());
-        allow create: if isAuthenticated() && 
-          exists(/databases/$(database)/documents/mega-tests/$(megaTestId)) &&
-          get(/databases/$(database)/documents/mega-tests/$(megaTestId)).data.status == 'completed';
-        allow update, delete: if isAdmin();
-      }
+    // Question Paper Categories
+    match /questionPaperCategories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Question Papers
+    match /questionPapers/{paperId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Default - restrict both read and write
+    match /{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }

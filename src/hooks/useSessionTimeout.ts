@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutUser } from '../services/firebase/auth';
 
-const SESSION_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 export const useSessionTimeout = (isAuthenticated: boolean) => {
   const navigate = useNavigate();

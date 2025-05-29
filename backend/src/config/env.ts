@@ -39,13 +39,18 @@ const envSchema = z.object({
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('900000'),
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+
+  // Cookie Configuration
+  COOKIE_SECRET: z.string().min(32),
+  COOKIE_DOMAIN: z.string().url(),
+  FRONTEND_URL: z.string().url(),
 });
 
 // Validate environment variables
 const validateEnv = () => {
   try {
     return envSchema.parse(process.env);
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       console.error('❌ Invalid environment variables:', error.errors);
       process.exit(1);
@@ -67,4 +72,9 @@ export const isProduction = () => env.NODE_ENV === 'production';
 export const isDevelopment = () => env.NODE_ENV === 'development';
 
 // Helper function to check if in test
-export const isTest = () => env.NODE_ENV === 'test'; 
+export const isTest = () => env.NODE_ENV === 'test';
+
+// Export additional environment variables
+export const cookieSecret = env.COOKIE_SECRET || 'your-secret-key';
+export const cookieDomain = env.COOKIE_DOMAIN;
+export const frontendUrl = env.FRONTEND_URL || 'http://localhost:5173'; 

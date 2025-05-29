@@ -1,4 +1,13 @@
-import { getUserBalance as getBalanceFromApi, updateUserBalance as updateBalanceFromApi, UserBalance } from '../api/balance';
+import { getUserBalance as getBalanceFromApi, updateUserBalance as updateBalanceFromApi } from '../api/balance';
+
+// Define the UserBalance interface here since it's not exported from the API
+export interface UserBalance {
+  amount: number;
+  currency: string;
+  lastUpdated: string;
+  error?: boolean;
+  errorMessage?: string;
+}
 
 // Function to check if the balance collection exists in Firestore
 export const checkBalanceCollectionExists = async (): Promise<boolean> => {
@@ -11,8 +20,6 @@ export const checkBalanceCollectionExists = async (): Promise<boolean> => {
     return false;
   }
 };
-
-export { UserBalance };
 
 export const getUserBalance = async (userId: string): Promise<UserBalance> => {
   return getBalanceFromApi(userId);

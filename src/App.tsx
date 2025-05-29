@@ -19,9 +19,19 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsAndConditions from './pages/TermsAndConditions';
 import AboutUs from './pages/AboutUs';
 import Guide from './pages/Guide';
+import MegaTestPrizesPage from './pages/MegaTestPrizes';
+import QuestionPapers from './pages/QuestionPapers';
+import QuestionPaperCategory from './pages/QuestionPaperCategory';
+import AdminQuestionPaperCategories from './pages/admin/QuestionPaperCategories';
+import AdminQuestionPapers from './pages/admin/QuestionPapers';
+import PaidContent from './pages/PaidContent';
+import PaidContentManager from './pages/admin/PaidContentManager';
+import PurchasedContent from './pages/PurchasedContent';
 import { SessionTimer } from './components/SessionTimer';
 import { Button } from './components/ui/button';
 import { User as UserIcon, Book, LogOut } from 'lucide-react';
+import { api } from './api/config';
+import ProtectedRoute from './components/ProtectedRoute';
 
 interface AuthContextProps {
   user: User | null;
@@ -68,19 +78,93 @@ const AppContent: React.FC = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Home />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/admin" element={<Admin />} />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <Profile />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <Admin />
+        </ProtectedRoute>
+      } />
       <Route path="/admin-auth" element={<AdminAuth />} />
       <Route path="/admin/login" element={<Navigate to="/admin-auth" replace />} />
-      <Route path="/category/:categoryId" element={<CategoryQuizzes />} />
-      <Route path="/quiz/:categoryId/:quizId" element={<Quiz />} />
-      <Route path="/admin/mega-tests" element={<MegaTestManager />} />
-      <Route path="/mega-test/:megaTestId" element={<MegaTest />} />
-      <Route path="/leaderboard/:megaTestId" element={<LeaderboardPage />} />
+      <Route path="/category/:categoryId" element={
+        <ProtectedRoute>
+          <CategoryQuizzes />
+        </ProtectedRoute>
+      } />
+      <Route path="/quiz/:categoryId/:quizId" element={
+        <ProtectedRoute>
+          <Quiz />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/mega-tests" element={
+        <ProtectedRoute>
+          <MegaTestManager />
+        </ProtectedRoute>
+      } />
+      <Route path="/mega-test/:megaTestId" element={
+        <ProtectedRoute>
+          <MegaTest />
+        </ProtectedRoute>
+      } />
+      <Route path="/mega-test/:megaTestId/prizes" element={
+        <ProtectedRoute>
+          <MegaTestPrizesPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/leaderboard/:megaTestId" element={
+        <ProtectedRoute>
+          <LeaderboardPage />
+        </ProtectedRoute>
+      } />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
       <Route path="/about-us" element={<AboutUs />} />
-      <Route path="/guide" element={<Guide />} />
+      <Route path="/guide" element={
+        <ProtectedRoute>
+          <Guide />
+        </ProtectedRoute>
+      } />
+      {/* Question Paper Routes */}
+      <Route path="/question-papers" element={
+        <ProtectedRoute>
+          <QuestionPapers />
+        </ProtectedRoute>
+      } />
+      <Route path="/question-papers/:categoryId" element={
+        <ProtectedRoute>
+          <QuestionPaperCategory />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/question-paper-categories" element={
+        <ProtectedRoute>
+          <AdminQuestionPaperCategories />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/question-papers/:categoryId" element={
+        <ProtectedRoute>
+          <AdminQuestionPapers />
+        </ProtectedRoute>
+      } />
+      {/* Paid Content Routes */}
+      <Route path="/paid-content" element={
+        <ProtectedRoute>
+          <PaidContent />
+        </ProtectedRoute>
+      } />
+      <Route path="/purchased-content" element={
+        <ProtectedRoute>
+          <PurchasedContent />
+        </ProtectedRoute>
+      } />
+      <Route path="/admin/paid-content" element={
+        <ProtectedRoute>
+          <PaidContentManager />
+        </ProtectedRoute>
+      } />
     </Routes>
   );
 };
@@ -88,11 +172,20 @@ const AppContent: React.FC = () => {
 const queryClient = new QueryClient();
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // Ensure all API calls use HTTPS in production
+    if (import.meta.env.PROD) {
+      if (window.location.protocol !== 'https:') {
+        window.location.href = `https:${window.location.href.substring(window.location.protocol.length)}`;
+      }
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
-          <Toaster position="top-center" richColors />
+          <Toaster position="bottom-center" richColors />
           <AppContent />
         </Router>
       </AuthProvider>

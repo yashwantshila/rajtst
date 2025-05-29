@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getAuthToken } from './auth';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export interface UserBalance {
   amount: number;
@@ -14,7 +14,7 @@ export interface UserBalance {
 export const getUserBalance = async (userId: string): Promise<UserBalance> => {
   try {
     const token = await getAuthToken();
-    const response = await axios.get(`${API_URL}/users/balance/${userId}`, {
+    const response = await axios.get(`${API_URL}/api/users/balance/${userId}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -42,8 +42,8 @@ export const getUserBalance = async (userId: string): Promise<UserBalance> => {
 export const updateUserBalance = async (userId: string, amount: number): Promise<number> => {
   try {
     const token = await getAuthToken();
-    const response = await axios.post(
-      `${API_URL}/users/balance/update`,
+    const response = await axios.put(
+      `${API_URL}/api/users/balance`,
       { userId, amount },
       {
         headers: {

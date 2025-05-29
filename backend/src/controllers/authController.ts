@@ -5,6 +5,11 @@ export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, username } = req.body;
 
+    // Validate email domain to only allow gmail.com
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      return res.status(400).json({ error: 'Only Gmail addresses (gmail.com) are allowed to register' });
+    }
+
     // Create user in Firebase Auth
     const userRecord = await auth.createUser({
       email,
@@ -51,6 +56,11 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
+    // Validate email domain to only allow gmail.com
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      return res.status(400).json({ error: 'Only Gmail addresses (gmail.com) are allowed to login' });
+    }
+
     // Sign in with Firebase Admin SDK
     const userRecord = await auth.getUserByEmail(email);
     
@@ -83,6 +93,11 @@ export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
 
+    // Validate email domain to only allow gmail.com
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      return res.status(400).json({ error: 'Only Gmail addresses (gmail.com) are allowed to reset password' });
+    }
+
     // Generate password reset link
     const link = await auth.generatePasswordResetLink(email);
 
@@ -102,6 +117,11 @@ export const resetPassword = async (req: Request, res: Response) => {
 export const adminLogin = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
+    
+    // Validate email domain to only allow gmail.com
+    if (!email.toLowerCase().endsWith('@gmail.com')) {
+      return res.status(400).json({ error: 'Only Gmail addresses (gmail.com) are allowed to login as admin' });
+    }
     
     // Check against environment variables
     if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {

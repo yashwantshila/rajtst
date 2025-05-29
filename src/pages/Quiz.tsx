@@ -227,135 +227,124 @@ const Quiz = () => {
           </Card>
         ) : (
           <>
-            <div className="mb-6">
-              <div className="flex justify-between items-center mb-2">
-                <h1 className="text-2xl font-bold">{quiz.title}</h1>
-                <div className="text-sm text-muted-foreground">
-                  {totalAnswered} answered, {totalSkipped} skipped of {quiz.questions.length} total
+            <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+              <div className="container max-w-3xl mx-auto px-4">
+                <div className="flex justify-between items-center py-2">
+                  <Button
+                    variant="ghost"
+                    onClick={handleBackClick}
+                    className="hover:bg-background/60 px-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <div className="flex items-center gap-1.5">
+                    <div className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
+                      Q{currentQuestionIndex + 1}/{quiz.questions.length}
+                    </div>
+                    <div className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
+                      {totalAnswered}/{totalSkipped}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mb-2">
+                  <Progress 
+                    value={(currentQuestionIndex + 1) / quiz.questions.length * 100} 
+                    className="h-1" 
+                  />
                 </div>
               </div>
-              <Progress 
-                value={(currentQuestionIndex + 1) / quiz.questions.length * 100} 
-                className="h-2" 
-              />
             </div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentQuestionIndex}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card className="mb-6">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl">Question {currentQuestionIndex + 1}</CardTitle>
-                      <span className="text-sm text-muted-foreground">
-                        {currentQuestionIndex + 1} of {quiz.questions.length}
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {currentQuestion && (
-                      <>
-                        <div className="text-lg">
-                          {currentQuestion.text}
-                        </div>
-                        <div className="space-y-3">
-                          {currentQuestion.options.map((option) => (
-                            <Button
-                              key={option.id}
-                              variant={selectedAnswers[currentQuestion.id] === option.id ? "default" : "outline"}
-                              className="w-full justify-start h-auto py-4 px-4 text-left"
-                              onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="min-w-[1.5rem] h-6 flex items-center justify-center rounded-full bg-muted text-sm">
-                                  {option.id.toUpperCase()}
+            <div className="pt-[60px]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentQuestionIndex}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Card className="mb-6">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-xl">Question {currentQuestionIndex + 1}</CardTitle>
+                        <span className="text-sm text-muted-foreground">
+                          {currentQuestionIndex + 1} of {quiz.questions.length}
+                        </span>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {currentQuestion && (
+                        <>
+                          <div className="text-lg whitespace-pre-wrap font-medium">
+                            {currentQuestion.text}
+                          </div>
+                          <div className="space-y-3">
+                            {currentQuestion.options.map((option) => (
+                              <Button
+                                key={option.id}
+                                variant={selectedAnswers[currentQuestion.id] === option.id ? "default" : "outline"}
+                                className="w-full justify-start h-auto py-4 px-4 text-left"
+                                onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="min-w-[1.5rem] h-6 flex items-center justify-center rounded-full bg-muted text-sm mt-1">
+                                    {option.id.toUpperCase()}
+                                  </div>
+                                  <span className="whitespace-pre-wrap text-left">{option.text}</span>
                                 </div>
-                                <span>{option.text}</span>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </AnimatePresence>
+                              </Button>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </AnimatePresence>
 
-            <div className="flex items-center justify-between gap-4">
-              <Button
-                variant="outline"
-                onClick={handlePrevQuestion}
-                disabled={currentQuestionIndex === 0}
-                className="min-w-[100px]"
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Previous
-              </Button>
-
-              <div className="flex gap-2">
+              <div className="flex items-center justify-between gap-4">
                 <Button
-                  variant="secondary"
-                  onClick={handleSkipQuestion}
-                  disabled={isCurrentSkipped}
+                  variant="outline"
+                  onClick={handlePrevQuestion}
+                  disabled={currentQuestionIndex === 0}
                   className="min-w-[100px]"
                 >
-                  Skip
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
                 </Button>
 
-                {isLastQuestion ? (
+                <div className="flex gap-2">
                   <Button
-                    onClick={handleSubmit}
-                    disabled={!hasAnsweredAll}
+                    variant="secondary"
+                    onClick={handleSkipQuestion}
+                    disabled={isLastQuestion}
                     className="min-w-[100px]"
                   >
-                    Submit Quiz
+                    Skip
                   </Button>
-                ) : (
-                  <Button
-                    onClick={handleNextQuestion}
-                    disabled={!hasAnsweredCurrent && !isCurrentSkipped}
-                    className="min-w-[100px]"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
-                )}
+
+                  {isLastQuestion ? (
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={!hasAnsweredCurrent}
+                      className="min-w-[100px]"
+                    >
+                      Submit Quiz
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleNextQuestion}
+                      disabled={!hasAnsweredCurrent}
+                      className="min-w-[100px]"
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <div className="mt-8 grid grid-cols-5 sm:grid-cols-10 gap-2">
-              {quiz.questions.map((question, index) => {
-                const isSkipped = skippedQuestions.has(question.id);
-                const isAnswered = selectedAnswers[question.id] !== undefined;
-                let variant: "default" | "secondary" | "outline";
-                
-                if (index === currentQuestionIndex) {
-                  variant = "default";
-                } else if (isSkipped) {
-                  variant = "secondary";
-                } else if (isAnswered) {
-                  variant = "secondary";
-                } else {
-                  variant = "outline";
-                }
-
-                return (
-                  <Button
-                    key={index}
-                    variant={variant}
-                    className={`h-10 w-10 p-0 ${isSkipped ? 'border-yellow-500' : ''}`}
-                    onClick={() => setCurrentQuestionIndex(index)}
-                  >
-                    {index + 1}
-                  </Button>
-                );
-              })}
             </div>
           </>
         )}

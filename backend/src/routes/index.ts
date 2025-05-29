@@ -1,20 +1,22 @@
 import express from 'express';
-import authRoutes from './authRoutes';
-import userRoutes from './userRoutes';
-import paymentRoutes from './paymentRoutes';
-import adminRoutes from './adminRoutes';
+import authRoutes from './authRoutes.js';
+import userRoutes from './userRoutes.js';
+import paymentRoutes from './paymentRoutes.js';
+import adminRoutes from './adminRoutes.js';
 
 const router = express.Router();
 
 // Auth routes
 router.use('/auth', authRoutes);
 
-// Add other routes here
+// User routes
 router.use('/users', userRoutes);
+
+// Payment routes
 router.use('/payments', paymentRoutes);
+
+// Admin routes
 router.use('/admin', adminRoutes);
-// router.use('/quizzes', quizRoutes);
-// etc.
 
 // Health check route
 router.get('/health', (req, res) => {

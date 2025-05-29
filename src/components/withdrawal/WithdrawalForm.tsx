@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Wallet, RefreshCw } from 'lucide-react';
@@ -11,6 +10,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { SanitizedInput } from '@/components/ui/sanitized-input';
 import { Button } from '@/components/ui/button';
 import { useMutation } from '@tanstack/react-query';
 import { 
@@ -143,11 +143,11 @@ export function WithdrawalForm({
             <label htmlFor="upiId" className="block text-sm font-medium text-muted-foreground mb-1">
               UPI ID
             </label>
-            <Input
+            <SanitizedInput
               id="upiId"
               type="text"
               value={upiId}
-              onChange={(e) => setUpiId(e.target.value)}
+              onChange={setUpiId}
               placeholder="name@upi"
             />
           </div>

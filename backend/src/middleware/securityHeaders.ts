@@ -1,5 +1,6 @@
 import helmet from 'helmet';
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 
 export const securityHeaders = [
   // Basic Helmet configuration
@@ -7,18 +8,32 @@ export const securityHeaders = [
 
   // Custom security headers
   (req: Request, res: Response, next: NextFunction) => {
+    // Generate nonce for scripts
+    const nonce = crypto.randomBytes(16).toString('base64');
+    res.locals.nonce = nonce;
+
     // Content Security Policy
     res.setHeader(
       'Content-Security-Policy',
       "default-src 'self';" +
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval';" +
-      "style-src 'self' 'unsafe-inline';" +
+      `script-src 'self' 'nonce-${nonce}' 'strict-dynamic';` +
+      "style-src 'self' 'nonce-${nonce}';" +  // Using nonce for styles
       "img-src 'self' data: https:;" +
       "font-src 'self' data:;" +
       "connect-src 'self' https:;" +
       "frame-ancestors 'none';" +
-      "form-action 'self';"
+      "form-action 'self';" +
+      "object-src 'none';" +
+      "base-uri 'none';"
     );
+
+    // Cookie security headers
+    if (process.env.NODE_ENV === 'production') {
+      res.setHeader('Set-Cookie', [
+        `__Host-session=; Path=/; Secure; HttpOnly; SameSite=Strict`,
+        `__Host-csrf=; Path=/; Secure; HttpOnly; SameSite=Strict`
+      ]);
+    }
 
     // X-Content-Type-Options
     res.setHeader('X-Content-Type-Options', 'nosniff');

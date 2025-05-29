@@ -16,13 +16,9 @@ if (!razorpayKeyId || !razorpayKeySecret) {
   throw new Error('Razorpay credentials are required');
 }
 
-console.log('Initializing Razorpay with key_id:', razorpayKeyId);
-console.log('Razorpay key format check:', {
-  keyIdLength: razorpayKeyId.length,
-  keySecretLength: razorpayKeySecret.length,
-  keyIdFormat: razorpayKeyId.startsWith('rzp_') ? 'Valid' : 'Invalid',
-  keySecretFormat: razorpayKeySecret.length > 20 ? 'Valid' : 'Invalid'
-});
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Initializing Razorpay...');
+}
 
 // Initialize Razorpay with proper error handling
 let razorpay;
@@ -31,7 +27,9 @@ try {
     key_id: razorpayKeyId,
     key_secret: razorpayKeySecret
   });
-  console.log('Razorpay initialized successfully');
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Razorpay initialized successfully');
+  }
 } catch (error) {
   console.error('Error initializing Razorpay:', error);
   throw new Error('Failed to initialize Razorpay: ' + (error as Error).message);
@@ -77,10 +75,15 @@ export const createPaymentOrder = async (req: Request, res: Response) => {
         }
       }
 
+      if (!order) {
+        throw new Error('Order not found');
+      }
+
       res.json({
         orderId: order.id,
         amount: order.amount,
-        currency: order.currency
+        currency: order.currency,
+        key_id: razorpayKeyId
       });
     } catch (razorpayError: any) {
       const statusCode = razorpayError.statusCode || 500;
@@ -99,7 +102,9 @@ export const createPaymentOrder = async (req: Request, res: Response) => {
 
 export const verifyPayment = async (req: Request, res: Response) => {
   try {
-    console.log('Received payment verification request:', req.body);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Verifying payment...');
+    }
     const {
       razorpay_order_id,
       razorpay_payment_id,
@@ -115,9 +120,10 @@ export const verifyPayment = async (req: Request, res: Response) => {
       .update(body.toString())
       .digest('hex');
 
-    console.log('Verifying payment signature...');
     if (expectedSignature === razorpay_signature) {
-      console.log('Payment signature verified successfully');
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('Payment verified successfully');
+      }
       
       // Use transaction to ensure data consistency when updating balance
       const newBalance = await db.runTransaction(async (transaction) => {

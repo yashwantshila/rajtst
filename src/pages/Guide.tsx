@@ -1,16 +1,25 @@
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getGuideContent } from '../services/firebase/guide';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../services/firebase/config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { sanitizeHtml } from '@/utils/sanitize';
 
 const Guide = () => {
   const navigate = useNavigate();
-  const { data: guideContent, isLoading, error } = useQuery({
-    queryKey: ['guide-content'],
-    queryFn: getGuideContent,
+  
+  const { data: guideData, isLoading, error } = useQuery({
+    queryKey: ['guide'],
+    queryFn: async () => {
+      const docRef = doc(db, 'content', 'guide');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+      return { content: '' };
+    }
   });
 
   if (isLoading) {
@@ -51,8 +60,8 @@ const Guide = () => {
           </CardHeader>
           <CardContent>
             <div className="prose dark:prose-invert max-w-none">
-              {guideContent ? (
-                <div dangerouslySetInnerHTML={{ __html: guideContent }} />
+              {guideData?.content ? (
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(guideData.content) }} />
               ) : (
                 <p>No guide content available at the moment.</p>
               )}

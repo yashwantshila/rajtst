@@ -1,7 +1,7 @@
-
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, ShieldAlert } from 'lucide-react';
+import { AdminSessionTimer } from './AdminSessionTimer';
 
 interface AdminHeaderProps {
   onLogout: () => void;
@@ -15,9 +15,12 @@ export const AdminHeader = ({ onLogout }: AdminHeaderProps) => {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
         </Link>
-        <div className="flex items-center gap-2">
-          <ShieldAlert className="h-5 w-5 text-amber-500" />
-          <span className="font-semibold">Admin Panel</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-5 w-5 text-amber-500" />
+            <span className="font-semibold">Admin Panel</span>
+          </div>
+          <AdminSessionTimer />
         </div>
         <Button variant="outline" size="sm" onClick={onLogout}>
           Logout

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { sanitizeHtml } from '@/utils/sanitize';
 
 const PrivacyPolicy = () => {
   const { data: privacyPolicy, isLoading, error } = useQuery({
@@ -55,7 +56,7 @@ const PrivacyPolicy = () => {
           <CardContent>
             <div className="prose prose-sm max-w-none">
               {privacyPolicy?.content ? (
-                <div dangerouslySetInnerHTML={{ __html: privacyPolicy.content }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(privacyPolicy.content) }} />
               ) : (
                 <p>Privacy policy content not available.</p>
               )}

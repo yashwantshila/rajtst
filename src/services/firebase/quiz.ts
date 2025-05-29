@@ -69,25 +69,28 @@ export const deleteQuizCategory = async (id: string): Promise<boolean> => {
   }
 };
 
+// --- Quiz Interfaces and Functions ---
+
 export interface Quiz {
   id: string;
   categoryId: string;
   title: string;
   description: string;
-  questions: QuizQuestion[];
+  questions?: QuizQuestion[]; // MODIFIED: Made optional, as questions are in a subcollection
+  sequence: number;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
 
 export interface QuizQuestion {
-  id: string;
+  id: string; // This will be the Firestore document ID of the question
   text: string;
   options: QuizOption[];
   correctAnswer: string;
 }
 
 export interface QuizOption {
-  id: string;
+  id: string; // Client-side identifier for the option
   text: string;
 }
 
@@ -97,6 +100,8 @@ export const getQuizzesByCategory = async (categoryId: string): Promise<Quiz[]> 
     const q = query(quizzesRef, where('categoryId', '==', categoryId));
     const snapshot = await getDocs(q);
     
+    // MODIFIED: doc.data() will not contain 'questions'.
+    // The 'questions' field will be undefined here, aligning with 'questions?: QuizQuestion[]'.
     return snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -108,18 +113,46 @@ export const getQuizzesByCategory = async (categoryId: string): Promise<Quiz[]> 
 };
 
 export const createQuiz = async (data: Omit<Quiz, 'id' | 'createdAt' | 'updatedAt'>): Promise<Quiz | null> => {
+  const batch = writeBatch(db);
   try {
-    const quizzesRef = collection(db, 'quizzes');
-    const docRef = await addDoc(quizzesRef, {
-      ...data,
+    const inputQuestions = data.questions || [];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { questions, ...quizDetails } = data; // Separate questions from other quiz data
+
+    // Create main quiz document
+    const quizzesColRef = collection(db, 'quizzes');
+    const newQuizDocRef = doc(quizzesColRef); // Generate ID upfront for the main quiz document
+
+    batch.set(newQuizDocRef, {
+      ...quizDetails,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
     
-    const newDoc = await getDoc(docRef);
+    // Add questions to the subcollection 'quizzes/{newQuizId}/questions'
+    const questionsSubCollectionRef = collection(newQuizDocRef, 'questions');
+    inputQuestions.forEach(question => {
+      const questionDocRef = doc(questionsSubCollectionRef); // Firestore auto-ID for the question document
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { id, ...questionData } = question; // Remove client-side 'id' if present, use Firestore ID for the doc
+      batch.set(questionDocRef, questionData);
+    });
+
+    await batch.commit();
+    
+    const newQuizDocSnapshot = await getDoc(newQuizDocRef);
+    
+    // Fetch the newly created questions from subcollection to include their Firestore-generated IDs
+    const createdQuestionsSnapshot = await getDocs(questionsSubCollectionRef);
+    const fetchedQuestions = createdQuestionsSnapshot.docs.map(qDoc => ({
+      id: qDoc.id,
+      ...qDoc.data()
+    })) as QuizQuestion[];
+
     return {
-      id: newDoc.id,
-      ...newDoc.data()
+      id: newQuizDocSnapshot.id,
+      ...(newQuizDocSnapshot.data() as Omit<Quiz, 'id' | 'questions'>),
+      questions: fetchedQuestions
     } as Quiz;
   } catch (error) {
     console.error('Error creating quiz:', error);
@@ -128,12 +161,42 @@ export const createQuiz = async (data: Omit<Quiz, 'id' | 'createdAt' | 'updatedA
 };
 
 export const updateQuiz = async (id: string, data: Partial<Omit<Quiz, 'id' | 'createdAt'>>): Promise<boolean> => {
+  const batch = writeBatch(db);
   try {
     const quizRef = doc(db, 'quizzes', id);
-    await updateDoc(quizRef, {
-      ...data,
-      updatedAt: serverTimestamp()
-    });
+    const newQuestions = data.questions; // Keep a reference to the questions array from data
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { questions, ...quizDetailsToUpdate } = data; // questions is destructured here to remove it from quizDetailsToUpdate
+
+    const updatePayload: any = { ...quizDetailsToUpdate };
+    updatePayload.updatedAt = serverTimestamp(); // Always update the timestamp
+    
+    // Update main quiz document details (if any)
+    // Batch update will handle if quizDetailsToUpdate is empty (only timestamp changes)
+    batch.update(quizRef, updatePayload);
+
+    // If newQuestions array is provided (even an empty array), replace the entire subcollection
+    if (newQuestions !== undefined) {
+      const questionsSubCollectionRef = collection(quizRef, 'questions');
+      
+      // 1. Delete all existing questions in the subcollection
+      const existingQuestionsSnapshot = await getDocs(questionsSubCollectionRef);
+      existingQuestionsSnapshot.docs.forEach(docSnapshot => {
+        batch.delete(docSnapshot.ref);
+      });
+
+      // 2. Add new questions (if any)
+      if (newQuestions.length > 0) {
+        newQuestions.forEach(question => {
+          const questionDocRef = doc(questionsSubCollectionRef); // Firestore auto-ID for new questions
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { id: questionId, ...questionData } = question; // Remove client-side 'id', use Firestore ID
+          batch.set(questionDocRef, questionData);
+        });
+      }
+    }
+    
+    await batch.commit();
     return true;
   } catch (error) {
     console.error('Error updating quiz:', error);
@@ -142,9 +205,21 @@ export const updateQuiz = async (id: string, data: Partial<Omit<Quiz, 'id' | 'cr
 };
 
 export const deleteQuiz = async (id: string): Promise<boolean> => {
+  const batch = writeBatch(db);
   try {
     const quizRef = doc(db, 'quizzes', id);
-    await deleteDoc(quizRef);
+    const questionsRef = collection(quizRef, 'questions');
+
+    // Delete all documents in the 'questions' subcollection
+    const questionsSnapshot = await getDocs(questionsRef);
+    questionsSnapshot.docs.forEach(docSnapshot => {
+      batch.delete(docSnapshot.ref);
+    });
+
+    // Delete the main quiz document
+    batch.delete(quizRef);
+    
+    await batch.commit();
     return true;
   } catch (error) {
     console.error('Error deleting quiz:', error);
@@ -161,8 +236,18 @@ export const getQuizById = async (id: string): Promise<Quiz | null> => {
       return null;
     }
     
-    const quizData = quizDoc.data();
-    const allQuestions = quizData.questions || [];
+    // quizData will not have 'questions' field from the main document
+    const quizData = quizDoc.data() as Omit<Quiz, 'id' | 'questions'>; 
+    
+    // Fetch questions from the 'questions' subcollection
+    const questionsPath = `quizzes/${id}/questions`;
+    const questionsColRef = collection(db, questionsPath);
+    const questionsSnapshot = await getDocs(questionsColRef);
+    
+    const allQuestions = questionsSnapshot.docs.map(qDoc => ({
+      id: qDoc.id,
+      ...qDoc.data()
+    })) as QuizQuestion[];
     
     // Shuffle the questions array using Fisher-Yates algorithm
     const shuffledQuestions = [...allQuestions];
@@ -177,7 +262,7 @@ export const getQuizById = async (id: string): Promise<Quiz | null> => {
     return {
       id: quizDoc.id,
       ...quizData,
-      questions: selectedQuestions
+      questions: selectedQuestions // Add fetched, shuffled, and sliced questions
     } as Quiz;
   } catch (error) {
     console.error('Error fetching quiz:', error);
@@ -185,13 +270,30 @@ export const getQuizById = async (id: string): Promise<Quiz | null> => {
   }
 };
 
-export const getQuizQuestions = async (quizId: string) => {
-  return [];
+export const getQuizQuestions = async (quizId: string): Promise<QuizQuestion[]> => {
+  try {
+    const questionsPath = `quizzes/${quizId}/questions`;
+    const questionsRef = collection(db, questionsPath);
+    const questionsSnapshot = await getDocs(questionsRef);
+    
+    return questionsSnapshot.docs.map(qDoc => ({
+      id: qDoc.id,
+      ...qDoc.data()
+    })) as QuizQuestion[];
+  } catch (error) {
+    console.error(`Error fetching questions for quiz ${quizId}:`, error);
+    return [];
+  }
 };
 
 export const seedQuizData = async () => {
-  // Implementation here
+  // Implementation here should now create quiz documents
+  // and then populate their 'questions' subcollections.
+  console.log('Seeding quiz data - adapt to new subcollection structure for questions.');
 };
+
+
+// --- MegaTest Interfaces and Functions (Restored to original from your first post) ---
 
 export interface MegaTest {
   id: string;
@@ -213,13 +315,17 @@ export interface MegaTest {
 export interface MegaTestQuestion {
   id: string;
   text: string;
-  options: QuizOption[];
+  options: QuizOption[]; // Reusing QuizOption for consistency
   correctAnswer: string;
 }
 
 export interface MegaTestParticipant {
   userId: string;
   registeredAt: Timestamp;
+  // Original did not have entryFeePaid, but it was in registerForMegaTest.
+  // Keeping interface as per original, but registerForMegaTest will set it.
+  // This might be an inconsistency in the original code.
+  // For now, matching the provided interface.
 }
 
 export interface MegaTestLeaderboardEntry {
@@ -263,7 +369,7 @@ export const getMegaTestById = async (id: string): Promise<{ megaTest: MegaTest 
       return { megaTest: null, questions: [] };
     }
     
-    const questions = questionsSnapshot.docs.map(doc => ({
+    const questions = questionsSnapshot.docs.map(doc => ({ // Using doc directly as in original
       id: doc.id,
       ...doc.data()
     })) as MegaTestQuestion[];
@@ -295,7 +401,7 @@ export const getMegaTestPrizes = async (megaTestId: string): Promise<MegaTestPri
 };
 
 export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'totalQuestions'> & { 
-  questions: MegaTestQuestion[];
+  questions: MegaTestQuestion[]; // Original type
   prizes: MegaTestPrize[];
 }): Promise<MegaTest | null> => {
   try {
@@ -304,20 +410,20 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
     const newMegaTestRef = doc(megaTestsRef);
     
     // Create main mega test document
-    const { prizes, ...megaTestData } = data;
+    const { prizes, ...megaTestData } = data; // Original destructuring
     batch.set(newMegaTestRef, {
-      ...megaTestData,
+      ...megaTestData, // This will include data.questions as it's part of megaTestData
       totalQuestions: data.questions.length,
       status: 'upcoming',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      timeLimit: data.timeLimit || 60 // Default to 60 minutes if not specified
+      timeLimit: data.timeLimit || 60 
     });
     
     // Create questions in subcollection
-    data.questions.forEach(question => {
+    data.questions.forEach(question => { // Using data.questions directly
       const questionRef = doc(collection(newMegaTestRef, 'questions'));
-      batch.set(questionRef, question);
+      batch.set(questionRef, question); // Storing the whole question object, including its original id field if present
     });
 
     // Create prizes in subcollection
@@ -341,7 +447,6 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
 
 export const registerForMegaTest = async (megaTestId: string, userId: string): Promise<boolean> => {
   try {
-    // Get the mega test details to check entry fee
     const megaTestRef = doc(db, 'mega-tests', megaTestId);
     const megaTestDoc = await getDoc(megaTestRef);
     
@@ -352,7 +457,6 @@ export const registerForMegaTest = async (megaTestId: string, userId: string): P
     const megaTest = megaTestDoc.data() as MegaTest;
     const entryFee = megaTest.entryFee || 0;
     
-    // Get user's balance
     const balanceRef = doc(db, 'balance', userId);
     const balanceDoc = await getDoc(balanceRef);
     
@@ -360,17 +464,14 @@ export const registerForMegaTest = async (megaTestId: string, userId: string): P
       throw new Error('User balance not found');
     }
     
-    const currentBalance = balanceDoc.data().amount || 0;
+    const currentBalance = balanceDoc.data()!.amount || 0; // Added non-null assertion as per original logic expectation
     
-    // Check if user has sufficient balance
     if (currentBalance < entryFee) {
       throw new Error(`Insufficient balance. Required: ₹${entryFee}, Available: ₹${currentBalance}`);
     }
     
-    // Start a batch write
     const batch = writeBatch(db);
     
-    // Deduct entry fee from user's balance
     if (entryFee > 0) {
       batch.update(balanceRef, {
         amount: currentBalance - entryFee,
@@ -378,20 +479,18 @@ export const registerForMegaTest = async (megaTestId: string, userId: string): P
       });
     }
     
-    // Register user for the mega test
     const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
     batch.set(participantRef, {
       userId,
       registeredAt: serverTimestamp(),
-      entryFeePaid: entryFee
+      entryFeePaid: entryFee // This field was in original logic but not MegaTestParticipant interface
     });
     
-    // Commit the batch
     await batch.commit();
     return true;
   } catch (error) {
     console.error('Error registering for mega test:', error);
-    throw error;
+    throw error; 
   }
 };
 
@@ -428,26 +527,22 @@ export const submitMegaTestResult = async (
     const leaderboardSnapshot = await getDocs(leaderboardRef);
     const leaderboard = leaderboardSnapshot.docs.map(doc => doc.data() as MegaTestLeaderboardEntry);
     
-    // Add new result
     const newEntry = {
       userId,
       score,
-      rank: 0,
+      rank: 0, // Will be recalculated
       submittedAt: serverTimestamp() as Timestamp,
       completionTime
     };
     leaderboard.push(newEntry);
     
-    // Sort by score (descending) and then by completion time (ascending)
     leaderboard.sort((a, b) => {
       if (a.score !== b.score) {
-        return b.score - a.score; // Higher score first
+        return b.score - a.score;
       }
-      // If scores are equal, faster completion gets higher rank
       return a.completionTime - b.completionTime;
     });
     
-    // Update all leaderboard entries with new ranks
     const batch = writeBatch(db);
     leaderboard.forEach((entry, index) => {
       const entryRef = doc(leaderboardRef, entry.userId);
@@ -465,6 +560,7 @@ export const submitMegaTestResult = async (
   }
 };
 
+
 export const getMegaTestLeaderboard = async (megaTestId: string): Promise<MegaTestLeaderboardEntry[]> => {
   try {
     const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
@@ -481,7 +577,7 @@ export const getMegaTestLeaderboard = async (megaTestId: string): Promise<MegaTe
 export const updateMegaTest = async (
   id: string,
   data: Partial<Omit<MegaTest, 'id' | 'createdAt' | 'status'>> & { 
-    questions?: MegaTestQuestion[];
+    questions?: MegaTestQuestion[]; // Original type
     prizes?: MegaTestPrize[];
   }
 ): Promise<boolean> => {
@@ -489,48 +585,40 @@ export const updateMegaTest = async (
     const batch = writeBatch(db);
     const megaTestRef = doc(db, 'mega-tests', id);
 
-    // Update main mega test document
     const updateData: any = {
       ...data,
       updatedAt: serverTimestamp()
     };
 
-    // If questions are provided, update totalQuestions
     if (data.questions) {
       updateData.totalQuestions = data.questions.length;
     }
 
-    // Remove questions and prizes from main document update
-    const { questions, prizes, ...mainDocData } = updateData;
-    batch.update(megaTestRef, mainDocData);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { questions, prizes, ...mainDocData } = updateData; // questions and prizes are removed here
+    batch.update(megaTestRef, mainDocData); // mainDocData is correct
 
-    // If questions are provided, update questions subcollection
-    if (questions) {
-      // Delete existing questions
+    if (data.questions) { // Use original data.questions
       const questionsRef = collection(megaTestRef, 'questions');
       const existingQuestions = await getDocs(questionsRef);
       existingQuestions.docs.forEach(doc => {
         batch.delete(doc.ref);
       });
 
-      // Add new questions
-      questions.forEach(question => {
+      data.questions.forEach(question => {
         const questionRef = doc(collection(megaTestRef, 'questions'));
-        batch.set(questionRef, question);
+        batch.set(questionRef, question); // Storing whole question object
       });
     }
 
-    // If prizes are provided, update prizes subcollection
-    if (prizes) {
-      // Delete existing prizes
+    if (data.prizes) { // Use original data.prizes
       const prizesRef = collection(megaTestRef, 'prizes');
       const existingPrizes = await getDocs(prizesRef);
       existingPrizes.docs.forEach(doc => {
         batch.delete(doc.ref);
       });
 
-      // Add new prizes
-      prizes.forEach(prize => {
+      data.prizes.forEach(prize => {
         const prizeRef = doc(collection(megaTestRef, 'prizes'));
         batch.set(prizeRef, prize);
       });
@@ -588,11 +676,15 @@ export const deleteMegaTest = async (megaTestId: string): Promise<boolean> => {
   }
 };
 
+
 export const getMegaTestPrizePool = async (megaTestId: string): Promise<number> => {
   try {
     const participantsRef = collection(db, 'mega-tests', megaTestId, 'participants');
     const snapshot = await getDocs(participantsRef);
-    const participants = snapshot.docs.map(doc => doc.data());
+    const participants = snapshot.docs.map(doc => doc.data()); // as in original
+    // Original logic for reduce: participant.entryFeePaid.
+    // This field is set in registerForMegaTest but not in MegaTestParticipant interface.
+    // Assuming participants data structure will have entryFeePaid due to registerForMegaTest.
     const totalPrizePool = participants.reduce((total, participant) => total + (participant.entryFeePaid || 0), 0);
     return totalPrizePool;
   } catch (error) {

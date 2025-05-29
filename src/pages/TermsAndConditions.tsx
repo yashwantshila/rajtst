@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { sanitizeHtml } from '@/utils/sanitize';
 
 const TermsAndConditions = () => {
   const { data: termsAndConditions, isLoading, error } = useQuery({
@@ -55,7 +56,7 @@ const TermsAndConditions = () => {
           <CardContent>
             <div className="prose prose-sm max-w-none">
               {termsAndConditions?.content ? (
-                <div dangerouslySetInnerHTML={{ __html: termsAndConditions.content }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(termsAndConditions.content) }} />
               ) : (
                 <p>Terms and conditions content not available.</p>
               )}

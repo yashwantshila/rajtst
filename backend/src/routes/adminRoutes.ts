@@ -1,11 +1,11 @@
 import express from 'express';
-import { verifyAdmin } from '../middleware/auth';
-import { getAllUsers, getAllBalances, updateUserRole } from '../controllers/adminController';
+import { verifyFirebaseAdmin } from '../middleware/firebaseAdminAuth.js';
+import { getAllUsers, getAllBalances, updateUserRole } from '../controllers/adminController.js';
 
 const router = express.Router();
 
-// Apply admin middleware to all routes
-router.use(verifyAdmin);
+// Protected admin routes
+router.use(verifyFirebaseAdmin);
 
 // Get all users
 router.get('/users', getAllUsers);
@@ -14,6 +14,6 @@ router.get('/users', getAllUsers);
 router.get('/balances', getAllBalances);
 
 // Update user role
-router.patch('/users/:userId/role', updateUserRole);
+router.put('/users/:userId/role', updateUserRole);
 
 export default router; 

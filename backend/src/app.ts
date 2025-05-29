@@ -3,22 +3,31 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
-import adminRoutes from './routes/adminRoutes';
-import { authLimiter, apiLimiter, adminLimiter } from './middleware/rateLimit';
-import { securityHeaders } from './middleware/securityHeaders';
+import adminRoutes from './routes/adminRoutes.js';
+import { authLimiter, apiLimiter, adminLimiter } from './middleware/rateLimit.js';
+import { securityHeaders } from './middleware/securityHeaders.js';
+import { nonceInjection } from './middleware/nonceInjection.js';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
 // Apply security headers
-securityHeaders.forEach(middleware => app.use(middleware));
+securityHeaders.forEach((middleware: express.RequestHandler) => app.use(middleware));
+
+// Apply nonce injection middleware
+app.use(nonceInjection);
 
 // Configure CORS with specific options
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'https://raj-test-75qulz.web.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-rtb-fingerprint-id'],
-  credentials: true
+  credentials: true,
+  maxAge: 86400 // 24 hours
 }));
+
+// Add cookie parser middleware
+app.use(cookieParser());
 
 app.use(express.json());
 

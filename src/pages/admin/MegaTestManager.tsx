@@ -286,34 +286,51 @@ const MegaTestManager = () => {
 
   const handleBulkImport = () => {
     try {
-      const lines = bulkQuestionsText.split('\n').filter(line => line.trim());
+      // Split by double newline to separate questions
+      const questionBlocks = bulkQuestionsText.split('\n\n').filter(block => block.trim());
       const newQuestions: QuizQuestion[] = [];
       
-      for (const line of lines) {
-        const parts = line.split('|').map(part => part.trim());
-        if (parts.length !== 6) continue; // Skip invalid lines
+      for (let i = 0; i < questionBlocks.length; i++) {
+        const block = questionBlocks[i].trim();
+        const lines = block.split('\n');
         
-        const [questionText, optionA, optionB, optionC, optionD, correctAnswerLetter] = parts;
-        
-        // Validate correct answer letter
-        const validAnswerLetters = ['a', 'b', 'c', 'd'];
-        if (!validAnswerLetters.includes(correctAnswerLetter.toLowerCase())) continue;
-        
-        const options = [
-          { id: 'a', text: optionA },
-          { id: 'b', text: optionB },
-          { id: 'c', text: optionC },
-          { id: 'd', text: optionD }
-        ];
-        
-        if (questionText && options.every(opt => opt.text) && correctAnswerLetter) {
-          newQuestions.push({
-            id: uuidv4(),
-            text: questionText,
-            options,
-            correctAnswer: correctAnswerLetter.toLowerCase()
-          });
+        // Find the line with options (contains |)
+        const optionsLineIndex = lines.findIndex(line => line.includes('|'));
+        if (optionsLineIndex === -1) {
+          throw new Error(`Invalid format in question ${i + 1}. Missing options line.`);
         }
+        
+        // Combine all lines before the options line as the question text
+        const questionText = lines.slice(0, optionsLineIndex).join('\n').trim();
+        
+        // Parse the options line
+        const optionsLine = lines[optionsLineIndex];
+        const lastPipeIndex = optionsLine.lastIndexOf('|');
+        const questionPart = optionsLine.substring(0, lastPipeIndex);
+        const parts = questionPart.split('|');
+        const correctAnswer = optionsLine.substring(lastPipeIndex + 1).trim().toLowerCase();
+        
+        const options = parts.slice(1);
+        
+        if (options.length !== 4) {
+          throw new Error(`Invalid format in question ${i + 1}. Each question must have exactly 4 options.`);
+        }
+        
+        if (!['a', 'b', 'c', 'd'].includes(correctAnswer)) {
+          throw new Error(`Invalid correct answer in question ${i + 1}. Must be a, b, c, or d`);
+        }
+        
+        newQuestions.push({
+          id: uuidv4(),
+          text: questionText,
+          options: [
+            { id: 'a', text: options[0].trim() },
+            { id: 'b', text: options[1].trim() },
+            { id: 'c', text: options[2].trim() },
+            { id: 'd', text: options[3].trim() }
+          ],
+          correctAnswer: correctAnswer
+        });
       }
       
       if (newQuestions.length > 0) {
@@ -634,30 +651,89 @@ const MegaTestManager = () => {
                 <Card key={question.id}>
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start mb-4">
-                      <div className="space-y-2">
-                        <p className="font-medium">{question.text}</p>
-                        <div className="space-y-1">
+                      <div className="space-y-2 w-full">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1">
+                            <div className="prose prose-sm max-w-none">
+                              <div className="mb-2">
+                                {question.text.toLowerCase().includes('assertion') && question.text.toLowerCase().includes('reason') ? (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                    Assertion & Reasoning
+                                  </span>
+                                ) : question.text.toLowerCase().includes('match') ? (
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                    Matching
+                                  </span>
+                                ) : null}
+                              </div>
+                              
+                              <div className="space-y-2">
+                                {question.text.split('\n').map((line, index) => {
+                                  if (line.toLowerCase().includes('assertion:') || line.toLowerCase().includes('reason:')) {
+                                    const [type, content] = line.split(':').map(part => part.trim());
+                                    return (
+                                      <div key={index} className="flex gap-2 items-start">
+                                        <span className="font-semibold min-w-[80px]">{type}:</span>
+                                        <span>{content}</span>
+                                      </div>
+                                    );
+                                  }
+                                  else if (line.includes('|')) {
+                                    const [left, right] = line.split('|').map(part => part.trim());
+                                    return (
+                                      <div key={index} className="flex gap-4 items-center">
+                                        <span className="flex-1">{left}</span>
+                                        <span className="text-gray-400">→</span>
+                                        <span className="flex-1">{right}</span>
+                                      </div>
+                                    );
+                                  }
+                                  return <p key={index} className="mb-2">{line}</p>;
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemoveQuestion(question.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="grid gap-2 mt-4">
                           {question.options.map((option) => (
                             <div
                               key={option.id}
-                              className={`text-sm ${
-                                option.text === question.correctAnswer
-                                  ? 'text-green-600 font-medium'
-                                  : 'text-gray-600'
+                              className={`p-3 rounded-lg border ${
+                                option.id === question.correctAnswer
+                                  ? 'border-green-500 bg-green-50 dark:bg-green-950'
+                                  : 'border-gray-200 dark:border-gray-700'
                               }`}
                             >
-                              • {option.text}
+                              <div className="flex items-start gap-2">
+                                <span className="font-medium text-sm">{option.id.toUpperCase()}.</span>
+                                <div className="flex-1 text-sm">
+                                  {option.text.split('\n').map((line, index) => {
+                                    if (line.includes('|')) {
+                                      const [left, right] = line.split('|').map(part => part.trim());
+                                      return (
+                                        <div key={index} className="flex gap-4 items-center">
+                                          <span className="flex-1">{left}</span>
+                                          <span className="text-gray-400">→</span>
+                                          <span className="flex-1">{right}</span>
+                                        </div>
+                                      );
+                                    }
+                                    return <p key={index} className="mb-1 last:mb-0">{line}</p>;
+                                  })}
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveQuestion(question.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -705,35 +781,51 @@ const MegaTestManager = () => {
       </Dialog>
 
       <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Bulk Import Questions</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 overflow-y-auto flex-1 pr-2">
             <div>
               <Label>Questions Format</Label>
-              <p className="text-sm text-gray-500 mb-2">
-                Enter questions in the following format (one question per line):<br />
-                Question text | Option A | Option B | Option C | Option D | a<br />
-                <br />
-                Example:<br />
-                What is the capital of France? | London | Berlin | Paris | Madrid | a
-              </p>
+              <div className="text-sm text-gray-500 mb-2 overflow-y-auto max-h-[200px] pr-2">
+                Enter questions in the following format. Each question should be separated by a blank line.<br /><br />
+                
+                <strong>Simple Question:</strong><br />
+                What is the capital of France? | London | Berlin | Paris | Madrid | a<br /><br />
+                
+                <strong>Assertion & Reasoning:</strong><br />
+                Assertion: The Earth is flat.<br />
+                Reason: The horizon appears flat when we look at it.<br />
+                Choose the correct option: | Both Assertion and Reason are true and Reason is the correct explanation of Assertion | Both Assertion and Reason are true but Reason is not the correct explanation of Assertion | Assertion is true but Reason is false | Both Assertion and Reason are false | d<br /><br />
+                
+                <strong>Matching Type:</strong><br />
+                Match the following:<br />
+                Column A:<br />
+                1. Capital of France<br />
+                2. Capital of Japan<br />
+                3. Capital of India<br />
+                Column B:<br />
+                a. Tokyo<br />
+                b. New Delhi<br />
+                c. Paris<br />
+                Choose the correct matching: | 1-c, 2-a, 3-b | 1-a, 2-b, 3-c | 1-b, 2-c, 3-a | 1-c, 2-b, 3-a | a
+              </div>
               <Textarea
                 value={bulkQuestionsText}
                 onChange={(e) => setBulkQuestionsText(e.target.value)}
                 placeholder="Enter questions here..."
-                className="h-[300px] font-mono"
+                className="h-[300px] font-mono resize-none"
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsBulkImportOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleBulkImport}>
-                Import Questions
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t mt-4">
+            <Button variant="outline" onClick={() => setIsBulkImportOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkImport}>
+              Import Questions
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

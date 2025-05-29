@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SanitizedInput } from "@/components/ui/sanitized-input";
+import { SanitizedTextarea } from "@/components/ui/sanitized-textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { doc, setDoc } from 'firebase/firestore';
@@ -52,10 +54,10 @@ const PrizeClaimForm = ({ megaTestId, prize, rank, onSuccess }: PrizeClaimFormPr
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="name">Full Name</Label>
-        <Input
+        <SanitizedInput
           id="name"
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onChange={(value) => setFormData({ ...formData, name: value })}
           placeholder="Enter your full name"
           required
         />
@@ -63,11 +65,11 @@ const PrizeClaimForm = ({ megaTestId, prize, rank, onSuccess }: PrizeClaimFormPr
 
       <div className="space-y-2">
         <Label htmlFor="mobile">Mobile Number</Label>
-        <Input
+        <SanitizedInput
           id="mobile"
           type="tel"
           value={formData.mobile}
-          onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+          onChange={(value) => setFormData({ ...formData, mobile: value })}
           placeholder="Enter your mobile number"
           required
         />
@@ -75,10 +77,10 @@ const PrizeClaimForm = ({ megaTestId, prize, rank, onSuccess }: PrizeClaimFormPr
 
       <div className="space-y-2">
         <Label htmlFor="address">Delivery Address</Label>
-        <Textarea
+        <SanitizedTextarea
           id="address"
           value={formData.address}
-          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          onChange={(value) => setFormData({ ...formData, address: value })}
           placeholder="Enter your complete delivery address"
           required
         />

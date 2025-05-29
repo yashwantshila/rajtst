@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { sanitizeHtml } from '@/utils/sanitize';
 
 const AboutUs = () => {
   const { data: aboutUs, isLoading, error } = useQuery({
@@ -55,7 +56,7 @@ const AboutUs = () => {
           <CardContent>
             <div className="prose prose-sm max-w-none">
               {aboutUs?.content ? (
-                <div dangerouslySetInnerHTML={{ __html: aboutUs.content }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(aboutUs.content) }} />
               ) : (
                 <p>About Us content not available.</p>
               )}

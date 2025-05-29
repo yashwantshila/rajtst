@@ -3,14 +3,16 @@ import { Clock } from 'lucide-react';
 import { logoutUser } from '../services/firebase/auth';
 import { useNavigate } from 'react-router-dom';
 
-const SESSION_TIMEOUT = 5 * 60 * 1000; // 2 minutes in milliseconds
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 interface SessionTimerProps {
   isAuthenticated: boolean;
   onReset: () => void;
+  className?: string;
+  hideIcon?: boolean;
 }
 
-export const SessionTimer = ({ isAuthenticated, onReset }: SessionTimerProps) => {
+export const SessionTimer = ({ isAuthenticated, onReset, className, hideIcon = false }: SessionTimerProps) => {
   const [timeLeft, setTimeLeft] = useState(SESSION_TIMEOUT);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
@@ -68,9 +70,9 @@ export const SessionTimer = ({ isAuthenticated, onReset }: SessionTimerProps) =>
   const seconds = Math.floor((timeLeft % 60000) / 1000);
 
   return (
-    <div className="text-sm font-medium flex items-center">
-      <Clock className="h-4 w-4 mr-1" />
-      {minutes}:{seconds.toString().padStart(2, '0')}
+    <div className={`text-sm font-medium flex items-center ${className || ''}`}>
+      {!hideIcon && <Clock className="h-4 w-4 mr-1" />}
+      {`${minutes}:${seconds.toString().padStart(2, '0')}`}
     </div>
   );
 }; 

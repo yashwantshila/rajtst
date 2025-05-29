@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, CreditCard, UserCircle, AlertTriangle, ShieldAlert, RefreshCw, ExternalLink } from 'lucide-react';
+import { ArrowLeft, CreditCard, UserCircle, AlertTriangle, ShieldAlert, RefreshCw, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import UserPrizes from '../components/UserPrizes';
@@ -69,6 +69,15 @@ const Profile = () => {
     );
   }
 
+  if (isProfileLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+        <p className="text-muted-foreground">Loading profile...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
@@ -118,9 +127,7 @@ const Profile = () => {
                   <CardDescription>Your current account balance</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {isProfileLoading ? (
-                    <div className="animate-pulse h-8 bg-muted rounded" />
-                  ) : profile?.balance.error ? (
+                  {profile?.balance.error ? (
                     <div className="text-center space-y-4">
                       <div className="text-amber-500 flex items-center justify-center gap-2">
                         <ShieldAlert className="h-5 w-5" />

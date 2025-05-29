@@ -102,10 +102,10 @@ export const updateUserBalance = async (req: Request, res: Response) => {
     });
     
     return res.json({ success: true, newBalance });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating user balance:', error);
     
-    if (error.message && error.message.includes('Insufficient balance')) {
+    if (error instanceof Error && error.message.includes('Insufficient balance')) {
       return res.status(400).json({ error: error.message });
     }
     

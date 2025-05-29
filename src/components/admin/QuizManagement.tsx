@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect for potential future use, not strictly needed now
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, Loader2, ChevronRight, ArrowLeft, Upload, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/tabs";
 import { 
   QuizCategory, 
-  Quiz,
+  Quiz, // This type now has questions?: QuizQuestion[]
   QuizQuestion,
   getQuizCategories, 
   createQuizCategory, 
@@ -51,11 +51,13 @@ import {
   getQuizzesByCategory,
   createQuiz,
   updateQuiz,
-  deleteQuiz
+  deleteQuiz,
+  getQuizQuestions // Added import
 } from '@/services/firebase/quiz';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { v4 as uuidv4 } from 'uuid';
 
 interface CategoryFormData {
   title: string;
@@ -65,7 +67,7 @@ interface CategoryFormData {
 interface QuizFormData {
   title: string;
   description: string;
-  questions: QuizQuestion[];
+  questions: QuizQuestion[]; // This remains the same for the form
 }
 
 interface BatchProgress {
@@ -74,10 +76,29 @@ interface BatchProgress {
   status: string;
 }
 
-const SAMPLE_FORMAT = `What is the capital of France?|Paris|London|Berlin|Madrid|a
+const SAMPLE_FORMAT = `# Simple Question
+What is the capital of France?|Paris|London|Berlin|Madrid|a
+
+# Multi-line Question
 Which of the following is correct about React?
 It is a JavaScript library for building user interfaces.|True, React is a JS library|False, React is a programming language|False, React is only for mobile apps|False, React is a database|a
-What is 2+2?|3|4|5|6|b`;
+
+# Assertion and Reasoning
+Assertion: The Earth is flat.
+Reason: The horizon appears flat when we look at it.
+Choose the correct option:|Both Assertion and Reason are true and Reason is the correct explanation of Assertion|Both Assertion and Reason are true but Reason is not the correct explanation of Assertion|Assertion is true but Reason is false|Both Assertion and Reason are false|d
+
+# Matching Type
+Match the following:
+Column A:
+1. Capital of France
+2. Capital of Japan
+3. Capital of India
+Column B:
+a. Tokyo
+b. New Delhi
+c. Paris
+Choose the correct matching:|1-c, 2-a, 3-b|1-a, 2-b, 3-c|1-b, 2-c, 3-a|1-c, 2-b, 3-a|a`;
 
 export const QuizManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -101,27 +122,24 @@ export const QuizManagement = () => {
   const [bulkQuestions, setBulkQuestions] = useState('');
   const [bulkImportError, setBulkImportError] = useState<string | null>(null);
   const [importProgress, setImportProgress] = useState<BatchProgress | null>(null);
+  const [isLoadingQuizDetails, setIsLoadingQuizDetails] = useState(false); // For loading questions for edit
 
   const queryClient = useQueryClient();
 
-  // Constants for batching
-  const BATCH_SIZE = 50; // Process 50 questions at a time
-  const MAX_QUESTIONS_PER_QUIZ = 500; // Limit total questions per quiz
+  const BATCH_SIZE = 50;
+  const MAX_QUESTIONS_PER_QUIZ = 500;
 
-  // Fetch quiz categories
   const { data: categories = [], isLoading: isCategoriesLoading } = useQuery({
     queryKey: ['quiz-categories'],
     queryFn: getQuizCategories
   });
 
-  // Fetch quizzes for selected category
   const { data: quizzes = [], isLoading: isQuizzesLoading } = useQuery({
     queryKey: ['quizzes', selectedCategoryForQuizzes?.id],
-    queryFn: () => getQuizzesByCategory(selectedCategoryForQuizzes?.id!),
+    queryFn: () => getQuizzesByCategory(selectedCategoryForQuizzes!.id), // quiz.questions will be undefined here
     enabled: !!selectedCategoryForQuizzes?.id
   });
 
-  // Category mutations
   const createCategoryMutation = useMutation({
     mutationFn: createQuizCategory,
     onSuccess: () => {
@@ -164,9 +182,8 @@ export const QuizManagement = () => {
     }
   });
 
-  // Quiz mutations
   const createQuizMutation = useMutation({
-    mutationFn: (data: Omit<Quiz, 'id' | 'createdAt' | 'updatedAt'>) => createQuiz(data),
+    mutationFn: (data: Omit<Quiz, 'id' | 'createdAt' | 'updatedAt' | 'sequence'>) => createQuiz(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', selectedCategoryForQuizzes?.id] });
       toast.success('Quiz created successfully');
@@ -180,7 +197,7 @@ export const QuizManagement = () => {
   });
 
   const updateQuizMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Quiz> }) => updateQuiz(id, data),
+    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Quiz, 'id' | 'createdAt' | 'updatedAt' | 'sequence'>> }) => updateQuiz(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes', selectedCategoryForQuizzes?.id] });
       toast.success('Quiz updated successfully');
@@ -212,6 +229,9 @@ export const QuizManagement = () => {
 
   const resetQuizForm = () => {
     setQuizFormData({ title: '', description: '', questions: [] });
+    setBulkImportError(null);
+    setImportProgress(null);
+    setBulkQuestions('');
   };
 
   const handleCreateCategorySubmit = (e: React.FormEvent) => {
@@ -247,7 +267,8 @@ export const QuizManagement = () => {
     
     createQuizMutation.mutate({
       ...quizFormData,
-      categoryId: selectedCategoryForQuizzes.id
+      categoryId: selectedCategoryForQuizzes.id,
+      // sequence: 0 // Or manage sequence appropriately if needed
     });
   };
 
@@ -257,18 +278,30 @@ export const QuizManagement = () => {
     
     updateQuizMutation.mutate({
       id: selectedQuiz.id,
-      data: quizFormData
+      data: {
+        ...quizFormData,
+        // sequence: selectedQuiz.sequence // Preserve or update sequence if needed
+      }
     });
   };
 
-  const handleEditQuizClick = (quiz: Quiz) => {
+  const handleEditQuizClick = async (quiz: Quiz) => {
+    setIsLoadingQuizDetails(true);
     setSelectedQuiz(quiz);
-    setQuizFormData({
-      title: quiz.title,
-      description: quiz.description,
-      questions: quiz.questions
-    });
-    setIsEditQuizDialogOpen(true);
+    try {
+      const fetchedQuestions = await getQuizQuestions(quiz.id);
+      setQuizFormData({
+        title: quiz.title,
+        description: quiz.description,
+        questions: fetchedQuestions || [] // Ensure questions is an array
+      });
+      setIsEditQuizDialogOpen(true);
+    } catch (error) {
+      toast.error("Failed to load quiz questions for editing.");
+      console.error("Error fetching quiz questions for edit:", error);
+    } finally {
+      setIsLoadingQuizDetails(false);
+    }
   };
 
   const handleDeleteQuizClick = (id: string) => {
@@ -279,9 +312,8 @@ export const QuizManagement = () => {
     setQuizFormData(prev => ({
       ...prev,
       questions: [
-        ...prev.questions,
         {
-          id: `question-${prev.questions.length + 1}`,
+          id: uuidv4(), // Temporary client-side ID
           text: '',
           options: [
             { id: 'a', text: '' },
@@ -290,7 +322,8 @@ export const QuizManagement = () => {
             { id: 'd', text: '' }
           ],
           correctAnswer: 'a'
-        }
+        },
+        ...prev.questions
       ]
     }));
   };
@@ -318,8 +351,8 @@ export const QuizManagement = () => {
     }));
   };
 
-  const processBatch = async (questions: QuizQuestion[], startIdx: number) => {
-    const batchQuestions = questions.slice(startIdx, startIdx + BATCH_SIZE);
+  const processBatch = async (questionsToAdd: QuizQuestion[], startIdx: number) => {
+    const batchQuestions = questionsToAdd.slice(startIdx, startIdx + BATCH_SIZE);
     
     setQuizFormData(prev => ({
       ...prev,
@@ -327,13 +360,12 @@ export const QuizManagement = () => {
     }));
 
     setImportProgress(prev => ({
-      total: questions.length,
-      current: Math.min((startIdx + BATCH_SIZE), questions.length),
-      status: 'Processing questions...'
+      total: questionsToAdd.length,
+      current: Math.min((startIdx + BATCH_SIZE), questionsToAdd.length),
+      status: 'Adding questions to form...'
     }));
 
-    // Simulate some delay to prevent UI freezing
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise(resolve => setTimeout(resolve, 50)); // Brief pause for UI update
   };
 
   const handleBulkImport = async () => {
@@ -341,84 +373,119 @@ export const QuizManagement = () => {
       setBulkImportError(null);
       setImportProgress({ total: 0, current: 0, status: 'Parsing questions...' });
       
-      // Split by newline and group lines for multi-line questions
-      const lines = bulkQuestions.split('\n');
-      const questionGroups: string[][] = [];
-      let currentGroup: string[] = [];
-
-      lines.forEach((line) => {
-        const trimmedLine = line.trim();
-        if (!trimmedLine) return;
-
-        if (trimmedLine.includes('|')) {
-          if (currentGroup.length > 0) {
-            currentGroup[0] = currentGroup.join('\n') + '\n' + trimmedLine;
-            questionGroups.push([currentGroup[0]]);
-            currentGroup = [];
-          } else {
-            questionGroups.push([trimmedLine]);
-          }
-        } else {
-          currentGroup.push(trimmedLine);
+      const questionBlocks = bulkQuestions.split('\n\n').filter(block => block.trim());
+      const parsedQuestions: QuizQuestion[] = [];
+      
+      for (let i = 0; i < questionBlocks.length; i++) {
+        const block = questionBlocks[i].trim();
+        const lines = block.split('\n');
+        
+        const optionsLineIndex = lines.findIndex(line => line.includes('|'));
+        if (optionsLineIndex === -1) {
+          throw new Error(`Invalid format in question block ${i + 1}. Missing options line (e.g., Text|OptA|OptB|OptC|OptD|CorrectOptLetter).`);
         }
-      });
+        
+        const questionText = lines.slice(0, optionsLineIndex).join('\n').trim();
+        
+        const optionsLine = lines[optionsLineIndex];
+        const lastPipeIndex = optionsLine.lastIndexOf('|');
+        const questionAndOptionsPart = optionsLine.substring(0, lastPipeIndex);
+        const correctAnswerLetter = optionsLine.substring(lastPipeIndex + 1).trim().toLowerCase();
+        
+        const parts = questionAndOptionsPart.split('|');
+        // The first part might be part of the question text if the format is "QuestionTextOnSameLineAsOptions|OptA|..."
+        // Assuming format from SAMPLE_FORMAT where question text is on lines above options line.
+        // The first part of `parts` should be the first option if question text is already captured.
+        // My parser now assumes question text is lines *before* option line.
+        // So parts[0] is OptionA text, parts[1] is OptionB text, etc.
 
-      // Parse all questions first to validate format
-      const questions = questionGroups.map((group, index) => {
-        const line = group[0];
-        const lastPipeIndex = line.lastIndexOf('|');
-        const questionPart = line.substring(0, lastPipeIndex);
-        const parts = questionPart.split('|');
-        const correctAnswer = line.substring(lastPipeIndex + 1).trim().toLowerCase();
+        // Corrected parsing: The sample implies question text can be on the same line as first option
+        // e.g. "What is X?|Option A|Option B|Option C|Option D|a"
+        // The current parsing:
+        // const questionText = lines.slice(0, optionsLineIndex).join('\n').trim(); (This handles multi-line questions above options line)
+        // const optionsLine = lines[optionsLineIndex]; (This is the line with options and answer)
+        // If optionsLineIndex is 0, questionText will be empty.
+        // A more robust parser might be needed if format is very flexible.
+        // The existing parser seems to try to split question text from options on the same line if optionsLineIndex is used to find the parts.
+        // Let's stick to the provided parsing logic carefully.
+        // My previous parser logic for text:
+        //   const questionText = lines.slice(0, optionsLineIndex).join('\n').trim();
+        //   const optionsLine = lines[optionsLineIndex];
+        //   const lastPipeIndex = optionsLine.lastIndexOf('|');
+        //   const questionPart = optionsLine.substring(0, lastPipeIndex); // This is "Text|OptA|OptB|OptC|OptD"
+        //   const parts = questionPart.split('|'); // ["Text", "OptA", "OptB", "OptC", "OptD"]
+        //   const correctAnswer = optionsLine.substring(lastPipeIndex + 1).trim().toLowerCase();
+        //   const options = parts.slice(1); // Takes "OptA", "OptB", "OptC", "OptD"
+        // This means `parts[0]` would be the question text if it's on the same line as options.
+        // And `questionText` (from lines above) would be for multi-line question text *before* the options line.
+        // This can lead to concatenated question text if not handled carefully.
 
-        const questionText = parts[0];
-        const options = parts.slice(1);
-
-        if (options.length !== 4) {
-          throw new Error(`Invalid format in question ${index + 1}. Each question must have exactly 4 options.`);
+        // Simpler interpretation of SAMPLE_FORMAT:
+        // Question Text (can be multi-line)
+        // OptionA-text|OptionB-text|OptionC-text|OptionD-text|CorrectAnswerLetter
+        
+        let fullQuestionText = questionText;
+        const optionTexts = [];
+        const optionParts = optionsLine.substring(0, optionsLine.lastIndexOf('|')).split('|');
+        
+        if (optionsLineIndex === 0 && optionParts.length > 4) { // Question text is the first part on the options line
+            fullQuestionText = optionParts[0].trim();
+            optionTexts.push(...optionParts.slice(1));
+        } else { // Question text is from lines above, optionParts are just options
+            optionTexts.push(...optionParts);
         }
 
-        if (!['a', 'b', 'c', 'd'].includes(correctAnswer)) {
-          throw new Error(`Invalid correct answer in question ${index + 1}. Must be a, b, c, or d`);
+        if (optionTexts.length !== 4) {
+          throw new Error(`Invalid options format in question block ${i + 1}. Expected 4 options. Found ${optionTexts.length}. Line: "${optionsLine}"`);
         }
-
-        return {
-          id: `question-${quizFormData.questions.length + index + 1}`,
-          text: questionText.trim(),
+        
+        if (!['a', 'b', 'c', 'd'].includes(correctAnswerLetter)) {
+          throw new Error(`Invalid correct answer in question block ${i + 1}. Must be 'a', 'b', 'c', or 'd'. Found '${correctAnswerLetter}'.`);
+        }
+        
+        parsedQuestions.push({
+          id: uuidv4(), // Temporary client-side ID
+          text: fullQuestionText,
           options: [
-            { id: 'a', text: options[0].trim() },
-            { id: 'b', text: options[1].trim() },
-            { id: 'c', text: options[2].trim() },
-            { id: 'd', text: options[3].trim() }
+            { id: 'a', text: optionTexts[0].trim() },
+            { id: 'b', text: optionTexts[1].trim() },
+            { id: 'c', text: optionTexts[2].trim() },
+            { id: 'd', text: optionTexts[3].trim() }
           ],
-          correctAnswer: correctAnswer
-        };
-      });
-
-      if (questions.length === 0) {
-        throw new Error('No valid questions found in the input');
+          correctAnswer: correctAnswerLetter
+        });
       }
 
-      // Check total questions limit
-      const totalQuestions = quizFormData.questions.length + questions.length;
-      if (totalQuestions > MAX_QUESTIONS_PER_QUIZ) {
-        throw new Error(`Cannot add ${questions.length} questions. Maximum limit is ${MAX_QUESTIONS_PER_QUIZ} questions per quiz. Current: ${quizFormData.questions.length}`);
+      if (parsedQuestions.length === 0) {
+        throw new Error('No valid questions found in the input.');
       }
 
-      // Process questions in batches
-      for (let i = 0; i < questions.length; i += BATCH_SIZE) {
-        await processBatch(questions, i);
+      const currentQuestionCount = quizFormData.questions.length;
+      if (currentQuestionCount + parsedQuestions.length > MAX_QUESTIONS_PER_QUIZ) {
+        throw new Error(`Cannot add ${parsedQuestions.length} questions. Adding these would exceed the limit of ${MAX_QUESTIONS_PER_QUIZ} questions per quiz (current: ${currentQuestionCount}).`);
+      }
+
+      for (let i = 0; i < parsedQuestions.length; i += BATCH_SIZE) {
+        await processBatch(parsedQuestions, i);
       }
 
       setBulkQuestions('');
-      setIsBulkImportOpen(false);
+      // setIsBulkImportOpen(false); // Keep dialog open to show success, or close it. Let's close.
       setImportProgress(null);
-      toast.success(`Successfully imported ${questions.length} questions`);
-    } catch (error) {
+      toast.success(`Successfully parsed and added ${parsedQuestions.length} questions to the form.`);
+      // User still needs to save the quiz form (Create Quiz / Update Quiz)
+    } catch (error: any) {
       setBulkImportError(error.message);
       setImportProgress(null);
       console.error('Bulk import error:', error);
     }
+  };
+
+  const handleRemoveQuestion = (questionId: string) => {
+    setQuizFormData(prev => ({
+      ...prev,
+      questions: prev.questions.filter(q => q.id !== questionId)
+    }));
   };
 
   return (
@@ -435,12 +502,12 @@ export const QuizManagement = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
+            <TabsTrigger value="quizzes" disabled={!selectedCategoryForQuizzes && categories.length > 0}>Quizzes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="categories">
             <div className="flex justify-end mb-4">
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <Dialog open={isCreateDialogOpen} onOpenChange={(isOpen) => { setIsCreateDialogOpen(isOpen); if (!isOpen) resetForm(); }}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
@@ -457,7 +524,7 @@ export const QuizManagement = () => {
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <label htmlFor="title">Title</label>
+                        <Label htmlFor="title">Title</Label>
                         <Input
                           id="title"
                           value={formData.title}
@@ -467,7 +534,7 @@ export const QuizManagement = () => {
                         />
                       </div>
                       <div className="grid gap-2">
-                        <label htmlFor="description">Description</label>
+                        <Label htmlFor="description">Description</Label>
                         <Textarea
                           id="description"
                           value={formData.description}
@@ -518,6 +585,7 @@ export const QuizManagement = () => {
                             <Button
                               variant="ghost"
                               size="icon"
+                              title="View Quizzes"
                               onClick={() => {
                                 setSelectedCategoryForQuizzes(category);
                                 setActiveTab('quizzes');
@@ -528,6 +596,7 @@ export const QuizManagement = () => {
                             <Button
                               variant="ghost"
                               size="icon"
+                              title="Edit Category"
                               onClick={() => handleEditCategoryClick(category)}
                             >
                               <Pencil className="h-4 w-4" />
@@ -537,7 +606,8 @@ export const QuizManagement = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="text-destructive"
+                                  title="Delete Category"
+                                  className="text-destructive hover:text-destructive"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -546,7 +616,7 @@ export const QuizManagement = () => {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Category</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete "{category.title}"? This action cannot be undone.
+                                    Are you sure you want to delete "{category.title}"? This will also delete all quizzes under this category. This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -554,7 +624,9 @@ export const QuizManagement = () => {
                                   <AlertDialogAction
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                     onClick={() => handleDeleteCategoryClick(category.id)}
+                                    disabled={deleteCategoryMutation.isPending}
                                   >
+                                    {deleteCategoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Delete
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -582,117 +654,32 @@ export const QuizManagement = () => {
                     }}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Categories
+                    Back to Categories ({selectedCategoryForQuizzes.title})
                   </Button>
-                  <Dialog open={isQuizDialogOpen} onOpenChange={setIsQuizDialogOpen}>
+                  <Dialog open={isQuizDialogOpen} onOpenChange={(isOpen) => { setIsQuizDialogOpen(isOpen); if (!isOpen) resetQuizForm();}}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Quiz
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                      <form onSubmit={handleCreateQuizSubmit}>
-                        <DialogHeader>
-                          <DialogTitle>Create New Quiz</DialogTitle>
-                          <DialogDescription>
-                            Add a new quiz to the category "{selectedCategoryForQuizzes.title}"
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="grid gap-4 py-4">
-                          <div className="grid gap-2">
-                            <label htmlFor="quiz-title">Title</label>
-                            <Input
-                              id="quiz-title"
-                              value={quizFormData.title}
-                              onChange={(e) => setQuizFormData({ ...quizFormData, title: e.target.value })}
-                              placeholder="Enter quiz title"
-                              required
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                            <label htmlFor="quiz-description">Description</label>
-                            <Textarea
-                              id="quiz-description"
-                              value={quizFormData.description}
-                              onChange={(e) => setQuizFormData({ ...quizFormData, description: e.target.value })}
-                              placeholder="Enter quiz description"
-                              required
-                            />
-                          </div>
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                              <label className="text-lg font-semibold">Questions</label>
-                              <div className="flex gap-2">
-                                <Button type="button" variant="outline" onClick={() => setIsBulkImportOpen(true)}>
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Bulk Import
-                                </Button>
-                                <Button type="button" variant="outline" onClick={handleAddQuestion}>
-                                  <Plus className="h-4 w-4 mr-2" />
-                                  Add Question
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="space-y-6">
-                              {quizFormData.questions.map((question, qIndex) => (
-                                <Card key={question.id} className="p-4">
-                                  <div className="space-y-4">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-medium">Question {qIndex + 1}</span>
-                                    </div>
-                                    <Input
-                                      value={question.text}
-                                      onChange={(e) => handleQuestionChange(qIndex, 'text', e.target.value)}
-                                      placeholder="Enter question text"
-                                      required
-                                    />
-                                    <div className="grid gap-3">
-                                      {question.options.map((option) => (
-                                        <div key={option.id} className="flex items-center gap-3">
-                                          <div className="min-w-[2rem] h-8 flex items-center justify-center bg-muted rounded-full">
-                                            {option.id.toUpperCase()}
-                                          </div>
-                                          <Input
-                                            value={option.text}
-                                            onChange={(e) => handleOptionChange(qIndex, option.id, e.target.value)}
-                                            placeholder={`Option ${option.id.toUpperCase()}`}
-                                            required
-                                            className="flex-1"
-                                          />
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <label className="min-w-fit">Correct Answer:</label>
-                                      <select
-                                        value={question.correctAnswer}
-                                        onChange={(e) => handleQuestionChange(qIndex, 'correctAnswer', e.target.value)}
-                                        className="border rounded px-3 py-2 w-24"
-                                      >
-                                        {question.options.map((option) => (
-                                          <option key={option.id} value={option.id}>
-                                            {option.id.toUpperCase()}
-                                          </option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                  </div>
-                                </Card>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                        <DialogFooter className="sticky bottom-0 bg-background pt-2">
-                          <Button type="submit" disabled={createQuizMutation.isPending}>
-                            {createQuizMutation.isPending && (
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            )}
-                            Create Quiz
-                          </Button>
-                        </DialogFooter>
-                      </form>
-                    </DialogContent>
+                    {/* Create Quiz Dialog Content - Reusing common QuizFormDialog */}
+                    <QuizFormDialog
+                        isOpen={isQuizDialogOpen}
+                        onOpenChange={setIsQuizDialogOpen}
+                        onSubmit={handleCreateQuizSubmit}
+                        quizFormData={quizFormData}
+                        setQuizFormData={setQuizFormData}
+                        handleAddQuestion={handleAddQuestion}
+                        handleQuestionChange={handleQuestionChange}
+                        handleOptionChange={handleOptionChange}
+                        handleRemoveQuestion={handleRemoveQuestion}
+                        setIsBulkImportOpen={setIsBulkImportOpen}
+                        formType="create"
+                        isLoading={createQuizMutation.isPending}
+                        dialogTitle={`Create New Quiz in "${selectedCategoryForQuizzes.title}"`}
+                        dialogDescription="Add a new quiz with its questions."
+                    />
                   </Dialog>
                 </div>
 
@@ -720,22 +707,26 @@ export const QuizManagement = () => {
                           <TableRow key={quiz.id}>
                             <TableCell className="font-medium">{quiz.title}</TableCell>
                             <TableCell>{quiz.description}</TableCell>
-                            <TableCell>{quiz.questions.length}</TableCell>
+                            {/* quiz.questions will be undefined here as getQuizzesByCategory does not populate it */}
+                            <TableCell>{quiz.questions?.length ?? 'N/A'}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Button
                                   variant="ghost"
                                   size="icon"
+                                  title="Edit Quiz"
                                   onClick={() => handleEditQuizClick(quiz)}
+                                  disabled={isLoadingQuizDetails && selectedQuiz?.id === quiz.id}
                                 >
-                                  <Pencil className="h-4 w-4" />
+                                  {isLoadingQuizDetails && selectedQuiz?.id === quiz.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
                                 </Button>
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
                                       variant="ghost"
                                       size="icon"
-                                      className="text-destructive"
+                                      title="Delete Quiz"
+                                      className="text-destructive hover:text-destructive"
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -752,7 +743,9 @@ export const QuizManagement = () => {
                                       <AlertDialogAction
                                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                         onClick={() => handleDeleteQuizClick(quiz.id)}
+                                        disabled={deleteQuizMutation.isPending}
                                       >
+                                        {deleteQuizMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         Delete
                                       </AlertDialogAction>
                                     </AlertDialogFooter>
@@ -769,7 +762,7 @@ export const QuizManagement = () => {
               </>
             ) : (
               <div className="text-center text-muted-foreground py-8">
-                Select a category to manage its quizzes
+                {categories.length > 0 ? "Select a category to manage its quizzes." : "Create a category first, then manage its quizzes."}
               </div>
             )}
           </TabsContent>
@@ -777,18 +770,18 @@ export const QuizManagement = () => {
       </CardContent>
 
       {/* Edit Category Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(isOpen) => { setIsEditDialogOpen(isOpen); if(!isOpen) { setSelectedCategory(null); resetForm(); }}}>
         <DialogContent>
           <form onSubmit={handleEditCategorySubmit}>
             <DialogHeader>
-              <DialogTitle>Edit Category</DialogTitle>
+              <DialogTitle>Edit Category: {selectedCategory?.title}</DialogTitle>
               <DialogDescription>
-                Update the quiz category details
+                Update the quiz category details.
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <label htmlFor="edit-title">Title</label>
+                <Label htmlFor="edit-title">Title</Label>
                 <Input
                   id="edit-title"
                   value={formData.title}
@@ -798,7 +791,7 @@ export const QuizManagement = () => {
                 />
               </div>
               <div className="grid gap-2">
-                <label htmlFor="edit-description">Description</label>
+                <Label htmlFor="edit-description">Description</Label>
                 <Textarea
                   id="edit-description"
                   value={formData.description}
@@ -820,127 +813,39 @@ export const QuizManagement = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Quiz Dialog */}
-      <Dialog open={isEditQuizDialogOpen} onOpenChange={setIsEditQuizDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <form onSubmit={handleEditQuizSubmit}>
-            <DialogHeader>
-              <DialogTitle>Edit Quiz</DialogTitle>
-              <DialogDescription>
-                Update the quiz details
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <label htmlFor="edit-quiz-title">Title</label>
-                <Input
-                  id="edit-quiz-title"
-                  value={quizFormData.title}
-                  onChange={(e) => setQuizFormData({ ...quizFormData, title: e.target.value })}
-                  placeholder="Enter quiz title"
-                  required
-                />
-              </div>
-              <div className="grid gap-2">
-                <label htmlFor="edit-quiz-description">Description</label>
-                <Textarea
-                  id="edit-quiz-description"
-                  value={quizFormData.description}
-                  onChange={(e) => setQuizFormData({ ...quizFormData, description: e.target.value })}
-                  placeholder="Enter quiz description"
-                  required
-                />
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-lg font-semibold">Questions</label>
-                  <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => setIsBulkImportOpen(true)}>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Bulk Import
-                    </Button>
-                    <Button type="button" variant="outline" onClick={handleAddQuestion}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Question
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-6">
-                  {quizFormData.questions.map((question, qIndex) => (
-                    <Card key={question.id} className="p-4">
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">Question {qIndex + 1}</span>
-                        </div>
-                        <Input
-                          value={question.text}
-                          onChange={(e) => handleQuestionChange(qIndex, 'text', e.target.value)}
-                          placeholder="Enter question text"
-                          required
-                        />
-                        <div className="grid gap-3">
-                          {question.options.map((option) => (
-                            <div key={option.id} className="flex items-center gap-3">
-                              <div className="min-w-[2rem] h-8 flex items-center justify-center bg-muted rounded-full">
-                                {option.id.toUpperCase()}
-                              </div>
-                              <Input
-                                value={option.text}
-                                onChange={(e) => handleOptionChange(qIndex, option.id, e.target.value)}
-                                placeholder={`Option ${option.id.toUpperCase()}`}
-                                required
-                                className="flex-1"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <label className="min-w-fit">Correct Answer:</label>
-                          <select
-                            value={question.correctAnswer}
-                            onChange={(e) => handleQuestionChange(qIndex, 'correctAnswer', e.target.value)}
-                            className="border rounded px-3 py-2 w-24"
-                          >
-                            {question.options.map((option) => (
-                              <option key={option.id} value={option.id}>
-                                {option.id.toUpperCase()}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <DialogFooter className="sticky bottom-0 bg-background pt-2">
-              <Button type="submit" disabled={updateQuizMutation.isPending}>
-                {updateQuizMutation.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Update Quiz
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Quiz Dialog - Reusing common QuizFormDialog */}
+      {selectedQuiz && (
+        <QuizFormDialog
+            isOpen={isEditQuizDialogOpen}
+            onOpenChange={(isOpen) => { setIsEditQuizDialogOpen(isOpen); if (!isOpen) { setSelectedQuiz(null); resetQuizForm(); }}}
+            onSubmit={handleEditQuizSubmit}
+            quizFormData={quizFormData}
+            setQuizFormData={setQuizFormData}
+            handleAddQuestion={handleAddQuestion}
+            handleQuestionChange={handleQuestionChange}
+            handleOptionChange={handleOptionChange}
+            handleRemoveQuestion={handleRemoveQuestion}
+            setIsBulkImportOpen={setIsBulkImportOpen}
+            formType="edit"
+            isLoading={updateQuizMutation.isPending || isLoadingQuizDetails}
+            dialogTitle={`Edit Quiz: ${selectedQuiz.title}`}
+            dialogDescription="Update the quiz details and its questions."
+        />
+      )}
 
-      {/* Bulk Import Dialog */}
-      <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
+
+      {/* Bulk Import Dialog (Common for Create/Edit Quiz) */}
+      <Dialog open={isBulkImportOpen} onOpenChange={(isOpen) => { setIsBulkImportOpen(isOpen); if(!isOpen) { setBulkImportError(null); /* Don't reset importProgress here */ }}}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Bulk Import Questions</DialogTitle>
             <DialogDescription className="space-y-2">
-              <p>Paste your questions in the format below. For multi-line questions, write the question text in multiple lines and put the options on the last line:</p>
-              <code className="block mt-2 p-4 bg-muted rounded-md text-sm whitespace-pre overflow-x-auto">
-                Question text (single line)|Option A|Option B|Option C|Option D|a
-
-Question text line 1
-Question text line 2
-Question text line 3|Option A|Option B|Option C|Option D|b</code>
+              <p>Paste your questions in the format below. Each question block should be separated by a blank line. The last line of each block must contain options and the correct answer letter.</p>
+              <code className="block mt-2 p-4 bg-muted rounded-md text-sm whitespace-pre-wrap overflow-x-auto">
+                {SAMPLE_FORMAT}
+              </code>
               <p className="text-sm text-muted-foreground mt-2">
-                Maximum {MAX_QUESTIONS_PER_QUIZ} questions per quiz. Currently using: {quizFormData.questions.length}
+                Maximum {MAX_QUESTIONS_PER_QUIZ} questions per quiz. Current in form: {quizFormData.questions.length}
               </p>
             </DialogDescription>
           </DialogHeader>
@@ -961,19 +866,19 @@ Question text line 3|Option A|Option B|Option C|Option D|b</code>
                   <span>{importProgress.status}</span>
                   <span>{importProgress.current} / {importProgress.total}</span>
                 </div>
-                <Progress value={(importProgress.current / importProgress.total) * 100} />
+                <Progress value={importProgress.total > 0 ? (importProgress.current / importProgress.total) * 100 : 0} />
               </div>
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="bulk-questions">Questions</Label>
+              <Label htmlFor="bulk-questions">Questions Text</Label>
               <Textarea
                 id="bulk-questions"
-                placeholder={SAMPLE_FORMAT}
+                placeholder={"Paste questions here...\n\nExample:\nYour question text...\nOption A Text|Option B Text|Option C Text|Option D Text|a"}
                 value={bulkQuestions}
                 onChange={(e) => setBulkQuestions(e.target.value)}
-                className="min-h-[300px] font-mono"
-                disabled={!!importProgress}
+                className="min-h-[300px] font-mono text-xs"
+                disabled={!!importProgress && importProgress.status.startsWith('Adding')}
               />
             </div>
           </div>
@@ -981,20 +886,168 @@ Question text line 3|Option A|Option B|Option C|Option D|b</code>
           <DialogFooter>
             <Button variant="outline" onClick={() => {
               setIsBulkImportOpen(false);
-              setImportProgress(null);
+              setBulkImportError(null);
+              setImportProgress(null); // Reset progress on explicit cancel
+              setBulkQuestions(''); // Clear textarea on cancel
             }}>
               Cancel
             </Button>
             <Button 
               onClick={handleBulkImport} 
-              disabled={!bulkQuestions.trim() || !!importProgress}
+              disabled={!bulkQuestions.trim() || (!!importProgress && importProgress.status.startsWith('Adding'))}
               className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {importProgress ? 'Importing...' : 'Import Questions'}
+              {importProgress && importProgress.status.startsWith('Adding') ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {importProgress && importProgress.status.startsWith('Adding') ? 'Adding...' : 'Parse & Add to Form'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </Card>
   );
+};
+
+
+// Helper component for Create/Edit Quiz Form Dialog
+interface QuizFormDialogProps {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    onSubmit: (e: React.FormEvent) => void;
+    quizFormData: QuizFormData;
+    setQuizFormData: React.Dispatch<React.SetStateAction<QuizFormData>>;
+    handleAddQuestion: () => void;
+    handleQuestionChange: (index: number, field: keyof QuizQuestion, value: any) => void;
+    handleOptionChange: (questionIndex: number, optionId: string, value: string) => void;
+    handleRemoveQuestion: (questionId: string) => void;
+    setIsBulkImportOpen: (isOpen: boolean) => void;
+    formType: 'create' | 'edit';
+    isLoading: boolean;
+    dialogTitle: string;
+    dialogDescription: string;
+}
+
+const QuizFormDialog: React.FC<QuizFormDialogProps> = ({
+    isOpen, onOpenChange, onSubmit, quizFormData, setQuizFormData,
+    handleAddQuestion, handleQuestionChange, handleOptionChange, handleRemoveQuestion,
+    setIsBulkImportOpen, formType, isLoading, dialogTitle, dialogDescription
+}) => {
+    return (
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <form onSubmit={onSubmit}>
+                <DialogHeader>
+                    <DialogTitle>{dialogTitle}</DialogTitle>
+                    <DialogDescription>{dialogDescription}</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor={`${formType}-quiz-title`}>Title</Label>
+                        <Input
+                            id={`${formType}-quiz-title`}
+                            value={quizFormData.title}
+                            onChange={(e) => setQuizFormData({ ...quizFormData, title: e.target.value })}
+                            placeholder="Enter quiz title"
+                            required
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor={`${formType}-quiz-description`}>Description</Label>
+                        <Textarea
+                            id={`${formType}-quiz-description`}
+                            value={quizFormData.description}
+                            onChange={(e) => setQuizFormData({ ...quizFormData, description: e.target.value })}
+                            placeholder="Enter quiz description"
+                            required
+                        />
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-lg font-semibold">Questions ({quizFormData.questions.length})</Label>
+                            <div className="flex gap-2">
+                                <Button type="button" variant="outline" onClick={() => setIsBulkImportOpen(true)}>
+                                    <Upload className="h-4 w-4 mr-2" />
+                                    Bulk Import
+                                </Button>
+                                <Button type="button" variant="outline" onClick={handleAddQuestion}>
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Add Question
+                                </Button>
+                            </div>
+                        </div>
+                        {quizFormData.questions.length === 0 && (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                                No questions added yet. Add questions manually or use bulk import.
+                            </p>
+                        )}
+                        <div className="space-y-6 max-h-[40vh] overflow-y-auto pr-2"> {/* Scrollable questions area */}
+                            {quizFormData.questions.map((question, qIndex) => (
+                                <Card key={question.id} className="p-4 bg-muted/50">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <Label className="font-medium">Question {qIndex + 1}</Label>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                type="button"
+                                                className="text-destructive hover:text-destructive"
+                                                onClick={() => handleRemoveQuestion(question.id)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <Textarea
+                                            value={question.text}
+                                            onChange={(e) => handleQuestionChange(qIndex, 'text', e.target.value)}
+                                            placeholder="Enter question text"
+                                            required
+                                            className="min-h-[80px] font-normal bg-background"
+                                        />
+                                        <div className="grid gap-3">
+                                            {question.options.map((option) => (
+                                                <div key={option.id} className="flex items-start gap-3">
+                                                    <div className="min-w-[2rem] h-8 flex items-center justify-center bg-muted rounded-md mt-1 text-sm">
+                                                        {option.id.toUpperCase()}
+                                                    </div>
+                                                    <Textarea
+                                                        value={option.text}
+                                                        onChange={(e) => handleOptionChange(qIndex, option.id, e.target.value)}
+                                                        placeholder={`Option ${option.id.toUpperCase()}`}
+                                                        required
+                                                        className="flex-1 min-h-[40px] font-normal bg-background text-sm"
+                                                        rows={2}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Label className="min-w-fit text-sm">Correct Answer:</Label>
+                                            <select
+                                                value={question.correctAnswer}
+                                                onChange={(e) => handleQuestionChange(qIndex, 'correctAnswer', e.target.value)}
+                                                className="border rounded px-3 py-2 w-24 text-sm bg-background"
+                                            >
+                                                {question.options.map((option) => (
+                                                    <option key={option.id} value={option.id}>
+                                                        {option.id.toUpperCase()}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter className="sticky bottom-0 bg-background pt-4 pb-2 border-t">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        {formType === 'create' ? 'Create Quiz' : 'Update Quiz'}
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    );
 };

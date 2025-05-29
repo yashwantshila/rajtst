@@ -4,6 +4,12 @@ import { updateUserBalance } from './firebase/balance';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Function to get the correct API endpoint
+const getApiEndpoint = (endpoint: string) => {
+  const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
+  return `${baseUrl}${endpoint}`;
+};
+
 // Function to load Razorpay script
 const loadRazorpayScript = (): Promise<boolean> => {
   return new Promise((resolve) => {
@@ -48,7 +54,7 @@ export const initiatePayment = async (
 
     // Create order on backend
     const orderResponse = await axios.post(
-      `${API_URL}/payments/create-order`,
+      getApiEndpoint('/payments/create-order'),
       { amount, userId },
       {
         headers: {
@@ -63,7 +69,7 @@ export const initiatePayment = async (
       try {
         // @ts-ignore - Razorpay is loaded via script
         const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+          key: orderResponse.data.key_id, // Get key from backend
           amount: amount * 100, // Amount in paise
           currency: "INR",
           name: "RajTest",
@@ -73,7 +79,7 @@ export const initiatePayment = async (
             try {
               // Verify payment on backend
               const verifyResponse = await axios.post(
-                `${API_URL}/payments/verify`,
+                getApiEndpoint('/payments/verify'),
                 {
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
@@ -135,3 +141,4 @@ declare global {
     Razorpay: any;
   }
 }
+

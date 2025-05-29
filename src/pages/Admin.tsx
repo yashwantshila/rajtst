@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Wallet, Trophy, Gift, FileText, ScrollText, Info, Book } from 'lucide-react';
+import { Users, BookOpen, Wallet, Trophy, Gift, FileText, ScrollText, Info, Book, FileArchive, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -14,65 +14,61 @@ import { AboutUsManager } from '../components/admin/AboutUsManager';
 import GuideManager from '../components/admin/GuideManager';
 import MegaTestManager from './admin/MegaTestManager';
 import PrizeClaimsManager from './admin/PrizeClaimsManager';
+import QuestionPaperCategories from './admin/QuestionPaperCategories';
+import PaidContentManager from './admin/PaidContentManager';
 import { getAllUsers, getAllBalances } from '@/services/api/admin';
-
-const ADMIN_EMAILS = ['admin@example.com', 'ij@gmail.com', 'test@example.com'];
-const HARDCODED_ADMIN_EMAIL = 'ww@gmail.com';
+import { db } from '@/services/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
 
 const Admin = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [isCustomAdmin, setIsCustomAdmin] = useState(false);
   
   useEffect(() => {
-    const isFirebaseAdmin = user && user.email && ADMIN_EMAILS.includes(user.email);
-    const isHardcodedAdmin = user && user.email === HARDCODED_ADMIN_EMAIL;
-    
-    let customAdmin = false;
-    try {
-      const adminAuth = localStorage.getItem('adminAuth');
-      if (adminAuth) {
-        const parsedAuth = JSON.parse(adminAuth);
-        if (parsedAuth && parsedAuth.isAdmin) {
-          customAdmin = true;
-          setIsCustomAdmin(true);
-        }
-      }
-    } catch (error) {
-      console.error('Error parsing admin auth', error);
-      localStorage.removeItem('adminAuth');
-    }
-    
-    console.log('Admin page - Firebase admin?', isFirebaseAdmin);
-    console.log('Admin page - Hardcoded admin?', isHardcodedAdmin);
-    console.log('Admin page - Custom admin?', customAdmin);
-    
-    if (!isFirebaseAdmin && !isHardcodedAdmin && !customAdmin) {
-      console.log('Admin page - Access denied. Redirecting to admin login');
-      toast.error('Access denied. Admin privileges required.');
+    if (!user) {
+      console.log('Admin page - No user found. Redirecting to admin login');
+      toast.error('Access denied. Please login first.');
       navigate('/admin-auth');
       return;
     }
-    
-    console.log('Admin page - Access granted');
-    setLoading(false);
+
+    // Check if user is admin in Firestore
+    const checkAdminStatus = async () => {
+      try {
+        const adminDoc = await getDoc(doc(db, 'admins', user.uid));
+        if (!adminDoc.exists() || !adminDoc.data()?.isAdmin) {
+          console.log('Admin page - User is not an admin. Redirecting to admin login');
+          toast.error('Access denied. Admin privileges required.');
+          navigate('/admin-auth');
+          return;
+        }
+        
+        console.log('Admin page - Access granted');
+        setLoading(false);
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+        toast.error('Error verifying admin status');
+        navigate('/admin-auth');
+      }
+    };
+
+    checkAdminStatus();
   }, [user, navigate]);
   
   const { data: users, isLoading: isUsersLoading, error: usersError, refetch: refetchUsers } = useQuery({
     queryKey: ['admin-users'],
     queryFn: getAllUsers,
-    enabled: (!!user && !!user.email && ADMIN_EMAILS.includes(user.email)) || isCustomAdmin,
+    enabled: !loading && !!user
   });
   
   const { data: balances = [], error: balancesError } = useQuery({
     queryKey: ['admin-balances'],
     queryFn: getAllBalances,
-    enabled: (!!user && !!user.email && ADMIN_EMAILS.includes(user.email)) || isCustomAdmin,
+    enabled: !loading && !!user
   });
   
   const handleLogout = () => {
-    localStorage.removeItem('adminAuth');
     navigate('/admin-auth');
     toast.success('Logged out of admin panel');
   };
@@ -110,6 +106,14 @@ const Admin = () => {
               <Gift className="h-4 w-4" />
               <span>Prize Claims</span>
             </TabsTrigger>
+            <TabsTrigger value="question-papers" className="flex items-center gap-2">
+              <FileArchive className="h-4 w-4" />
+              <span>Question Papers</span>
+            </TabsTrigger>
+            <TabsTrigger value="paid-content" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              <span>Paid Content</span>
+            </TabsTrigger>
             <TabsTrigger value="privacy-policy" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span>Privacy Policy</span>
@@ -131,11 +135,11 @@ const Admin = () => {
           <TabsContent value="users">
             <UserManagement 
               users={users} 
-              balances={balances} 
-              isLoading={isUsersLoading} 
+              balances={balances}
+              isLoading={isUsersLoading}
               usersError={usersError}
               balancesError={balancesError}
-              refetchUsers={refetchUsers} 
+              refetchUsers={refetchUsers}
             />
           </TabsContent>
           
@@ -149,6 +153,14 @@ const Admin = () => {
 
           <TabsContent value="prize-claims">
             <PrizeClaimsManager />
+          </TabsContent>
+
+          <TabsContent value="question-papers">
+            <QuestionPaperCategories />
+          </TabsContent>
+
+          <TabsContent value="paid-content">
+            <PaidContentManager />
           </TabsContent>
 
           <TabsContent value="privacy-policy">
