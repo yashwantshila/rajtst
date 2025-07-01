@@ -59,7 +59,7 @@ const Guide = () => {
             <CardTitle>Rules and Regulations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose dark:prose-invert max-w-none">
+            <div className="prose dark:prose-invert max-w-none [&_p]:text-foreground [&_li]:text-foreground [&_span]:text-foreground [&_div]:text-foreground">
               {guideData?.content ? (
                 <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(guideData.content) }} />
               ) : (

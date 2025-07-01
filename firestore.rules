@@ -77,8 +77,8 @@ service cloud.firestore {
     
     // Balance collection rules
     match /balance/{userId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read: if isCurrentUser(userId) || isAdmin();
+      allow write: if isAdmin();
     }
     
     // Withdrawals collection rules
@@ -132,12 +132,14 @@ service cloud.firestore {
       
       // Mega test leaderboard
       match /leaderboard/{userId} {
-        allow read, write: if isAuthenticated();
+        allow read: if true;
+        allow write: if isAuthenticated();
       }
       
       // Mega test prize-claims
       match /prize-claims/{claimId} {
-        allow read, write: if isAuthenticated();
+        allow read: if true;
+        allow write: if isAuthenticated();
       }
       
       // Mega test prizes
@@ -157,16 +159,26 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       allow read, write: if isAuthenticated();
     }
-
-    // Question Paper Categories
-    match /questionPaperCategories/{categoryId} {
+    
+    // Paid content collection
+    match /paid-content/{contentId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-
-    // Question Papers
-    match /questionPapers/{paperId} {
-      allow read: if true;
+    
+    // Purchased content collection
+    match /purchased-content/{userId}/{contentId} {
+      allow read: if isCurrentUser(userId) || isAdmin();
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update, delete: if isAdmin();
+    }
+    
+    // Question papers collection
+    match /question-papers/{paperId} {
+      allow read: if isAuthenticated() && (
+        isAdmin() || 
+        exists(/databases/$(database)/documents/purchased-content/$(request.auth.uid)/$(paperId))
+      );
       allow write: if isAdmin();
     }
     

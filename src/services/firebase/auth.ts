@@ -5,8 +5,9 @@ import {
   updateProfile,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from './config';
+import { getClientIP } from '@/utils/ipDetection';
 
 interface User {
   uid: string;
@@ -15,6 +16,8 @@ interface User {
   displayName: string | null;
   photoURL: string | null;
   createdAt: string;
+  ipAddress?: string;
+  lastSeenIP?: string;
 }
 
 export const getUserById = async (userId: string): Promise<User | null> => {
@@ -39,12 +42,16 @@ export const registerUser = async (email: string, password: string, username: st
     // Update profile with username
     await updateProfile(user, { displayName: username });
     
+    const ipAddress = await getClientIP();
+
     // Create user document in Firestore
     await setDoc(doc(db, 'users', user.uid), {
       uid: user.uid,
       email: user.email,
       username,
       createdAt: new Date().toISOString(),
+      ipAddress: ipAddress,
+      lastSeenIP: ipAddress
     });
     
     // Initialize user balance
@@ -64,6 +71,17 @@ export const registerUser = async (email: string, password: string, username: st
 export const loginUser = async (email: string, password: string) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const user = userCredential.user;
+
+    // Update last seen IP
+    const ipAddress = await getClientIP();
+    if (user && ipAddress) {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        lastSeenIP: ipAddress
+      });
+    }
+
     return userCredential.user;
   } catch (error) {
     console.error('Error logging in:', error);

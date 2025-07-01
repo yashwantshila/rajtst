@@ -32,17 +32,14 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
       const decodedToken = await auth.verifyIdToken(token);
       console.log('Token verified successfully. User ID:', decodedToken.uid);
       
-      // Get user from database
+      // Get user from database (optional - user document might not exist yet)
       const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-      if (!userDoc.exists) {
-        console.log('User not found in Firestore:', decodedToken.uid);
-        return res.status(404).json({ error: 'User not found' });
-      }
-
-      // Add user data to request
+      
+      // Add user data to request (even if document doesn't exist)
       req.user = {
         uid: decodedToken.uid,
-        ...userDoc.data()
+        email: decodedToken.email,
+        ...(userDoc.exists ? userDoc.data() : {})
       };
       
       next();

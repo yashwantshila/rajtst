@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from 'sonner';
 import { getUserBalance, updateUserBalance, UserBalance } from '../services/firebase/balance';
 import { DollarSign, FileText, Loader2, BookOpen, ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface PaidContent {
   id: string;
@@ -15,6 +15,7 @@ interface PaidContent {
   description: string;
   price: number;
   pdfUrl: string;
+  samplePdfUrl?: string;
   thumbnailUrl?: string;
 }
 
@@ -22,6 +23,7 @@ export default function PaidContentPage() { // Renamed component to avoid confli
   const [contents, setContents] = useState<PaidContent[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPaidContents();
@@ -47,6 +49,7 @@ export default function PaidContentPage() { // Renamed component to avoid confli
   const handlePurchase = async (content: PaidContent) => {
     if (!user) {
       toast.error('Please login to purchase content');
+      navigate('/auth');
       return;
     }
 
@@ -150,21 +153,27 @@ export default function PaidContentPage() { // Renamed component to avoid confli
               <CardContent>
                 <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 mb-4">
                   <div className="flex items-center">
-                    {/* Original had DollarSign, reference has FileText for "PDF Format" */}
-                    {/* Kept FileText as in reference, assuming it's more relevant here than DollarSign */}
                     <FileText className="h-4 w-4 mr-1" /> 
                     <span>PDF Format</span>
                   </div>
-                  {/* Removed the "Paid Content" with DollarSign part to match reference structure more closely if desired, or can be added back */}
                 </div>
-                 <Button
+                {content.samplePdfUrl && (
+                  <Button
+                    variant="outline"
+                    className="w-full mb-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50 dark:border-gray-600 dark:text-indigo-300 dark:hover:bg-gray-700"
+                    onClick={() => window.open(content.samplePdfUrl, '_blank')}
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Sample
+                  </Button>
+                )}
+                <Button
                   onClick={() => handlePurchase(content)}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300"
                 >
                   Purchase Now
                 </Button>
               </CardContent>
-              {/* CardFooter removed to match reference structure; button moved to CardContent */}
             </Card>
           ))}
         </div>

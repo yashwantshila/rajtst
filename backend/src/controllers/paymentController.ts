@@ -10,6 +10,7 @@ dotenv.config();
 // Check if Razorpay credentials are available
 const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
 const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
+const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
 if (!razorpayKeyId || !razorpayKeySecret) {
   console.error('Razorpay credentials are missing in environment variables');
@@ -103,7 +104,7 @@ export const createPaymentOrder = async (req: Request, res: Response) => {
 export const verifyPayment = async (req: Request, res: Response) => {
   try {
     if (process.env.NODE_ENV !== 'production') {
-      console.log('Verifying payment...');
+      console.log('Verifying payment via frontend handler...');
     }
     const {
       razorpay_order_id,
@@ -122,7 +123,22 @@ export const verifyPayment = async (req: Request, res: Response) => {
 
     if (expectedSignature === razorpay_signature) {
       if (process.env.NODE_ENV !== 'production') {
-        console.log('Payment verified successfully');
+        console.log('Payment verified successfully via frontend');
+      }
+
+      // Idempotency Check: Ensure payment isn't processed twice
+      const paymentRef = db.collection('payments').where('paymentId', '==', razorpay_payment_id);
+      const paymentSnapshot = await paymentRef.get();
+      if (!paymentSnapshot.empty) {
+        console.log('Payment already processed.');
+        // Still need to return the user's latest balance
+        const balanceDoc = await db.collection('balance').doc(userId).get();
+        const newBalance = balanceDoc.exists ? balanceDoc.data()?.amount : 0;
+        return res.json({
+          success: true,
+          message: 'Payment already verified',
+          newBalance
+        });
       }
       
       // Use transaction to ensure data consistency when updating balance
@@ -131,26 +147,20 @@ export const verifyPayment = async (req: Request, res: Response) => {
         const balanceDoc = await transaction.get(balanceRef);
         
         if (!balanceDoc.exists) {
-          // Create a new balance document if it doesn't exist
           const initialBalance = Number(amount);
-          
           transaction.set(balanceRef, {
             amount: initialBalance,
             currency: 'INR',
             lastUpdated: new Date().toISOString()
           });
-          
           return initialBalance;
         } else {
-          // Update existing balance
           const currentBalance = balanceDoc.data()?.amount || 0;
           const updatedBalance = currentBalance + Number(amount);
-          
           transaction.update(balanceRef, {
             amount: updatedBalance,
             lastUpdated: new Date().toISOString()
           });
-          
           return updatedBalance;
         }
       });
@@ -163,6 +173,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
         amount: Number(amount),
         currency: 'INR',
         status: 'completed',
+        source: 'frontend_verify',
         timestamp: new Date().toISOString()
       });
 
@@ -186,4 +197,98 @@ export const verifyPayment = async (req: Request, res: Response) => {
       details: error.message
     });
   }
-}; 
+};
+
+// Razorpay Webhook Handler
+export const razorpayWebhook = async (req: Request, res: Response) => {
+  if (!razorpayWebhookSecret) {
+    console.error('Razorpay webhook secret is not configured.');
+    return res.status(500).json({ error: 'Webhook service not configured' });
+  }
+
+  // Verify webhook signature
+  const signature = req.headers['x-razorpay-signature'] as string;
+  const body = JSON.stringify(req.body);
+
+  try {
+    const expectedSignature = crypto
+      .createHmac('sha256', razorpayWebhookSecret)
+      .update(body)
+      .digest('hex');
+
+    if (expectedSignature !== signature) {
+      console.error('Invalid webhook signature');
+      return res.status(400).json({ error: 'Invalid webhook signature' });
+    }
+  } catch(error) {
+     console.error('Error during webhook signature verification:', error);
+     return res.status(500).json({ error: 'Webhook signature verification failed' });
+  }
+
+  // Process the event
+  const event = req.body;
+  if (event.event === 'payment.captured') {
+    const paymentEntity = event.payload.payment.entity;
+    const { order_id, id: paymentId, amount, notes } = paymentEntity;
+    const userId = notes?.userId;
+
+    if (!userId) {
+      console.error('Webhook Error: userId not found in payment notes. Order ID:', order_id);
+      // Return 200 to Razorpay to prevent retries for this issue
+      return res.status(200).json({ message: 'User ID missing from notes, cannot process.' });
+    }
+
+    try {
+      // Idempotency: check if payment already processed
+      const paymentsRef = db.collection('payments');
+      const existingPayment = await paymentsRef.where('paymentId', '==', paymentId).limit(1).get();
+      if (!existingPayment.empty) {
+        console.log(`Webhook: Payment ${paymentId} already processed.`);
+        return res.status(200).json({ message: 'Payment already processed' });
+      }
+
+      // Update user balance in a transaction
+      const amountInRupees = Number(amount) / 100; // Razorpay sends amount in paise
+      await db.runTransaction(async (transaction) => {
+        const balanceRef = db.collection('balance').doc(userId);
+        const balanceDoc = await transaction.get(balanceRef);
+
+        if (!balanceDoc.exists) {
+          transaction.set(balanceRef, {
+            amount: amountInRupees,
+            currency: 'INR',
+            lastUpdated: new Date().toISOString(),
+          });
+        } else {
+          const currentBalance = balanceDoc.data()?.amount || 0;
+          transaction.update(balanceRef, {
+            amount: currentBalance + amountInRupees,
+            lastUpdated: new Date().toISOString(),
+          });
+        }
+      });
+
+      // Record payment
+      await paymentsRef.add({
+        userId,
+        orderId: order_id,
+        paymentId,
+        amount: amountInRupees,
+        currency: 'INR',
+        status: 'completed',
+        source: 'webhook',
+        timestamp: new Date().toISOString(),
+      });
+
+       console.log(`Webhook: Successfully processed payment ${paymentId} for user ${userId}.`);
+
+    } catch (dbError) {
+      console.error(`Webhook: Database error for payment ${paymentId}:`, dbError);
+      // Return 500 to signal Razorpay to retry the webhook
+      return res.status(500).json({ error: 'Database processing failed' });
+    }
+  }
+
+  // Acknowledge receipt of the event
+  res.status(200).json({ status: 'ok' });
+};

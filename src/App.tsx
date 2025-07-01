@@ -5,6 +5,7 @@ import { app } from './services/firebase/config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
+import { initializeGTM } from './services/gtm';
 import Auth from './pages/Auth';
 import Home from './pages/Index';
 import Profile from './pages/Profile';
@@ -32,6 +33,9 @@ import { Button } from './components/ui/button';
 import { User as UserIcon, Book, LogOut } from 'lucide-react';
 import { api } from './api/config';
 import ProtectedRoute from './components/ProtectedRoute';
+import QuizCategories from './pages/QuizCategories';
+import SubCategories from './pages/SubCategories';
+import AllMegaTests from './pages/AllMegaTests';
 
 interface AuthContextProps {
   user: User | null;
@@ -78,6 +82,7 @@ const AppContent: React.FC = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Home />} />
+      <Route path="/all-mega-tests" element={<AllMegaTests />} />
       <Route path="/profile" element={
         <ProtectedRoute>
           <Profile />
@@ -90,12 +95,22 @@ const AppContent: React.FC = () => {
       } />
       <Route path="/admin-auth" element={<AdminAuth />} />
       <Route path="/admin/login" element={<Navigate to="/admin-auth" replace />} />
-      <Route path="/category/:categoryId" element={
+      <Route path="/categories" element={
+        <ProtectedRoute>
+          <QuizCategories />
+        </ProtectedRoute>
+      } />
+      <Route path="/category/:categoryId/subcategories" element={
+        <ProtectedRoute>
+          <SubCategories />
+        </ProtectedRoute>
+      } />
+      <Route path="/category/:categoryId/subcategory/:subcategoryId/quizzes" element={
         <ProtectedRoute>
           <CategoryQuizzes />
         </ProtectedRoute>
       } />
-      <Route path="/quiz/:categoryId/:quizId" element={
+      <Route path="/quiz/:quizId" element={
         <ProtectedRoute>
           <Quiz />
         </ProtectedRoute>
@@ -110,16 +125,8 @@ const AppContent: React.FC = () => {
           <MegaTest />
         </ProtectedRoute>
       } />
-      <Route path="/mega-test/:megaTestId/prizes" element={
-        <ProtectedRoute>
-          <MegaTestPrizesPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/leaderboard/:megaTestId" element={
-        <ProtectedRoute>
-          <LeaderboardPage />
-        </ProtectedRoute>
-      } />
+      <Route path="/mega-test/:megaTestId/prizes" element={<MegaTestPrizesPage />} />
+      <Route path="/leaderboard/:megaTestId" element={<LeaderboardPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
       <Route path="/about-us" element={<AboutUs />} />
@@ -129,16 +136,8 @@ const AppContent: React.FC = () => {
         </ProtectedRoute>
       } />
       {/* Question Paper Routes */}
-      <Route path="/question-papers" element={
-        <ProtectedRoute>
-          <QuestionPapers />
-        </ProtectedRoute>
-      } />
-      <Route path="/question-papers/:categoryId" element={
-        <ProtectedRoute>
-          <QuestionPaperCategory />
-        </ProtectedRoute>
-      } />
+      <Route path="/question-papers" element={<QuestionPapers />} />
+      <Route path="/question-papers/:categoryId" element={<QuestionPaperCategory />} />
       <Route path="/admin/question-paper-categories" element={
         <ProtectedRoute>
           <AdminQuestionPaperCategories />
@@ -150,11 +149,7 @@ const AppContent: React.FC = () => {
         </ProtectedRoute>
       } />
       {/* Paid Content Routes */}
-      <Route path="/paid-content" element={
-        <ProtectedRoute>
-          <PaidContent />
-        </ProtectedRoute>
-      } />
+      <Route path="/paid-content" element={<PaidContent />} />
       <Route path="/purchased-content" element={
         <ProtectedRoute>
           <PurchasedContent />
@@ -173,6 +168,9 @@ const queryClient = new QueryClient();
 
 const App: React.FC = () => {
   useEffect(() => {
+    // Initialize GTM
+    initializeGTM();
+
     // Ensure all API calls use HTTPS in production
     if (import.meta.env.PROD) {
       if (window.location.protocol !== 'https:') {

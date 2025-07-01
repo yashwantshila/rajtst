@@ -7,7 +7,10 @@ import { SanitizedTextarea } from "@/components/ui/sanitized-textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
+import { db, auth } from '../services/firebase/config';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { getClientIP } from '@/utils/ipDetection';
+import { getDeviceId } from '@/utils/deviceId';
 
 interface PrizeClaimFormProps {
   megaTestId: string;
@@ -18,6 +21,7 @@ interface PrizeClaimFormProps {
 
 const PrizeClaimForm = ({ megaTestId, prize, rank, onSuccess }: PrizeClaimFormProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user] = useAuthState(auth);
   const [formData, setFormData] = useState({
     name: '',
     mobile: '',
@@ -28,15 +32,27 @@ const PrizeClaimForm = ({ megaTestId, prize, rank, onSuccess }: PrizeClaimFormPr
     e.preventDefault();
     setIsSubmitting(true);
 
+    if (!user) {
+      toast.error('You must be logged in to claim a prize.');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
+      const ipAddress = await getClientIP();
+      const deviceId = getDeviceId();
+
       // Create a new document in the prize-claims collection
-      const claimRef = doc(db, 'mega-tests', megaTestId, 'prize-claims', Date.now().toString());
+      const claimRef = doc(db, 'mega-tests', megaTestId, 'prize-claims', user.uid);
       await setDoc(claimRef, {
         ...formData,
         prize,
         rank,
+        userId: user.uid,
         status: 'pending',
         createdAt: new Date(),
+        ipAddress,
+        deviceId,
       });
 
       toast.success('Prize claim submitted successfully!');
@@ -53,12 +69,12 @@ const PrizeClaimForm = ({ megaTestId, prize, rank, onSuccess }: PrizeClaimFormPr
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Full Name</Label>
+        <Label htmlFor="name">UPI ID</Label>
         <SanitizedInput
           id="name"
           value={formData.name}
           onChange={(value) => setFormData({ ...formData, name: value })}
-          placeholder="Enter your full name"
+          placeholder="Enter your UPI Details"
           required
         />
       </div>
@@ -76,12 +92,12 @@ const PrizeClaimForm = ({ megaTestId, prize, rank, onSuccess }: PrizeClaimFormPr
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="address">Delivery Address</Label>
+        <Label htmlFor="address">Email Address and Payment Information</Label>
         <SanitizedTextarea
           id="address"
           value={formData.address}
           onChange={(value) => setFormData({ ...formData, address: value })}
-          placeholder="Enter your complete delivery address"
+          placeholder="Enter your complete email and payment details, we only support phonepe and google pay!"
           required
         />
       </div>

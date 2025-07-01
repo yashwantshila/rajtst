@@ -1,19 +1,25 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { collection, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
-import { Gift, Search, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Gift, Search, Trash2, CheckCircle, XCircle, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { unparse } from 'papaparse';
 
 const PrizeClaimsManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [megaTestFilter, setMegaTestFilter] = useState('all');
+  const [showDuplicateIPs, setShowDuplicateIPs] = useState(false);
+  const [showDuplicateDeviceIds, setShowDuplicateDeviceIds] = useState(false);
 
   const { data: megaTests, isLoading: isLoadingMegaTests } = useQuery({
     queryKey: ['mega-tests'],
@@ -22,17 +28,22 @@ const PrizeClaimsManager = () => {
       const snapshot = await getDocs(megaTestsRef);
       return snapshot.docs.map(doc => ({
         id: doc.id,
+        title: doc.data().title,
         ...doc.data()
       }));
     }
   });
 
   const { data: claims, isLoading: isLoadingClaims, refetch: refetchClaims } = useQuery({
-    queryKey: ['prize-claims', statusFilter],
+    queryKey: ['prize-claims', statusFilter, megaTestFilter],
     queryFn: async () => {
       const allClaims = [];
       
-      for (const megaTest of megaTests || []) {
+      const testsToFetch = megaTestFilter === 'all' 
+        ? megaTests 
+        : megaTests?.filter(mt => mt.id === megaTestFilter);
+
+      for (const megaTest of testsToFetch || []) {
         const claimsRef = collection(db, 'mega-tests', megaTest.id, 'prize-claims');
         const claimsQuery = statusFilter === 'all' 
           ? claimsRef 
@@ -67,19 +78,50 @@ const PrizeClaimsManager = () => {
   };
 
   const handleDeleteClaim = async (claimId: string, megaTestId: string) => {
-    if (!window.confirm('Are you sure you want to delete this claim?')) {
+    if (!window.confirm('Are you sure you want to reject this claim? This action cannot be undone.')) {
       return;
     }
 
     try {
       const claimRef = doc(db, 'mega-tests', megaTestId, 'prize-claims', claimId);
-      await deleteDoc(claimRef);
-      toast.success('Claim deleted successfully');
+      await updateDoc(claimRef, { status: 'rejected' });
+      toast.success('Claim rejected successfully');
       refetchClaims();
     } catch (error) {
-      console.error('Error deleting claim:', error);
-      toast.error('Failed to delete claim');
+      console.error('Error rejecting claim:', error);
+      toast.error('Failed to reject claim');
     }
+  };
+
+  const handleExport = () => {
+    if (!finalClaims || finalClaims.length === 0) {
+      toast.info('No data to export');
+      return;
+    }
+
+    const csvData = finalClaims.map(claim => ({
+      'Mega Test': claim.megaTestTitle,
+      'Name': claim.name,
+      'Mobile': claim.mobile,
+      'Address': claim.address,
+      'Prize': claim.prize,
+      'IP Address': claim.ipAddress || 'N/A',
+      'Device ID': claim.deviceId || 'N/A',
+      'Claimed On': format(claim.createdAt.toDate(), 'yyyy-MM-dd HH:mm:ss'),
+      'Status': claim.status,
+    }));
+
+    const csv = unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `prize-claims-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success('Prize claims exported successfully');
   };
 
   const filteredClaims = claims?.filter(claim => {
@@ -91,6 +133,68 @@ const PrizeClaimsManager = () => {
       claim.prize.toLowerCase().includes(searchLower)
     );
   });
+
+  const duplicateIPs = useMemo(() => {
+    if (!filteredClaims) return new Set();
+
+    const ipMap: { [key: string]: string[] } = {};
+    filteredClaims.forEach(claim => {
+      if (!claim.ipAddress) return;
+      const key = `${claim.megaTestId}-${claim.ipAddress}`;
+      if (!ipMap[key]) {
+        ipMap[key] = [];
+      }
+      ipMap[key].push(claim.id);
+    });
+
+    const duplicates = new Set<string>();
+    for (const key in ipMap) {
+      if (ipMap[key].length > 1) {
+        ipMap[key].forEach(claimId => duplicates.add(claimId));
+      }
+    }
+    return duplicates;
+  }, [filteredClaims]);
+
+  const duplicateDeviceIds = useMemo(() => {
+    if (!filteredClaims) return new Set();
+
+    const deviceIdMap: { [key: string]: string[] } = {};
+    filteredClaims.forEach(claim => {
+      if (!claim.deviceId) return;
+      const key = `${claim.megaTestId}-${claim.deviceId}`;
+      if (!deviceIdMap[key]) {
+        deviceIdMap[key] = [];
+      }
+      deviceIdMap[key].push(claim.id);
+    });
+
+    const duplicates = new Set<string>();
+    for (const key in deviceIdMap) {
+      if (deviceIdMap[key].length > 1) {
+        deviceIdMap[key].forEach(claimId => duplicates.add(claimId));
+      }
+    }
+    return duplicates;
+  }, [filteredClaims]);
+
+  const finalClaims = useMemo(() => {
+    if (!filteredClaims) return [];
+    if (!showDuplicateIPs && !showDuplicateDeviceIds) {
+        return filteredClaims;
+    }
+
+    const duplicateClaimIds = new Set<string>();
+
+    if (showDuplicateIPs) {
+        duplicateIPs.forEach(id => duplicateClaimIds.add(id));
+    }
+    if (showDuplicateDeviceIds) {
+        duplicateDeviceIds.forEach(id => duplicateClaimIds.add(id));
+    }
+
+    return filteredClaims.filter(claim => duplicateClaimIds.has(claim.id));
+  }, [filteredClaims, showDuplicateIPs, showDuplicateDeviceIds, duplicateIPs, duplicateDeviceIds]);
 
   if (isLoadingMegaTests || isLoadingClaims) {
     return (
@@ -133,6 +237,20 @@ const PrizeClaimsManager = () => {
               </div>
             </div>
             <div className="w-full md:w-48">
+              <Label htmlFor="mega-test">Filter by Mega Test</Label>
+              <Select value={megaTestFilter} onValueChange={setMegaTestFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select mega test" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Mega Tests</SelectItem>
+                  {megaTests?.map(mt => (
+                    <SelectItem key={mt.id} value={mt.id}>{mt.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full md:w-48">
               <Label htmlFor="status">Status Filter</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -146,42 +264,70 @@ const PrizeClaimsManager = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center space-x-2 pt-6">
+              <Switch
+                id="duplicate-ips"
+                checked={showDuplicateIPs}
+                onCheckedChange={setShowDuplicateIPs}
+              />
+              <Label htmlFor="duplicate-ips">Show Duplicate IPs</Label>
+            </div>
+            <div className="flex items-center space-x-2 pt-6">
+              <Switch
+                id="duplicate-devices"
+                checked={showDuplicateDeviceIds}
+                onCheckedChange={setShowDuplicateDeviceIds}
+              />
+              <Label htmlFor="duplicate-devices">Show Duplicate Device IDs</Label>
+            </div>
+            <div className="flex items-center pt-6">
+                <Button onClick={handleExport} variant="outline" size="sm">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export to CSV
+                </Button>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            {filteredClaims?.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No prize claims found
-              </p>
-            ) : (
-              filteredClaims?.map((claim) => (
-                <Card key={`${claim.megaTestId}-${claim.id}`}>
-                  <CardContent className="pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Mega Test</Label>
-                        <p className="font-medium">{claim.megaTestTitle}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Prize</Label>
-                        <p className="font-medium">{claim.prize}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Claimant</Label>
-                        <p className="font-medium">{claim.name}</p>
-                        <p className="text-sm text-muted-foreground">{claim.mobile}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Address</Label>
-                        <p className="text-sm">{claim.address}</p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
-                        Claimed on {format(claim.createdAt.toDate(), 'PPP p')}
-                      </div>
-                      <div className="flex items-center gap-2">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mega Test</TableHead>
+                  <TableHead>User Details</TableHead>
+                  <TableHead>Prize</TableHead>
+                  <TableHead>IP Address</TableHead>
+                  <TableHead>Device ID</TableHead>
+                  <TableHead>Claimed On</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {finalClaims?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center">
+                      No prize claims found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  finalClaims?.map((claim) => (
+                    <TableRow
+                      key={`${claim.megaTestId}-${claim.id}`}
+                      className={showDuplicateIPs && duplicateIPs.has(claim.id) ? 'bg-red-100' : ''}
+                    >
+                      <TableCell>
+                        <div className="font-medium">{claim.megaTestTitle}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div>{claim.name}</div>
+                        <div className="text-sm text-muted-foreground">{claim.mobile}</div>
+                        <div className="text-xs text-muted-foreground">{claim.address}</div>
+                      </TableCell>
+                      <TableCell>{claim.prize}</TableCell>
+                      <TableCell>{claim.ipAddress || 'N/A'}</TableCell>
+                      <TableCell>{claim.deviceId || 'N/A'}</TableCell>
+                      <TableCell>{format(claim.createdAt.toDate(), 'Pp')}</TableCell>
+                      <TableCell>
                         <Select
                           value={claim.status}
                           onValueChange={(value) => handleStatusChange(claim.id, claim.megaTestId, value)}
@@ -195,6 +341,8 @@ const PrizeClaimsManager = () => {
                             <SelectItem value="rejected">Rejected</SelectItem>
                           </SelectContent>
                         </Select>
+                      </TableCell>
+                      <TableCell className="text-right">
                         <Button
                           variant="destructive"
                           size="icon"
@@ -202,12 +350,12 @@ const PrizeClaimsManager = () => {
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>

@@ -14,6 +14,7 @@ interface PaidContent {
   description: string;
   price: number;
   pdfUrl: string;
+  samplePdfUrl?: string;
   thumbnailUrl?: string;
 }
 
@@ -25,6 +26,7 @@ export default function PaidContentManager() {
     description: '',
     price: '',
     pdfFile: null as File | null,
+    samplePdfFile: null as File | null,
     thumbnailFile: null as File | null,
   });
 
@@ -49,12 +51,12 @@ export default function PaidContentManager() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'thumbnail') => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'samplePdf' | 'thumbnail') => {
     const file = e.target.files?.[0];
     if (file) {
       setNewContent(prev => ({
         ...prev,
-        [type === 'pdf' ? 'pdfFile' : 'thumbnailFile']: file
+        [type === 'pdf' ? 'pdfFile' : type === 'samplePdf' ? 'samplePdfFile' : 'thumbnailFile']: file
       }));
     }
   };
@@ -68,10 +70,18 @@ export default function PaidContentManager() {
     }
 
     try {
-      // Upload PDF
+      // Upload main PDF
       const pdfRef = ref(storage, `paid-content/${Date.now()}_${newContent.pdfFile.name}`);
       await uploadBytes(pdfRef, newContent.pdfFile);
       const pdfUrl = await getDownloadURL(pdfRef);
+
+      // Upload sample PDF if exists
+      let samplePdfUrl = '';
+      if (newContent.samplePdfFile) {
+        const samplePdfRef = ref(storage, `paid-content/samples/${Date.now()}_${newContent.samplePdfFile.name}`);
+        await uploadBytes(samplePdfRef, newContent.samplePdfFile);
+        samplePdfUrl = await getDownloadURL(samplePdfRef);
+      }
 
       // Upload thumbnail if exists
       let thumbnailUrl = '';
@@ -87,6 +97,7 @@ export default function PaidContentManager() {
         description: newContent.description,
         price: Number(newContent.price),
         pdfUrl,
+        samplePdfUrl: samplePdfUrl || null,
         thumbnailUrl: thumbnailUrl || null,
         createdAt: new Date().toISOString(),
       };
@@ -100,6 +111,7 @@ export default function PaidContentManager() {
         description: '',
         price: '',
         pdfFile: null,
+        samplePdfFile: null,
         thumbnailFile: null,
       });
       
@@ -174,6 +186,15 @@ export default function PaidContentManager() {
                 accept=".pdf"
                 onChange={(e) => handleFileChange(e, 'pdf')}
                 required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Sample PDF File (Optional)</label>
+              <Input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => handleFileChange(e, 'samplePdf')}
               />
             </div>
             

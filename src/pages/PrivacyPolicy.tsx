@@ -54,7 +54,7 @@ const PrivacyPolicy = () => {
             <CardTitle>Privacy Policy</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose prose-sm max-w-none">
+            <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:text-foreground [&_li]:text-foreground [&_span]:text-foreground [&_div]:text-foreground">
               {privacyPolicy?.content ? (
                 <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(privacyPolicy.content) }} />
               ) : (

@@ -105,7 +105,11 @@ const Quiz = () => {
 
   const handleBackClick = () => {
     if (isSubmitted) {
-      navigate(`/category/${categoryId}`);
+      if (quiz?.subcategoryId) {
+        navigate(`/category/${quiz.categoryId}/subcategory/${quiz.subcategoryId}/quizzes`);
+      } else {
+        navigate(`/category/${quiz?.categoryId}/quizzes`);
+      }
     } else {
       setShowExitDialog(true);
     }
@@ -113,7 +117,21 @@ const Quiz = () => {
 
   const handleExitConfirm = () => {
     handleSubmit();
-    navigate(`/category/${categoryId}`);
+    if (quiz?.subcategoryId) {
+      navigate(`/category/${quiz.categoryId}/subcategory/${quiz.subcategoryId}/quizzes`);
+    } else {
+      navigate(`/category/${quiz?.categoryId}/quizzes`);
+    }
+  };
+
+  const handleExit = () => {
+    if (window.confirm('Are you sure you want to exit? Your progress will be lost.')) {
+      if (quiz?.subcategoryId) {
+        navigate(`/category/${quiz.categoryId}/subcategory/${quiz.subcategoryId}/quizzes`);
+      } else {
+        navigate(`/category/${quiz?.categoryId}/quizzes`);
+      }
+    }
   };
 
   return (
@@ -219,7 +237,13 @@ const Quiz = () => {
               ))}
               <Button 
                 className="w-full mt-6" 
-                onClick={() => navigate(`/category/${categoryId}`)}
+                onClick={() => {
+                  if (quiz?.subcategoryId) {
+                    navigate(`/category/${quiz.categoryId}/subcategory/${quiz.subcategoryId}/quizzes`);
+                  } else {
+                    navigate(`/category/${quiz?.categoryId}/quizzes`);
+                  }
+                }}
               >
                 Return to Category
               </Button>

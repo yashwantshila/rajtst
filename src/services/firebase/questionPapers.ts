@@ -37,10 +37,12 @@ export const getQuestionPapersByCategory = async (categoryId: string): Promise<Q
   const papersRef = collection(db, 'questionPapers');
   const q = query(papersRef, where('categoryId', '==', categoryId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  } as QuestionPaper));
+  return snapshot.docs
+    .map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as QuestionPaper))
+    .sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
 };
 
 // Upload question paper

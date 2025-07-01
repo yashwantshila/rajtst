@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   getMegaTests, 
@@ -8,7 +8,12 @@ import {
   getMegaTestParticipantCount,
   MegaTest,
   QuizQuestion,
-  QuizOption
+  QuizOption,
+  adminAddOrUpdateLeaderboardEntry,
+  getMegaTestLeaderboard,
+  getMegaTestParticipants,
+  getMegaTestById,
+  getMegaTestPrizes
 } from '../../services/firebase/quiz';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,10 +24,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus, Pencil, Trash2, Clock, Trophy, ListChecks, CreditCard, Users, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import { writeBatch } from 'firebase/firestore';
+import { doc, collection, Timestamp } from 'firebase/firestore';
+import { db } from '../../services/firebase/config';
+
+// Utility function to export array of objects to CSV and trigger download
+function exportToCSV(filename: string, rows: any[], headers: string[], keys: string[]) {
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => keys.map(key => {
+      let val = row[key];
+      if (val instanceof Date) val = val.toISOString();
+      if (val && typeof val === 'string' && (val.includes(',') || val.includes('"') || val.includes('\n'))) {
+        val = '"' + val.replace(/"/g, '""') + '"';
+      }
+      return val ?? '';
+    }).join(','))
+  ].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const MegaTestManager = () => {
   const queryClient = useQueryClient();
@@ -57,6 +90,31 @@ const MegaTestManager = () => {
 
   const [bulkQuestionsText, setBulkQuestionsText] = useState('');
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+
+  const [isLeaderboardDialogOpen, setIsLeaderboardDialogOpen] = useState(false);
+  const [leaderboardMegaTest, setLeaderboardMegaTest] = useState<MegaTest | null>(null);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<any[]>([]);
+  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const [leaderboardForm, setLeaderboardForm] = useState({
+    userId: '',
+    score: '',
+    completionTime: '',
+  });
+  const [isSubmittingLeaderboard, setIsSubmittingLeaderboard] = useState(false);
+  const [highlightDuplicateIPs, setHighlightDuplicateIPs] = useState(false);
+  const [highlightDuplicateDeviceIDs, setHighlightDuplicateDeviceIDs] = useState(false);
+
+  const [isParticipantsDialogOpen, setIsParticipantsDialogOpen] = useState(false);
+  const [participantsMegaTest, setParticipantsMegaTest] = useState<MegaTest | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
+  const [highlightDuplicateParticipantIPs, setHighlightDuplicateParticipantIPs] = useState(false);
+  const [highlightDuplicateParticipantDeviceIDs, setHighlightDuplicateParticipantDeviceIDs] = useState(false);
+
+  const participantsRef = useRef<any[]>([]); // Store participants for IP lookup
+
+  const [isLoadingEditQuestions, setIsLoadingEditQuestions] = useState(false);
+  const [isLoadingQuestionsDialog, setIsLoadingQuestionsDialog] = useState(false);
 
   const { data: megaTests, isLoading } = useQuery({
     queryKey: ['mega-tests'],
@@ -151,11 +209,12 @@ const MegaTestManager = () => {
     e.preventDefault();
     createMutation.mutate({
       ...formData,
-      registrationStartTime: new Date(formData.registrationStartTime),
-      registrationEndTime: new Date(formData.registrationEndTime),
-      testStartTime: new Date(formData.testStartTime),
-      testEndTime: new Date(formData.testEndTime),
-      resultTime: new Date(formData.resultTime),
+      questions: formData.questions,
+      registrationStartTime: Timestamp.fromDate(new Date(formData.registrationStartTime)),
+      registrationEndTime: Timestamp.fromDate(new Date(formData.registrationEndTime)),
+      testStartTime: Timestamp.fromDate(new Date(formData.testStartTime)),
+      testEndTime: Timestamp.fromDate(new Date(formData.testEndTime)),
+      resultTime: Timestamp.fromDate(new Date(formData.resultTime)),
     });
   };
 
@@ -167,31 +226,41 @@ const MegaTestManager = () => {
       id: selectedMegaTest.id,
       data: {
         ...formData,
-        registrationStartTime: new Date(formData.registrationStartTime),
-        registrationEndTime: new Date(formData.registrationEndTime),
-        testStartTime: new Date(formData.testStartTime),
-        testEndTime: new Date(formData.testEndTime),
-        resultTime: new Date(formData.resultTime),
+        questions: formData.questions,
+        registrationStartTime: Timestamp.fromDate(new Date(formData.registrationStartTime)),
+        registrationEndTime: Timestamp.fromDate(new Date(formData.registrationEndTime)),
+        testStartTime: Timestamp.fromDate(new Date(formData.testStartTime)),
+        testEndTime: Timestamp.fromDate(new Date(formData.testEndTime)),
+        resultTime: Timestamp.fromDate(new Date(formData.resultTime)),
       },
     });
   };
 
-  const handleEdit = (megaTest: MegaTest) => {
-    setSelectedMegaTest(megaTest);
-    setFormData({
-      title: megaTest.title,
-      description: megaTest.description,
-      questions: megaTest.questions,
-      registrationStartTime: format(megaTest.registrationStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      registrationEndTime: format(megaTest.registrationEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      testStartTime: format(megaTest.testStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      testEndTime: format(megaTest.testEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      resultTime: format(megaTest.resultTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      entryFee: megaTest.entryFee,
-      prizes: [],
-      timeLimit: megaTest.timeLimit || 60,
-    });
-    setIsEditDialogOpen(true);
+  const handleEdit = async (megaTest: MegaTest) => {
+    setIsLoadingEditQuestions(true);
+    try {
+      const [{ questions }, prizes] = await Promise.all([
+        getMegaTestById(megaTest.id),
+        getMegaTestPrizes(megaTest.id)
+      ]);
+      setSelectedMegaTest(megaTest);
+      setFormData({
+        title: megaTest.title,
+        description: megaTest.description,
+        questions: questions || [],
+        registrationStartTime: format(megaTest.registrationStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        registrationEndTime: format(megaTest.registrationEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        testStartTime: format(megaTest.testStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        testEndTime: format(megaTest.testEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        resultTime: format(megaTest.resultTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        entryFee: megaTest.entryFee,
+        prizes: prizes || [],
+        timeLimit: megaTest.timeLimit || 60,
+      });
+      setIsEditDialogOpen(true);
+    } finally {
+      setIsLoadingEditQuestions(false);
+    }
   };
 
   const handleDelete = (id: string) => {
@@ -238,22 +307,28 @@ const MegaTestManager = () => {
     });
   };
 
-  const handleQuestionsDialogOpen = (megaTest: MegaTest) => {
-    setSelectedMegaTest(megaTest);
-    setFormData({
-      title: megaTest.title,
-      description: megaTest.description,
-      questions: megaTest.questions,
-      registrationStartTime: format(megaTest.registrationStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      registrationEndTime: format(megaTest.registrationEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      testStartTime: format(megaTest.testStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      testEndTime: format(megaTest.testEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      resultTime: format(megaTest.resultTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-      entryFee: megaTest.entryFee,
-      prizes: [],
-      timeLimit: megaTest.timeLimit || 60,
-    });
-    setIsQuestionsDialogOpen(true);
+  const handleQuestionsDialogOpen = async (megaTest: MegaTest) => {
+    setIsLoadingQuestionsDialog(true);
+    try {
+      const { questions } = await getMegaTestById(megaTest.id);
+      setSelectedMegaTest(megaTest);
+      setFormData({
+        title: megaTest.title,
+        description: megaTest.description,
+        questions: questions || [],
+        registrationStartTime: format(megaTest.registrationStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        registrationEndTime: format(megaTest.registrationEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        testStartTime: format(megaTest.testStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        testEndTime: format(megaTest.testEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        resultTime: format(megaTest.resultTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        entryFee: megaTest.entryFee,
+        prizes: [],
+        timeLimit: megaTest.timeLimit || 60,
+      });
+      setIsQuestionsDialogOpen(true);
+    } finally {
+      setIsLoadingQuestionsDialog(false);
+    }
   };
 
   const handleAddWinner = () => {
@@ -348,6 +423,145 @@ const MegaTestManager = () => {
       console.error('Error importing questions:', error);
       toast.error('Failed to import questions. Please check the format.');
     }
+  };
+
+  // Fetch leaderboard entries and participant IPs when dialog opens
+  useEffect(() => {
+    if (isLeaderboardDialogOpen && leaderboardMegaTest) {
+      setIsLoadingLeaderboard(true);
+      Promise.all([
+        getMegaTestLeaderboard(leaderboardMegaTest.id),
+        getMegaTestParticipants(leaderboardMegaTest.id)
+      ])
+        .then(([leaderboard, participants]) => {
+          participantsRef.current = participants;
+          // Merge ipAddress into leaderboard entries
+          const merged = leaderboard.map(entry => {
+            const participant = participants.find((p: any) => p.userId === entry.userId);
+            return {
+              ...entry,
+              ipAddress: participant?.ipAddress || 'N/A',
+              username: participant?.username || '',
+              email: participant?.email || '',
+              deviceId: participant?.deviceId || 'N/A',
+            };
+          });
+          setLeaderboardEntries(merged);
+        })
+        .finally(() => setIsLoadingLeaderboard(false));
+    }
+  }, [isLeaderboardDialogOpen, leaderboardMegaTest]);
+
+  const openLeaderboardDialog = (megaTest: MegaTest) => {
+    setLeaderboardMegaTest(megaTest);
+    setIsLeaderboardDialogOpen(true);
+  };
+
+  const closeLeaderboardDialog = () => {
+    setIsLeaderboardDialogOpen(false);
+    setLeaderboardMegaTest(null);
+    setLeaderboardEntries([]);
+    setLeaderboardForm({ userId: '', score: '', completionTime: '' });
+  };
+
+  const handleLeaderboardFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLeaderboardForm({ ...leaderboardForm, [e.target.name]: e.target.value });
+  };
+
+  const handleAddOrUpdateLeaderboardEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!leaderboardMegaTest) return;
+    setIsSubmittingLeaderboard(true);
+    const { userId, score, completionTime } = leaderboardForm;
+    const ok = await adminAddOrUpdateLeaderboardEntry(
+      leaderboardMegaTest.id,
+      userId.trim(),
+      Number(score),
+      Number(completionTime)
+    );
+    if (ok) {
+      toast.success('Leaderboard entry added/updated');
+      setLeaderboardForm({ userId: '', score: '', completionTime: '' });
+      // Refresh leaderboard and participants, then merge IPs
+      const [entries, participants] = await Promise.all([
+        getMegaTestLeaderboard(leaderboardMegaTest.id),
+        getMegaTestParticipants(leaderboardMegaTest.id)
+      ]);
+      participantsRef.current = participants;
+      const merged = entries.map(entry => {
+        const participant = participants.find((p: any) => p.userId === entry.userId);
+        return {
+          ...entry,
+          ipAddress: participant?.ipAddress || 'N/A',
+          username: participant?.username || '',
+          email: participant?.email || '',
+          deviceId: participant?.deviceId || 'N/A',
+        };
+      });
+      setLeaderboardEntries(merged);
+    } else {
+      toast.error('Failed to add/update entry');
+    }
+    setIsSubmittingLeaderboard(false);
+  };
+
+  const handleDeleteLeaderboardEntry = async (userId: string) => {
+    if (!leaderboardMegaTest) return;
+    setIsSubmittingLeaderboard(true);
+    // Remove the entry from Firestore by filtering it out and rewriting the leaderboard
+    const filtered = leaderboardEntries.filter(entry => entry.userId !== userId);
+    // Recalculate ranks and update Firestore
+    const batch = writeBatch(db);
+    filtered.sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+      return a.completionTime - b.completionTime;
+    });
+    filtered.forEach((entry, idx) => {
+      const entryRef = doc(collection(db, 'mega-tests', leaderboardMegaTest.id, 'leaderboard'), entry.userId);
+      batch.set(entryRef, { ...entry, rank: idx + 1 });
+    });
+    // Delete the removed entry
+    const delRef = doc(collection(db, 'mega-tests', leaderboardMegaTest.id, 'leaderboard'), userId);
+    batch.delete(delRef);
+    await batch.commit();
+    toast.success('Entry deleted');
+    // Refresh leaderboard and participants, then merge IPs
+    const [entries, participants] = await Promise.all([
+      getMegaTestLeaderboard(leaderboardMegaTest.id),
+      getMegaTestParticipants(leaderboardMegaTest.id)
+    ]);
+    participantsRef.current = participants;
+    const merged = entries.map(entry => {
+      const participant = participants.find((p: any) => p.userId === entry.userId);
+      return {
+        ...entry,
+        ipAddress: participant?.ipAddress || 'N/A',
+        username: participant?.username || '',
+        email: participant?.email || '',
+        deviceId: participant?.deviceId || 'N/A',
+      };
+    });
+    setLeaderboardEntries(merged);
+    setIsSubmittingLeaderboard(false);
+  };
+
+  const openParticipantsDialog = async (megaTest: MegaTest) => {
+    setParticipantsMegaTest(megaTest);
+    setIsParticipantsDialogOpen(true);
+    setIsLoadingParticipants(true);
+    try {
+      const data = await getMegaTestParticipants(megaTest.id);
+      setParticipants(data);
+    } catch (e) {
+      setParticipants([]);
+    }
+    setIsLoadingParticipants(false);
+  };
+
+  const closeParticipantsDialog = () => {
+    setIsParticipantsDialogOpen(false);
+    setParticipantsMegaTest(null);
+    setParticipants([]);
   };
 
   if (isLoading) {
@@ -539,6 +753,22 @@ const MegaTestManager = () => {
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Delete
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openLeaderboardDialog(megaTest)}
+                  >
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Manage Leaderboard
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openParticipantsDialog(megaTest)}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    View Participants
                   </Button>
                 </div>
               </div>
@@ -968,6 +1198,341 @@ const MegaTestManager = () => {
               Update Mega Test
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isLeaderboardDialogOpen} onOpenChange={setIsLeaderboardDialogOpen}>
+        <DialogContent className="max-w-7xl max-h-[90vh] flex flex-col">
+          <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
+            <DialogTitle>Manage Leaderboard - {leaderboardMegaTest?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center mb-4 gap-4">
+            <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={highlightDuplicateIPs}
+                onChange={e => setHighlightDuplicateIPs(e.target.checked)}
+                className="accent-amber-500"
+              />
+              Highlight users with same IP address
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={highlightDuplicateDeviceIDs}
+                onChange={e => setHighlightDuplicateDeviceIDs(e.target.checked)}
+                className="accent-amber-500"
+              />
+              Highlight users with same Device ID
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const ipCount: Record<string, number> = {};
+                leaderboardEntries.forEach(entry => {
+                  if (entry.ipAddress && entry.ipAddress !== 'N/A') {
+                    ipCount[entry.ipAddress] = (ipCount[entry.ipAddress] || 0) + 1;
+                  }
+                });
+                const deviceIdCount: Record<string, number> = {};
+                leaderboardEntries.forEach(entry => {
+                  if (entry.deviceId && entry.deviceId !== 'N/A') {
+                    deviceIdCount[entry.deviceId] = (deviceIdCount[entry.deviceId] || 0) + 1;
+                  }
+                });
+
+                let filteredEntries = leaderboardEntries;
+                if (highlightDuplicateIPs) {
+                  filteredEntries = filteredEntries.filter(entry => entry.ipAddress && entry.ipAddress !== 'N/A' && ipCount[entry.ipAddress] > 1);
+                }
+                if (highlightDuplicateDeviceIDs) {
+                  filteredEntries = filteredEntries.filter(entry => entry.deviceId && entry.deviceId !== 'N/A' && deviceIdCount[entry.deviceId] > 1);
+                }
+                
+                exportToCSV(
+                  `leaderboard-${leaderboardMegaTest?.title || 'megatest'}.csv`,
+                  filteredEntries,
+                  ['Rank', 'User ID', 'Username', 'Email', 'IP Address', 'Score', 'Completion Time', 'Device ID'],
+                  ['rank', 'userId', 'username', 'email', 'ipAddress', 'score', 'completionTime', 'deviceId']
+                );
+              }}
+            >
+              Export to CSV
+            </Button>
+          </div>
+          <form onSubmit={handleAddOrUpdateLeaderboardEntry} className="space-y-4 mb-4">
+            <div className="flex gap-2">
+              <Input
+                name="userId"
+                placeholder="User ID"
+                value={leaderboardForm.userId}
+                onChange={handleLeaderboardFormChange}
+                required
+              />
+              <Input
+                name="score"
+                type="number"
+                placeholder="Score"
+                value={leaderboardForm.score}
+                onChange={handleLeaderboardFormChange}
+                required
+              />
+              <Input
+                name="completionTime"
+                type="number"
+                placeholder="Completion Time (s)"
+                value={leaderboardForm.completionTime}
+                onChange={handleLeaderboardFormChange}
+                required
+              />
+              <Button type="submit" disabled={isSubmittingLeaderboard}>
+                {isSubmittingLeaderboard ? 'Saving...' : 'Add/Update'}
+              </Button>
+            </div>
+          </form>
+          <div className="flex-1 min-h-0">
+            <h3 className="font-semibold mb-2">Current Leaderboard</h3>
+            {isLoadingLeaderboard ? (
+              <div>Loading...</div>
+            ) : (
+              <ScrollArea className="h-[400px] w-full border rounded-md p-4">
+                <div className="space-y-2">
+                  {leaderboardEntries.length === 0 && <div className="text-muted-foreground">No entries yet</div>}
+                  <div className="overflow-x-auto">
+                    <div style={{ minWidth: 900 }}>
+                      <div className="flex items-center gap-2 p-2 border-b font-semibold text-xs uppercase text-gray-500">
+                        <span className="w-8">Rank</span>
+                        <span className="flex-1">User ID</span>
+                        <span className="w-32 text-center">Username</span>
+                        <span className="w-48 text-center">Email</span>
+                        <span className="w-32 text-center">IP Address</span>
+                        <span className="w-40 text-center">Device ID</span>
+                        <span className="w-20 text-center">Score</span>
+                        <span className="w-24 text-center">Completion Time</span>
+                        <span className="w-20"></span>
+                      </div>
+                      {(() => {
+                        const ipCount: Record<string, number> = {};
+                        leaderboardEntries.forEach(entry => {
+                          if (entry.ipAddress && entry.ipAddress !== 'N/A') {
+                            ipCount[entry.ipAddress] = (ipCount[entry.ipAddress] || 0) + 1;
+                          }
+                        });
+
+                        const deviceIdCount: Record<string, number> = {};
+                        leaderboardEntries.forEach(entry => {
+                          if (entry.deviceId && entry.deviceId !== 'N/A') {
+                            deviceIdCount[entry.deviceId] = (deviceIdCount[entry.deviceId] || 0) + 1;
+                          }
+                        });
+
+                        let filteredEntries = leaderboardEntries;
+                        if (highlightDuplicateIPs) {
+                          filteredEntries = filteredEntries.filter(entry => entry.ipAddress && entry.ipAddress !== 'N/A' && ipCount[entry.ipAddress] > 1);
+                        }
+                        if (highlightDuplicateDeviceIDs) {
+                          filteredEntries = filteredEntries.filter(entry => entry.deviceId && entry.deviceId !== 'N/A' && deviceIdCount[entry.deviceId] > 1);
+                        }
+                        
+                        return filteredEntries.map(entry => {
+                          const hasDuplicateIP = entry.ipAddress && entry.ipAddress !== 'N/A' && ipCount[entry.ipAddress] > 1;
+                          const hasDuplicateDeviceID = entry.deviceId && entry.deviceId !== 'N/A' && deviceIdCount[entry.deviceId] > 1;
+
+                          const isHighlighted = (highlightDuplicateIPs && hasDuplicateIP) || (highlightDuplicateDeviceIDs && hasDuplicateDeviceID);
+                          
+                          return (
+                            <div
+                              key={entry.userId}
+                              className={`flex items-center gap-2 p-2 border rounded hover:bg-muted/50 transition-colors text-sm ${isHighlighted ? 'bg-yellow-100 border-yellow-400' : ''}`}
+                            >
+                      <span className="w-8 font-medium">#{entry.rank}</span>
+                      <span className="flex-1 font-medium">{entry.userId}</span>
+                              <span className="w-32 text-center">{entry.username}</span>
+                              <span className="w-48 text-center">{entry.email}</span>
+                              <span className="w-32 text-center flex items-center justify-center gap-1">
+                                {entry.ipAddress}
+                                {hasDuplicateIP && (
+                                  <span title="Duplicate IP" className="text-amber-500" style={{ fontSize: '1.1em' }}>⚠️</span>
+                                )}
+                              </span>
+                              <span className="w-40 truncate text-center flex items-center justify-center gap-1" title={entry.deviceId}>
+                                {entry.deviceId}
+                                {hasDuplicateDeviceID && (
+                                  <span title="Duplicate Device ID" className="text-amber-500" style={{ fontSize: '1.1em' }}>⚠️</span>
+                                )}
+                              </span>
+                      <span className="w-20 text-center">{entry.score} pts</span>
+                      <span className="w-24 text-center">{entry.completionTime}s</span>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteLeaderboardEntry(entry.userId)}
+                        disabled={isSubmittingLeaderboard}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+          <div className="flex justify-end mt-4 pt-4 border-t">
+            <Button variant="outline" onClick={closeLeaderboardDialog}>
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isParticipantsDialogOpen} onOpenChange={setIsParticipantsDialogOpen}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader className="sticky top-0 bg-background z-10 pb-4">
+            <DialogTitle>Participants for {participantsMegaTest?.title}</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center mb-4 gap-4">
+            <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={highlightDuplicateParticipantIPs}
+                onChange={e => setHighlightDuplicateParticipantIPs(e.target.checked)}
+                className="accent-amber-500"
+              />
+              Highlight users with same IP address
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={highlightDuplicateParticipantDeviceIDs}
+                onChange={e => setHighlightDuplicateParticipantDeviceIDs(e.target.checked)}
+                className="accent-amber-500"
+              />
+              Highlight users with same Device ID
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                const ipCount: Record<string, number> = {};
+                participants.forEach(participant => {
+                  if (participant.ipAddress && participant.ipAddress !== 'N/A') {
+                    ipCount[participant.ipAddress] = (ipCount[participant.ipAddress] || 0) + 1;
+                  }
+                });
+                const deviceIdCount: Record<string, number> = {};
+                participants.forEach(participant => {
+                  if (participant.deviceId && participant.deviceId !== 'N/A') {
+                    deviceIdCount[participant.deviceId] = (deviceIdCount[participant.deviceId] || 0) + 1;
+                  }
+                });
+                let filteredParticipants = participants;
+                if (highlightDuplicateParticipantIPs) {
+                  filteredParticipants = filteredParticipants.filter(participant => participant.ipAddress && participant.ipAddress !== 'N/A' && ipCount[participant.ipAddress] > 1);
+                }
+                if (highlightDuplicateParticipantDeviceIDs) {
+                  filteredParticipants = filteredParticipants.filter(participant => participant.deviceId && participant.deviceId !== 'N/A' && deviceIdCount[participant.deviceId] > 1);
+                }
+                exportToCSV(
+                  `participants-${participantsMegaTest?.title || 'megatest'}.csv`,
+                  filteredParticipants.map(p => ({
+                    ...p,
+                    registeredAt: p.registeredAt && p.registeredAt.toDate ? p.registeredAt.toDate() : ''
+                  })),
+                  ['User ID', 'Username', 'Email', 'Registered At', 'Registered IP', 'Last Seen IP', 'Device ID'],
+                  ['userId', 'username', 'email', 'registeredAt', 'ipAddress', 'lastSeenIP', 'deviceId']
+                );
+              }}
+            >
+              Export to CSV
+            </Button>
+          </div>
+          <div className="mt-4">
+            {isLoadingParticipants ? (
+              <p>Loading participants...</p>
+            ) : (
+              <ScrollArea className="h-[400px]">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered At</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registered IP</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Seen IP</th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device ID</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {(() => {
+                      const ipCount: Record<string, number> = {};
+                      participants.forEach(participant => {
+                        if (participant.ipAddress && participant.ipAddress !== 'N/A') {
+                          ipCount[participant.ipAddress] = (ipCount[participant.ipAddress] || 0) + 1;
+                        }
+                      });
+                      const deviceIdCount: Record<string, number> = {};
+                      participants.forEach(participant => {
+                        if (participant.deviceId && participant.deviceId !== 'N/A') {
+                          deviceIdCount[participant.deviceId] = (deviceIdCount[participant.deviceId] || 0) + 1;
+                        }
+                      });
+                      let filteredParticipants = participants;
+                      if (highlightDuplicateParticipantIPs) {
+                        filteredParticipants = filteredParticipants.filter(participant => participant.ipAddress && participant.ipAddress !== 'N/A' && ipCount[participant.ipAddress] > 1);
+                      }
+                      if (highlightDuplicateParticipantDeviceIDs) {
+                        filteredParticipants = filteredParticipants.filter(participant => participant.deviceId && participant.deviceId !== 'N/A' && deviceIdCount[participant.deviceId] > 1);
+                      }
+                      return filteredParticipants.map(participant => {
+                        const hasDuplicateIP = participant.ipAddress && participant.ipAddress !== 'N/A' && ipCount[participant.ipAddress] > 1;
+                        const hasDuplicateDeviceID = participant.deviceId && participant.deviceId !== 'N/A' && deviceIdCount[participant.deviceId] > 1;
+                        const isHighlighted = (highlightDuplicateParticipantIPs && hasDuplicateIP) || (highlightDuplicateParticipantDeviceIDs && hasDuplicateDeviceID);
+                        return (
+                          <tr
+                            key={participant.userId}
+                            className={isHighlighted ? 'bg-yellow-100 border-yellow-400' : ''}
+                          >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{participant.userId}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{participant.username}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{participant.email}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {participant.registeredAt ? format(participant.registeredAt.toDate(), 'MMM d, yyyy h:mm a') : 'N/A'}
+                        </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-1">
+                              {participant.ipAddress}
+                              {hasDuplicateIP && (
+                                <span title="Duplicate IP" className="text-amber-500" style={{ fontSize: '1.1em' }}>⚠️</span>
+                              )}
+                            </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{participant.lastSeenIP}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-1">
+                          {participant.deviceId}
+                          {hasDuplicateDeviceID && (
+                            <span title="Duplicate Device ID" className="text-amber-500" style={{ fontSize: '1.1em' }}>⚠️</span>
+                          )}
+                        </td>
+                      </tr>
+                        );
+                      });
+                    })()}
+                  </tbody>
+                </table>
+              </ScrollArea>
+            )}
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button variant="outline" onClick={closeParticipantsDialog}>
+              Close
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

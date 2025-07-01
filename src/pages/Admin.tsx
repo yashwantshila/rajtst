@@ -16,7 +16,8 @@ import MegaTestManager from './admin/MegaTestManager';
 import PrizeClaimsManager from './admin/PrizeClaimsManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
-import { getAllUsers, getAllBalances } from '@/services/api/admin';
+import { getAllUsers } from '@/services/firebase/admin/users';
+import { getAllBalances } from '@/services/firebase/admin/balances';
 import { db } from '@/services/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -62,7 +63,7 @@ const Admin = () => {
     enabled: !loading && !!user
   });
   
-  const { data: balances = [], error: balancesError } = useQuery({
+  const { data: balances = [], error: balancesError, refetch: refetchBalances } = useQuery({
     queryKey: ['admin-balances'],
     queryFn: getAllBalances,
     enabled: !loading && !!user
@@ -140,6 +141,7 @@ const Admin = () => {
               usersError={usersError}
               balancesError={balancesError}
               refetchUsers={refetchUsers}
+              refetchBalances={refetchBalances}
             />
           </TabsContent>
           

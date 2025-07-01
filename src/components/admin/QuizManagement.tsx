@@ -44,10 +44,15 @@ import {
   QuizCategory, 
   Quiz, // This type now has questions?: QuizQuestion[]
   QuizQuestion,
+  SubCategory,
   getQuizCategories, 
   createQuizCategory, 
   updateQuizCategory, 
   deleteQuizCategory,
+  getSubCategories,
+  createSubCategory,
+  updateSubCategory,
+  deleteSubCategory,
   getQuizzesByCategory,
   createQuiz,
   updateQuiz,
@@ -77,16 +82,19 @@ interface BatchProgress {
 }
 
 const SAMPLE_FORMAT = `# Simple Question
-What is the capital of France?|Paris|London|Berlin|Madrid|a
+What is the capital of France?
+|Paris|London|Berlin|Madrid|a
 
 # Multi-line Question
 Which of the following is correct about React?
-It is a JavaScript library for building user interfaces.|True, React is a JS library|False, React is a programming language|False, React is only for mobile apps|False, React is a database|a
+It is a JavaScript library for building user interfaces.
+|True, React is a JS library|False, React is a programming language|False, React is only for mobile apps|False, React is a database|a
 
 # Assertion and Reasoning
 Assertion: The Earth is flat.
 Reason: The horizon appears flat when we look at it.
-Choose the correct option:|Both Assertion and Reason are true and Reason is the correct explanation of Assertion|Both Assertion and Reason are true but Reason is not the correct explanation of Assertion|Assertion is true but Reason is false|Both Assertion and Reason are false|d
+Choose the correct option:
+|Both Assertion and Reason are true and Reason is the correct explanation of Assertion|Both Assertion and Reason are true but Reason is not the correct explanation of Assertion|Assertion is true but Reason is false|Both Assertion and Reason are false|d
 
 # Matching Type
 Match the following:
@@ -98,14 +106,22 @@ Column B:
 a. Tokyo
 b. New Delhi
 c. Paris
-Choose the correct matching:|1-c, 2-a, 3-b|1-a, 2-b, 3-c|1-b, 2-c, 3-a|1-c, 2-b, 3-a|a`;
+Choose the correct matching:
+|1-c, 2-a, 3-b|1-a, 2-b, 3-c|1-b, 2-c, 3-a|1-c, 2-b, 3-a|a`;
 
 export const QuizManagement = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateSubCategoryDialogOpen, setIsCreateSubCategoryDialogOpen] = useState(false);
+  const [isEditSubCategoryDialogOpen, setIsEditSubCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<QuizCategory | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>({
+    title: '',
+    description: ''
+  });
+  const [subCategoryFormData, setSubCategoryFormData] = useState<CategoryFormData>({
     title: '',
     description: ''
   });
@@ -117,7 +133,8 @@ export const QuizManagement = () => {
   const [isQuizDialogOpen, setIsQuizDialogOpen] = useState(false);
   const [isEditQuizDialogOpen, setIsEditQuizDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('categories');
-  const [selectedCategoryForQuizzes, setSelectedCategoryForQuizzes] = useState<QuizCategory | null>(null);
+  const [selectedCategoryForSubCategories, setSelectedCategoryForSubCategories] = useState<QuizCategory | null>(null);
+  const [selectedSubCategoryForQuizzes, setSelectedSubCategoryForQuizzes] = useState<SubCategory | null>(null);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [bulkQuestions, setBulkQuestions] = useState('');
   const [bulkImportError, setBulkImportError] = useState<string | null>(null);
@@ -134,10 +151,32 @@ export const QuizManagement = () => {
     queryFn: getQuizCategories
   });
 
+  const { data: subCategories = [], isLoading: isSubCategoriesLoading } = useQuery({
+    queryKey: ['sub-categories', selectedCategoryForSubCategories?.id],
+    queryFn: () => getSubCategories(selectedCategoryForSubCategories!.id),
+    enabled: !!selectedCategoryForSubCategories?.id
+  });
+
   const { data: quizzes = [], isLoading: isQuizzesLoading } = useQuery({
-    queryKey: ['quizzes', selectedCategoryForQuizzes?.id],
-    queryFn: () => getQuizzesByCategory(selectedCategoryForQuizzes!.id), // quiz.questions will be undefined here
-    enabled: !!selectedCategoryForQuizzes?.id
+    queryKey: ['quizzes', selectedSubCategoryForQuizzes?.categoryId, selectedSubCategoryForQuizzes?.id],
+    queryFn: () => getQuizzesByCategory(selectedSubCategoryForQuizzes!.categoryId, selectedSubCategoryForQuizzes!.id),
+    enabled: !!selectedSubCategoryForQuizzes?.id
+  });
+
+  // Add a new query to get question counts for all quizzes
+  const { data: quizQuestionCounts = {} } = useQuery({
+    queryKey: ['quiz-question-counts', quizzes.map(q => q.id)],
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        quizzes.map(async (quiz) => {
+          const questions = await getQuizQuestions(quiz.id);
+          counts[quiz.id] = questions.length;
+        })
+      );
+      return counts;
+    },
+    enabled: quizzes.length > 0
   });
 
   const createCategoryMutation = useMutation({
@@ -182,10 +221,53 @@ export const QuizManagement = () => {
     }
   });
 
+  const createSubCategoryMutation = useMutation({
+    mutationFn: (data: Omit<SubCategory, 'id' | 'createdAt' | 'updatedAt'>) => 
+      createSubCategory({ ...data, categoryId: selectedCategoryForSubCategories!.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sub-categories', selectedCategoryForSubCategories?.id] });
+      toast.success('Sub category created successfully');
+      setIsCreateSubCategoryDialogOpen(false);
+      resetSubCategoryForm();
+    },
+    onError: (error) => {
+      toast.error('Failed to create sub category');
+      console.error('Create sub category error:', error);
+    }
+  });
+
+  const updateSubCategoryMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<SubCategory> }) => 
+      updateSubCategory(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sub-categories', selectedCategoryForSubCategories?.id] });
+      toast.success('Sub category updated successfully');
+      setIsEditSubCategoryDialogOpen(false);
+      setSelectedSubCategory(null);
+      resetSubCategoryForm();
+    },
+    onError: (error) => {
+      toast.error('Failed to update sub category');
+      console.error('Update sub category error:', error);
+    }
+  });
+
+  const deleteSubCategoryMutation = useMutation({
+    mutationFn: deleteSubCategory,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sub-categories', selectedCategoryForSubCategories?.id] });
+      toast.success('Sub category deleted successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to delete sub category');
+      console.error('Delete sub category error:', error);
+    }
+  });
+
   const createQuizMutation = useMutation({
     mutationFn: (data: Omit<Quiz, 'id' | 'createdAt' | 'updatedAt' | 'sequence'>) => createQuiz(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quizzes', selectedCategoryForQuizzes?.id] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes', selectedSubCategoryForQuizzes?.categoryId, selectedSubCategoryForQuizzes?.id] });
       toast.success('Quiz created successfully');
       setIsQuizDialogOpen(false);
       resetQuizForm();
@@ -199,7 +281,7 @@ export const QuizManagement = () => {
   const updateQuizMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Quiz, 'id' | 'createdAt' | 'updatedAt' | 'sequence'>> }) => updateQuiz(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quizzes', selectedCategoryForQuizzes?.id] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes', selectedSubCategoryForQuizzes?.categoryId, selectedSubCategoryForQuizzes?.id] });
       toast.success('Quiz updated successfully');
       setIsEditQuizDialogOpen(false);
       setSelectedQuiz(null);
@@ -214,7 +296,7 @@ export const QuizManagement = () => {
   const deleteQuizMutation = useMutation({
     mutationFn: deleteQuiz,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['quizzes', selectedCategoryForQuizzes?.id] });
+      queryClient.invalidateQueries({ queryKey: ['quizzes', selectedSubCategoryForQuizzes?.categoryId, selectedSubCategoryForQuizzes?.id] });
       toast.success('Quiz deleted successfully');
     },
     onError: (error) => {
@@ -225,6 +307,10 @@ export const QuizManagement = () => {
 
   const resetForm = () => {
     setFormData({ title: '', description: '' });
+  };
+
+  const resetSubCategoryForm = () => {
+    setSubCategoryFormData({ title: '', description: '' });
   };
 
   const resetQuizForm = () => {
@@ -261,13 +347,41 @@ export const QuizManagement = () => {
     deleteCategoryMutation.mutate(id);
   };
 
+  const handleCreateSubCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createSubCategoryMutation.mutate(subCategoryFormData);
+  };
+
+  const handleEditSubCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSubCategory) return;
+    updateSubCategoryMutation.mutate({
+      id: selectedSubCategory.id,
+      data: subCategoryFormData
+    });
+  };
+
+  const handleEditSubCategoryClick = (subCategory: SubCategory) => {
+    setSelectedSubCategory(subCategory);
+    setSubCategoryFormData({
+      title: subCategory.title,
+      description: subCategory.description
+    });
+    setIsEditSubCategoryDialogOpen(true);
+  };
+
+  const handleDeleteSubCategoryClick = (id: string) => {
+    deleteSubCategoryMutation.mutate(id);
+  };
+
   const handleCreateQuizSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCategoryForQuizzes) return;
+    if (!selectedSubCategoryForQuizzes) return;
     
     createQuizMutation.mutate({
       ...quizFormData,
-      categoryId: selectedCategoryForQuizzes.id,
+      categoryId: selectedSubCategoryForQuizzes.categoryId,
+      subcategoryId: selectedSubCategoryForQuizzes.id,
       // sequence: 0 // Or manage sequence appropriately if needed
     });
   };
@@ -380,61 +494,23 @@ export const QuizManagement = () => {
         const block = questionBlocks[i].trim();
         const lines = block.split('\n');
         
-        const optionsLineIndex = lines.findIndex(line => line.includes('|'));
+        // Find the line with options (starts with |)
+        const optionsLineIndex = lines.findIndex(line => line.trim().startsWith('|'));
         if (optionsLineIndex === -1) {
-          throw new Error(`Invalid format in question block ${i + 1}. Missing options line (e.g., Text|OptA|OptB|OptC|OptD|CorrectOptLetter).`);
+          throw new Error(`Invalid format in question block ${i + 1}. Missing options line (should start with |).`);
         }
         
+        // Combine all lines before the options line as the question text
         const questionText = lines.slice(0, optionsLineIndex).join('\n').trim();
         
-        const optionsLine = lines[optionsLineIndex];
+        // Parse the options line
+        const optionsLine = lines[optionsLineIndex].trim();
         const lastPipeIndex = optionsLine.lastIndexOf('|');
-        const questionAndOptionsPart = optionsLine.substring(0, lastPipeIndex);
+        const optionsPart = optionsLine.substring(1, lastPipeIndex); // Remove first | and everything after last |
         const correctAnswerLetter = optionsLine.substring(lastPipeIndex + 1).trim().toLowerCase();
         
-        const parts = questionAndOptionsPart.split('|');
-        // The first part might be part of the question text if the format is "QuestionTextOnSameLineAsOptions|OptA|..."
-        // Assuming format from SAMPLE_FORMAT where question text is on lines above options line.
-        // The first part of `parts` should be the first option if question text is already captured.
-        // My parser now assumes question text is lines *before* option line.
-        // So parts[0] is OptionA text, parts[1] is OptionB text, etc.
-
-        // Corrected parsing: The sample implies question text can be on the same line as first option
-        // e.g. "What is X?|Option A|Option B|Option C|Option D|a"
-        // The current parsing:
-        // const questionText = lines.slice(0, optionsLineIndex).join('\n').trim(); (This handles multi-line questions above options line)
-        // const optionsLine = lines[optionsLineIndex]; (This is the line with options and answer)
-        // If optionsLineIndex is 0, questionText will be empty.
-        // A more robust parser might be needed if format is very flexible.
-        // The existing parser seems to try to split question text from options on the same line if optionsLineIndex is used to find the parts.
-        // Let's stick to the provided parsing logic carefully.
-        // My previous parser logic for text:
-        //   const questionText = lines.slice(0, optionsLineIndex).join('\n').trim();
-        //   const optionsLine = lines[optionsLineIndex];
-        //   const lastPipeIndex = optionsLine.lastIndexOf('|');
-        //   const questionPart = optionsLine.substring(0, lastPipeIndex); // This is "Text|OptA|OptB|OptC|OptD"
-        //   const parts = questionPart.split('|'); // ["Text", "OptA", "OptB", "OptC", "OptD"]
-        //   const correctAnswer = optionsLine.substring(lastPipeIndex + 1).trim().toLowerCase();
-        //   const options = parts.slice(1); // Takes "OptA", "OptB", "OptC", "OptD"
-        // This means `parts[0]` would be the question text if it's on the same line as options.
-        // And `questionText` (from lines above) would be for multi-line question text *before* the options line.
-        // This can lead to concatenated question text if not handled carefully.
-
-        // Simpler interpretation of SAMPLE_FORMAT:
-        // Question Text (can be multi-line)
-        // OptionA-text|OptionB-text|OptionC-text|OptionD-text|CorrectAnswerLetter
+        const optionTexts = optionsPart.split('|').map(opt => opt.trim());
         
-        let fullQuestionText = questionText;
-        const optionTexts = [];
-        const optionParts = optionsLine.substring(0, optionsLine.lastIndexOf('|')).split('|');
-        
-        if (optionsLineIndex === 0 && optionParts.length > 4) { // Question text is the first part on the options line
-            fullQuestionText = optionParts[0].trim();
-            optionTexts.push(...optionParts.slice(1));
-        } else { // Question text is from lines above, optionParts are just options
-            optionTexts.push(...optionParts);
-        }
-
         if (optionTexts.length !== 4) {
           throw new Error(`Invalid options format in question block ${i + 1}. Expected 4 options. Found ${optionTexts.length}. Line: "${optionsLine}"`);
         }
@@ -445,12 +521,12 @@ export const QuizManagement = () => {
         
         parsedQuestions.push({
           id: uuidv4(), // Temporary client-side ID
-          text: fullQuestionText,
+          text: questionText,
           options: [
-            { id: 'a', text: optionTexts[0].trim() },
-            { id: 'b', text: optionTexts[1].trim() },
-            { id: 'c', text: optionTexts[2].trim() },
-            { id: 'd', text: optionTexts[3].trim() }
+            { id: 'a', text: optionTexts[0] },
+            { id: 'b', text: optionTexts[1] },
+            { id: 'c', text: optionTexts[2] },
+            { id: 'd', text: optionTexts[3] }
           ],
           correctAnswer: correctAnswerLetter
         });
@@ -470,10 +546,8 @@ export const QuizManagement = () => {
       }
 
       setBulkQuestions('');
-      // setIsBulkImportOpen(false); // Keep dialog open to show success, or close it. Let's close.
       setImportProgress(null);
       toast.success(`Successfully parsed and added ${parsedQuestions.length} questions to the form.`);
-      // User still needs to save the quiz form (Create Quiz / Update Quiz)
     } catch (error: any) {
       setBulkImportError(error.message);
       setImportProgress(null);
@@ -502,7 +576,8 @@ export const QuizManagement = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="categories">Categories</TabsTrigger>
-            <TabsTrigger value="quizzes" disabled={!selectedCategoryForQuizzes && categories.length > 0}>Quizzes</TabsTrigger>
+            <TabsTrigger value="subcategories" disabled={!selectedCategoryForSubCategories}>Subcategories</TabsTrigger>
+            <TabsTrigger value="quizzes" disabled={!selectedSubCategoryForQuizzes && subCategories.length > 0}>Quizzes</TabsTrigger>
           </TabsList>
 
           <TabsContent value="categories">
@@ -585,10 +660,10 @@ export const QuizManagement = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              title="View Quizzes"
+                              title="View Subcategories"
                               onClick={() => {
-                                setSelectedCategoryForQuizzes(category);
-                                setActiveTab('quizzes');
+                                setSelectedCategoryForSubCategories(category);
+                                setActiveTab('subcategories');
                               }}
                             >
                               <ChevronRight className="h-4 w-4" />
@@ -616,7 +691,7 @@ export const QuizManagement = () => {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Category</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Are you sure you want to delete "{category.title}"? This will also delete all quizzes under this category. This action cannot be undone.
+                                    Are you sure you want to delete "{category.title}"? This will also delete all subcategories and quizzes under this category. This action cannot be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -642,19 +717,174 @@ export const QuizManagement = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="quizzes">
-            {selectedCategoryForQuizzes ? (
+          <TabsContent value="subcategories">
+            {selectedCategoryForSubCategories ? (
               <>
                 <div className="flex items-center justify-between mb-4">
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      setSelectedCategoryForQuizzes(null);
+                      setSelectedCategoryForSubCategories(null);
                       setActiveTab('categories');
                     }}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Categories ({selectedCategoryForQuizzes.title})
+                    Back to Categories ({selectedCategoryForSubCategories.title})
+                  </Button>
+                  <Dialog open={isCreateSubCategoryDialogOpen} onOpenChange={(isOpen) => { setIsCreateSubCategoryDialogOpen(isOpen); if (!isOpen) resetSubCategoryForm(); }}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Subcategory
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <form onSubmit={handleCreateSubCategorySubmit}>
+                        <DialogHeader>
+                          <DialogTitle>Create New Subcategory</DialogTitle>
+                          <DialogDescription>
+                            Add a new subcategory under "{selectedCategoryForSubCategories.title}"
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                          <div className="grid gap-2">
+                            <Label htmlFor="subcategory-title">Title</Label>
+                            <Input
+                              id="subcategory-title"
+                              value={subCategoryFormData.title}
+                              onChange={(e) => setSubCategoryFormData({ ...subCategoryFormData, title: e.target.value })}
+                              placeholder="Enter subcategory title"
+                              required
+                            />
+                          </div>
+                          <div className="grid gap-2">
+                            <Label htmlFor="subcategory-description">Description</Label>
+                            <Textarea
+                              id="subcategory-description"
+                              value={subCategoryFormData.description}
+                              onChange={(e) => setSubCategoryFormData({ ...subCategoryFormData, description: e.target.value })}
+                              placeholder="Enter subcategory description"
+                              required
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button type="submit" disabled={createSubCategoryMutation.isPending}>
+                            {createSubCategoryMutation.isPending && (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            )}
+                            Create Subcategory
+                          </Button>
+                        </DialogFooter>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {isSubCategoriesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : subCategories.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No subcategories found. Create one to get started.
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead className="w-[150px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {subCategories.map((subCategory) => (
+                          <TableRow key={subCategory.id}>
+                            <TableCell className="font-medium">{subCategory.title}</TableCell>
+                            <TableCell>{subCategory.description}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="View Quizzes"
+                                  onClick={() => {
+                                    setSelectedSubCategoryForQuizzes(subCategory);
+                                    setActiveTab('quizzes');
+                                  }}
+                                >
+                                  <ChevronRight className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Edit Subcategory"
+                                  onClick={() => handleEditSubCategoryClick(subCategory)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      title="Delete Subcategory"
+                                      className="text-destructive hover:text-destructive"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Subcategory</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{subCategory.title}"? This will also delete all quizzes under this subcategory. This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        onClick={() => handleDeleteSubCategoryClick(subCategory.id)}
+                                        disabled={deleteSubCategoryMutation.isPending}
+                                      >
+                                        {deleteSubCategoryMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center text-muted-foreground py-8">
+                Select a category to manage its subcategories.
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="quizzes">
+            {selectedSubCategoryForQuizzes ? (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setSelectedSubCategoryForQuizzes(null);
+                      setActiveTab('subcategories');
+                    }}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Subcategories ({selectedSubCategoryForQuizzes.title})
                   </Button>
                   <Dialog open={isQuizDialogOpen} onOpenChange={(isOpen) => { setIsQuizDialogOpen(isOpen); if (!isOpen) resetQuizForm();}}>
                     <DialogTrigger asChild>
@@ -677,7 +907,7 @@ export const QuizManagement = () => {
                         setIsBulkImportOpen={setIsBulkImportOpen}
                         formType="create"
                         isLoading={createQuizMutation.isPending}
-                        dialogTitle={`Create New Quiz in "${selectedCategoryForQuizzes.title}"`}
+                        dialogTitle={`Create New Quiz in "${selectedSubCategoryForQuizzes.title}"`}
                         dialogDescription="Add a new quiz with its questions."
                     />
                   </Dialog>
@@ -689,7 +919,7 @@ export const QuizManagement = () => {
                   </div>
                 ) : quizzes.length === 0 ? (
                   <div className="text-center text-muted-foreground py-8">
-                    No quizzes found in this category. Create one to get started.
+                    No quizzes found in this subcategory. Create one to get started.
                   </div>
                 ) : (
                   <div className="rounded-md border">
@@ -707,8 +937,7 @@ export const QuizManagement = () => {
                           <TableRow key={quiz.id}>
                             <TableCell className="font-medium">{quiz.title}</TableCell>
                             <TableCell>{quiz.description}</TableCell>
-                            {/* quiz.questions will be undefined here as getQuizzesByCategory does not populate it */}
-                            <TableCell>{quiz.questions?.length ?? 'N/A'}</TableCell>
+                            <TableCell>{quizQuestionCounts[quiz.id] ?? 'N/A'}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Button
@@ -762,7 +991,7 @@ export const QuizManagement = () => {
               </>
             ) : (
               <div className="text-center text-muted-foreground py-8">
-                {categories.length > 0 ? "Select a category to manage its quizzes." : "Create a category first, then manage its quizzes."}
+                {subCategories.length > 0 ? "Select a subcategory to manage its quizzes." : "Create a subcategory first, then manage its quizzes."}
               </div>
             )}
           </TabsContent>
@@ -814,8 +1043,9 @@ export const QuizManagement = () => {
       </Dialog>
 
       {/* Edit Quiz Dialog - Reusing common QuizFormDialog */}
-      {selectedQuiz && (
-        <QuizFormDialog
+      <Dialog open={isEditQuizDialogOpen} onOpenChange={(isOpen) => { setIsEditQuizDialogOpen(isOpen); if (!isOpen) { setSelectedQuiz(null); resetQuizForm(); }}}>
+        {selectedQuiz && (
+          <QuizFormDialog
             isOpen={isEditQuizDialogOpen}
             onOpenChange={(isOpen) => { setIsEditQuizDialogOpen(isOpen); if (!isOpen) { setSelectedQuiz(null); resetQuizForm(); }}}
             onSubmit={handleEditQuizSubmit}
@@ -830,9 +1060,9 @@ export const QuizManagement = () => {
             isLoading={updateQuizMutation.isPending || isLoadingQuizDetails}
             dialogTitle={`Edit Quiz: ${selectedQuiz.title}`}
             dialogDescription="Update the quiz details and its questions."
-        />
-      )}
-
+          />
+        )}
+      </Dialog>
 
       {/* Bulk Import Dialog (Common for Create/Edit Quiz) */}
       <Dialog open={isBulkImportOpen} onOpenChange={(isOpen) => { setIsBulkImportOpen(isOpen); if(!isOpen) { setBulkImportError(null); /* Don't reset importProgress here */ }}}>

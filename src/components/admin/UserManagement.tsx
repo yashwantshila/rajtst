@@ -4,7 +4,26 @@ import { AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getAllUsers, getAllBalances, updateUserRole, User, UserBalance } from '@/services/api/admin';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+import { updateUserRole } from '../../services/firebase/admin/users';
+import { updateUserBalanceByAdmin } from '../../services/firebase/admin/balances';
+
+export interface User {
+  uid: string;
+  email: string;
+  username?: string;
+  role: 'user' | 'admin';
+  createdAt: string;
+  currentIP?: string;
+}
+
+export interface UserBalance {
+  userId: string;
+  amount: number;
+}
 
 interface UserManagementProps {
   users?: User[];
@@ -13,6 +32,7 @@ interface UserManagementProps {
   usersError?: Error;
   balancesError?: Error;
   refetchUsers: () => void;
+  refetchBalances: () => void;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -23,11 +43,15 @@ export const UserManagement = ({
   isLoading, 
   usersError,
   balancesError,
-  refetchUsers 
+  refetchUsers,
+  refetchBalances
 }: UserManagementProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [balanceAmount, setBalanceAmount] = useState<number>(0);
+  const [balanceOperation, setBalanceOperation] = useState<'set' | 'add' | 'subtract'>('add');
   
   const balanceMap = balances?.reduce((acc, balance) => {
     acc[balance.userId] = balance.amount || 0;
@@ -57,6 +81,22 @@ export const UserManagement = ({
       setIsUpdating(false);
     }
   };
+
+  const handleUpdateBalance = async () => {
+    if (!selectedUser) return;
+    try {
+      setIsUpdating(true);
+      await updateUserBalanceByAdmin(selectedUser.uid, balanceAmount, balanceOperation);
+      toast.success(`User balance updated successfully.`);
+      refetchBalances();
+    } catch (error: any) {
+      toast.error('Failed to update balance: ' + error.message);
+    } finally {
+      setIsUpdating(false);
+      setSelectedUser(null);
+      setBalanceAmount(0);
+    }
+  }
 
   const renderErrorMessage = (error: any) => {
     if (!error) return null;
@@ -125,6 +165,7 @@ export const UserManagement = ({
                   <tr key="header-row">
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">User</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">IP Address</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Joined</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Balance</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Role</th>
@@ -136,8 +177,10 @@ export const UserManagement = ({
                     <tr key={user.uid || `user-row-${index}`}>
                       <td key={`username-${user.uid}`} className="px-6 py-4 whitespace-nowrap">
                         <div className="font-medium">{user.username || 'N/A'}</div>
+                        <div className="text-sm text-muted-foreground">{user.uid}</div>
                       </td>
                       <td key={`email-${user.uid}`} className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                      <td key={`ip-${user.uid}`} className="px-6 py-4 whitespace-nowrap">{user.currentIP || 'N/A'}</td>
                       <td key={`date-${user.uid}`} className="px-6 py-4 whitespace-nowrap">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
@@ -160,6 +203,55 @@ export const UserManagement = ({
                           >
                             Make Admin
                           </Button>
+                           <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setSelectedUser(user);
+                                setBalanceAmount(0);
+                                setBalanceOperation('add');
+                              }}>
+                                Update Balance
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Update Balance for {selectedUser?.username}</DialogTitle>
+                              </DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <Label htmlFor="amount" className="text-right">Amount</Label>
+                                  <Input 
+                                    id="amount" 
+                                    type="number" 
+                                    value={balanceAmount} 
+                                    onChange={(e) => setBalanceAmount(Number(e.target.value))} 
+                                    className="col-span-3"
+                                  />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                  <Label htmlFor="operation" className="text-right">Operation</Label>
+                                  <Select onValueChange={(value: 'set' | 'add' | 'subtract') => setBalanceOperation(value)} defaultValue={balanceOperation}>
+                                    <SelectTrigger className="col-span-3">
+                                      <SelectValue placeholder="Select an operation" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="add">Add</SelectItem>
+                                      <SelectItem value="subtract">Subtract</SelectItem>
+                                      <SelectItem value="set">Set</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button type="button" variant="secondary">Cancel</Button>
+                                </DialogClose>
+                                <Button type="button" disabled={isUpdating} onClick={handleUpdateBalance}>
+                                  {isUpdating ? 'Updating...' : 'Update Balance'}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         </div>
                       </td>
                     </tr>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Gift } from 'lucide-react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase/config';
 import { MegaTestPrize } from '../services/firebase/quiz';
 import { Timestamp } from 'firebase/firestore';
@@ -12,6 +12,14 @@ import PrizeClaimForm from './PrizeClaimForm';
 
 interface UserPrizesProps {
   userId: string;
+}
+
+interface UserPrize {
+  megaTestId: string;
+  megaTestTitle: string;
+  prize: string;
+  rank: number;
+  claimStatus: 'unclaimed' | 'pending' | 'approved' | 'rejected' | 'claimed';
 }
 
 const UserPrizes = ({ userId }: UserPrizesProps) => {
@@ -28,13 +36,7 @@ const UserPrizes = ({ userId }: UserPrizesProps) => {
       const megaTestsRef = collection(db, 'mega-tests');
       const megaTestsSnapshot = await getDocs(megaTestsRef);
       
-      const userPrizes: Array<{
-        megaTestId: string;
-        megaTestTitle: string;
-        prize: string;
-        rank: number;
-        claimed: boolean;
-      }> = [];
+      const userPrizes: UserPrize[] = [];
       
       const now = Timestamp.now();
       
@@ -66,17 +68,21 @@ const UserPrizes = ({ userId }: UserPrizesProps) => {
           const prize = prizes.find(p => p.rank === rank);
           if (prize) {
             // Check if prize has been claimed
-            const claimsRef = collection(db, 'mega-tests', megaTestId, 'prize-claims');
-            const claimsQuery = query(claimsRef, where('rank', '==', rank));
-            const claimsSnapshot = await getDocs(claimsQuery);
-            const claimed = !claimsSnapshot.empty;
+            const claimRef = doc(db, 'mega-tests', megaTestId, 'prize-claims', userId);
+            const claimSnap = await getDoc(claimRef);
+            let claimStatus: UserPrize['claimStatus'] = 'unclaimed';
+
+            if (claimSnap.exists()) {
+              const claimData = claimSnap.data();
+              claimStatus = claimData.status || 'claimed';
+            }
 
             userPrizes.push({
               megaTestId,
               megaTestTitle: megaTest.title,
               prize: prize.prize,
               rank: prize.rank,
-              claimed
+              claimStatus,
             });
           }
         }
@@ -150,7 +156,7 @@ const UserPrizes = ({ userId }: UserPrizesProps) => {
                   <div className="text-sm text-muted-foreground">{prize.prize}</div>
                 </div>
               </div>
-              {!prize.claimed && (
+              {prize.claimStatus === 'unclaimed' ? (
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button 
@@ -183,10 +189,12 @@ const UserPrizes = ({ userId }: UserPrizesProps) => {
                     )}
                   </DialogContent>
                 </Dialog>
-              )}
-              {prize.claimed && (
-                <div className="text-sm text-green-600 font-medium">
-                  Prize Claimed
+              ) : (
+                <div className="text-sm font-medium">
+                  {prize.claimStatus === 'pending' && <span className="text-yellow-600">Claim Pending</span>}
+                  {prize.claimStatus === 'approved' && <span className="text-green-600">Claim Approved</span>}
+                  {prize.claimStatus === 'rejected' && <span className="text-red-600">Claim Rejected</span>}
+                  {prize.claimStatus === 'claimed' && <span className="text-green-600">Prize Claimed</span>}
                 </div>
               )}
             </div>
