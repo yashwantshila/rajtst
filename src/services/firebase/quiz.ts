@@ -2,6 +2,8 @@ import { collection, doc, getDocs, query, setDoc, where, addDoc, getDoc, serverT
 import { db } from './config';
 import axios from 'axios';
 import { getAuthToken, getAuthTokenOptional } from '../api/auth';
+=======
+import { getAuthToken } from '../api/auth';
 
 export interface QuizCategory {
   id: string;
@@ -501,6 +503,13 @@ export const getMegaTests = async (): Promise<MegaTest[]> => {
       createdAt: parseTimestamp(mt.createdAt),
       updatedAt: parseTimestamp(mt.updatedAt)
     })) as MegaTest[];
+
+    const token = await getAuthToken();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const res = await axios.get(`${apiUrl}/api/mega-tests`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return res.data as MegaTest[];
   } catch (error) {
     console.error('Error fetching mega tests:', error);
     return [];

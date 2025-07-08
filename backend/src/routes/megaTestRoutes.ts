@@ -4,9 +4,11 @@ import { getMegaTests, registerForMegaTest } from '../controllers/megaTestContro
 
 const router = express.Router();
 
+
 // Listing mega tests should be allowed without authentication so that
 // unauthenticated visitors can view upcoming tests.
 router.get('/', getMegaTests);
+router.get('/', authenticateUser, getMegaTests);
 router.post('/:megaTestId/register', authenticateUser, registerForMegaTest);
 
 export default router;
