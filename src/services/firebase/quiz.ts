@@ -466,6 +466,21 @@ export interface MegaTestPrize {
   prize: string;
 }
 
+const parseTimestamp = (value: any): Timestamp => {
+  if (!value) return Timestamp.fromDate(new Date(0));
+  if (value instanceof Timestamp) return value;
+  if (typeof value === 'object') {
+    if (value._seconds !== undefined && value._nanoseconds !== undefined) {
+      return new Timestamp(value._seconds, value._nanoseconds);
+    }
+    if (value.seconds !== undefined && value.nanoseconds !== undefined) {
+      return new Timestamp(value.seconds, value.nanoseconds);
+    }
+  }
+  const date = new Date(value);
+  return Timestamp.fromDate(date);
+};
+
 export const getMegaTests = async (): Promise<MegaTest[]> => {
   try {
     const token = await getAuthToken();
@@ -473,7 +488,16 @@ export const getMegaTests = async (): Promise<MegaTest[]> => {
     const res = await axios.get(`${apiUrl}/api/mega-tests`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    return res.data as MegaTest[];
+    return (res.data as any[]).map(mt => ({
+      ...mt,
+      registrationStartTime: parseTimestamp(mt.registrationStartTime),
+      registrationEndTime: parseTimestamp(mt.registrationEndTime),
+      testStartTime: parseTimestamp(mt.testStartTime),
+      testEndTime: parseTimestamp(mt.testEndTime),
+      resultTime: parseTimestamp(mt.resultTime),
+      createdAt: parseTimestamp(mt.createdAt),
+      updatedAt: parseTimestamp(mt.updatedAt)
+    })) as MegaTest[];
   } catch (error) {
     console.error('Error fetching mega tests:', error);
     return [];
