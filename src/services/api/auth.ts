@@ -197,4 +197,18 @@ export const getAuthToken = async (): Promise<string> => {
     console.error('Error getting auth token:', error);
     throw new Error('Failed to get authentication token');
   }
-}; 
+};
+
+// Some API calls allow unauthenticated access. This helper returns a token if
+// the user is logged in, otherwise it resolves to null without throwing.
+export const getAuthTokenOptional = async (): Promise<string | null> => {
+  const auth = getAuth(app);
+  const user = auth.currentUser;
+  if (!user) return null;
+  try {
+    return await user.getIdToken(true);
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
+  }
+};
