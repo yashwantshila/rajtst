@@ -657,13 +657,37 @@ export const hasUserSubmittedMegaTest = async (megaTestId: string, userId: strin
   }
 };
 
+export const markMegaTestStarted = async (megaTestId: string, userId: string): Promise<void> => {
+  try {
+    const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
+    const participantDoc = await getDoc(participantRef);
+    if (participantDoc.exists() && !participantDoc.data().startTime) {
+      await updateDoc(participantRef, { startTime: serverTimestamp() });
+    }
+  } catch (error) {
+    console.error('Error recording mega test start time:', error);
+  }
+};
+
 export const submitMegaTestResult = async (
-  megaTestId: string, 
-  userId: string, 
+  megaTestId: string,
+  userId: string,
   score: number,
   completionTime: number // Time taken to complete the quiz in seconds
 ): Promise<boolean> => {
   try {
+    const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
+    const participantDoc = await getDoc(participantRef);
+
+    let finalCompletionTime = completionTime;
+    if (participantDoc.exists()) {
+      const data = participantDoc.data();
+      if (data.startTime) {
+        const startTime = (data.startTime as Timestamp).toMillis();
+        finalCompletionTime = Math.floor((Timestamp.now().toMillis() - startTime) / 1000);
+      }
+    }
+
     const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
     const leaderboardSnapshot = await getDocs(leaderboardRef);
     const leaderboard = leaderboardSnapshot.docs.map(doc => doc.data() as MegaTestLeaderboardEntry);
@@ -673,7 +697,7 @@ export const submitMegaTestResult = async (
       score,
       rank: 0, // Will be recalculated
       submittedAt: serverTimestamp() as Timestamp,
-      completionTime
+      completionTime: finalCompletionTime
     };
     leaderboard.push(newEntry);
     
