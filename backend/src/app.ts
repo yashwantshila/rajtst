@@ -9,6 +9,7 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import megaTestRoutes from './routes/megaTestRoutes.js';
 
 import { authLimiter, apiLimiter, adminLimiter } from './middleware/rateLimit.js';
 import { securityHeaders } from './middleware/securityHeaders.js';
@@ -60,6 +61,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/mega-tests', megaTestRoutes);
 
 // --- Health Check Endpoint ---
 app.get('/health', (req, res) => {

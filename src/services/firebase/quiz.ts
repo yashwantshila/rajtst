@@ -1,8 +1,7 @@
 import { collection, doc, getDocs, query, setDoc, where, addDoc, getDoc, serverTimestamp, Timestamp, updateDoc, deleteDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import { db } from './config';
-import { updateUserBalance } from './balance';
-import { getClientIP } from '@/utils/ipDetection';
-import { getDeviceId } from '@/utils/deviceId';
+import axios from 'axios';
+import { getAuthToken } from '../api/auth';
 
 export interface QuizCategory {
   id: string;
@@ -469,19 +468,12 @@ export interface MegaTestPrize {
 
 export const getMegaTests = async (): Promise<MegaTest[]> => {
   try {
-    const megaTestsRef = collection(db, 'mega-tests');
-    const snapshot = await getDocs(megaTestsRef);
-    const megaTests = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as MegaTest[];
-    
-    // Sort by createdAt timestamp in descending order (newest first)
-    return megaTests.sort((a, b) => {
-      const aTime = a.createdAt?.toMillis?.() || 0;
-      const bTime = b.createdAt?.toMillis?.() || 0;
-      return bTime - aTime; // Descending order (newest first)
+    const token = await getAuthToken();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const res = await axios.get(`${apiUrl}/api/mega-tests`, {
+      headers: { Authorization: `Bearer ${token}` }
     });
+    return res.data as MegaTest[];
   } catch (error) {
     console.error('Error fetching mega tests:', error);
     return [];
@@ -578,60 +570,24 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
   }
 };
 
-export const registerForMegaTest = async (megaTestId: string, userId: string, username: string, email: string): Promise<boolean> => {
+export const registerForMegaTest = async (
+  megaTestId: string,
+  _userId: string,
+  username: string,
+  _email: string
+): Promise<boolean> => {
   try {
-    const megaTestRef = doc(db, 'mega-tests', megaTestId);
-    const megaTestDoc = await getDoc(megaTestRef);
-    
-    if (!megaTestDoc.exists()) {
-      throw new Error('Mega test not found');
-    }
-    
-    const megaTest = megaTestDoc.data() as MegaTest;
-    const entryFee = megaTest.entryFee || 0;
-    
-    const balanceRef = doc(db, 'balance', userId);
-    const balanceDoc = await getDoc(balanceRef);
-    
-    if (!balanceDoc.exists()) {
-      throw new Error('User balance not found');
-    }
-    
-    const currentBalance = balanceDoc.data()!.amount || 0; // Added non-null assertion as per original logic expectation
-    
-    if (currentBalance < entryFee) {
-      throw new Error(`Insufficient balance. Required: ₹${entryFee}, Available: ₹${currentBalance}`);
-    }
-    
-    const batch = writeBatch(db);
-    
-    if (entryFee > 0) {
-      batch.update(balanceRef, {
-        amount: currentBalance - entryFee,
-        lastUpdated: new Date().toISOString(),
-      });
-    }
-    
-    const ipAddress = await getClientIP();
-    const deviceId = getDeviceId();
-    
-    const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
-    batch.set(participantRef, {
-      userId,
-      username,
-      email,
-      registeredAt: serverTimestamp(),
-      entryFeePaid: entryFee, // This field was in original logic but not MegaTestParticipant interface
-      ipAddress: ipAddress,
-      lastSeenIP: ipAddress,
-      deviceId: deviceId
-    });
-    
-    await batch.commit();
+    const token = await getAuthToken();
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    await axios.post(
+      `${apiUrl}/api/mega-tests/${megaTestId}/register`,
+      { username },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return true;
   } catch (error) {
     console.error('Error registering for mega test:', error);
-    throw error; 
+    throw error;
   }
 };
 
