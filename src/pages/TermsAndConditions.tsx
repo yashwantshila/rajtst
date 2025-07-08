@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
+import { getContent } from '../services/api/content';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -11,14 +9,7 @@ import { sanitizeHtml } from '@/utils/sanitize';
 const TermsAndConditions = () => {
   const { data: termsAndConditions, isLoading, error } = useQuery({
     queryKey: ['terms-and-conditions'],
-    queryFn: async () => {
-      const docRef = doc(db, 'content', 'terms-and-conditions');
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data();
-      }
-      return { content: 'Terms and conditions content not found.' };
-    }
+    queryFn: () => getContent('terms-and-conditions')
   });
 
   if (isLoading) {

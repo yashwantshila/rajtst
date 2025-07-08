@@ -6,6 +6,7 @@ import adminRoutes from './adminRoutes.js';
 import quizRoutes from './quizRoutes.js';
 import questionPaperRoutes from './questionPaperRoutes.js';
 import megaTestRoutes from './megaTestRoutes.js';
+import contentRoutes from './contentRoutes.js';
 
 const router = express.Router();
 
@@ -27,6 +28,9 @@ router.use('/question-papers', questionPaperRoutes);
 // Mega test routes
 router.use('/mega-tests', megaTestRoutes);
 
+// Public content routes
+router.use('/content', contentRoutes);
+
 // Admin routes
 router.use('/admin', adminRoutes);
 
@@ -34,5 +38,4 @@ router.use('/admin', adminRoutes);
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-
 export default router; 
