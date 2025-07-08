@@ -5,6 +5,7 @@ import paymentRoutes from './paymentRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import quizRoutes from './quizRoutes.js';
 import questionPaperRoutes from './questionPaperRoutes.js';
+import megaTestRoutes from './megaTestRoutes.js';
 
 const router = express.Router();
 
@@ -22,6 +23,9 @@ router.use('/quiz', quizRoutes);
 
 // Question paper routes
 router.use('/question-papers', questionPaperRoutes);
+
+// Mega test routes
+router.use('/mega-tests', megaTestRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
