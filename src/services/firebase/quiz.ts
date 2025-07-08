@@ -1,5 +1,6 @@
 import { collection, doc, getDocs, query, setDoc, where, addDoc, getDoc, serverTimestamp, Timestamp, updateDoc, deleteDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import { db } from './config';
+import { getMegaTestLeaderboard as fetchLeaderboard, MegaTestLeaderboardEntry } from '../api/megaTest';
 import { updateUserBalance } from './balance';
 import { getClientIP } from '@/utils/ipDetection';
 import { getDeviceId } from '@/utils/deviceId';
@@ -704,11 +705,7 @@ export const submitMegaTestResult = async (
 
 export const getMegaTestLeaderboard = async (megaTestId: string): Promise<MegaTestLeaderboardEntry[]> => {
   try {
-    const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
-    const snapshot = await getDocs(leaderboardRef);
-    return snapshot.docs
-      .map(doc => doc.data() as MegaTestLeaderboardEntry)
-      .sort((a, b) => a.rank - b.rank);
+    return await fetchLeaderboard(megaTestId);
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     return [];

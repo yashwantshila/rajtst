@@ -101,3 +101,22 @@ export const getUserPrizes = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch prizes' });
   }
 };
+
+export const getMegaTestLeaderboard = async (req: Request, res: Response) => {
+  try {
+    const { megaTestId } = req.params;
+
+    const leaderboardSnap = await db
+      .collection('mega-tests')
+      .doc(megaTestId)
+      .collection('leaderboard')
+      .orderBy('score', 'desc')
+      .get();
+
+    const entries = leaderboardSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(entries);
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+};

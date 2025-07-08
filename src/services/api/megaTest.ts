@@ -28,3 +28,22 @@ export const getUserPrizes = async (userId: string): Promise<UserPrize[]> => {
   });
   return res.data;
 };
+
+export interface MegaTestLeaderboardEntry {
+  userId: string;
+  score: number;
+  rank: number;
+  submittedAt: string;
+  completionTime: number;
+}
+
+export const getMegaTestLeaderboard = async (
+  megaTestId: string
+): Promise<MegaTestLeaderboardEntry[]> => {
+  const token = await getAuthToken();
+  const res = await axios.get(
+    `${API_URL}/api/mega-tests/${megaTestId}/leaderboard`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data;
+};
