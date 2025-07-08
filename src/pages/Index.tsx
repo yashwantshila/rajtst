@@ -1,7 +1,8 @@
 import { useEffect, useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getQuizCategories, getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/firebase/quiz';
+import { getQuizCategories } from '../services/api/quiz';
+import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/firebase/quiz';
 import { AuthContext } from '../App';
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
@@ -28,7 +29,7 @@ import { useSessionTimeout } from '../hooks/useSessionTimeout';
 import { collection, getDocs, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../services/firebase/config';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { getUserBalance, updateUserBalance } from '../services/firebase/balance';
+import { getUserBalance, updateUserBalance } from '../services/api/balance';
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { captureUserIP } from '../services/api/user';
 import { getDeviceId } from '../utils/deviceId';
