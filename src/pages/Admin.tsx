@@ -16,8 +16,7 @@ import MegaTestManager from './admin/MegaTestManager';
 import PrizeClaimsManager from './admin/PrizeClaimsManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
-import { getAllUsers } from '@/services/firebase/admin/users';
-import { getAllBalances } from '@/services/firebase/admin/balances';
+import { getAllUsers, getAllBalances } from '@/services/api/admin';
 import { db } from '@/services/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
 

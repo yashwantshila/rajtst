@@ -1,7 +1,5 @@
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
+import { getContent } from '../services/api/content';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -11,14 +9,7 @@ import { sanitizeHtml } from '@/utils/sanitize';
 const PrivacyPolicy = () => {
   const { data: privacyPolicy, isLoading, error } = useQuery({
     queryKey: ['privacy-policy'],
-    queryFn: async () => {
-      const docRef = doc(db, 'content', 'privacy-policy');
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data();
-      }
-      return { content: 'Privacy policy content not found.' };
-    }
+    queryFn: () => getContent('privacy-policy')
   });
 
   if (isLoading) {
