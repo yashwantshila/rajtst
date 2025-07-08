@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, ChevronRight, ChevronLeft, Clock, CreditCard, Trophy } from 'lucide-react';
-import { getMegaTestById, submitMegaTestResult, MegaTestQuestion, hasUserSubmittedMegaTest } from '@/services/firebase/quiz';
+import { getMegaTestById, submitMegaTestResult, MegaTestQuestion, hasUserSubmittedMegaTest, markMegaTestStarted } from '@/services/firebase/quiz';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
@@ -219,10 +219,17 @@ const MegaTest = () => {
     }
   };
 
-  const startQuiz = () => {
+  const startQuiz = async () => {
     if (isQuizStarted) {
       toast.error('You have already started this quiz');
       return;
+    }
+    if (megaTest && user) {
+      try {
+        await markMegaTestStarted(megaTest.id, user.uid);
+      } catch (error) {
+        console.error('Error recording start time:', error);
+      }
     }
     setIsQuizStarted(true);
     setStartTime(Date.now());
