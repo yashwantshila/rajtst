@@ -2,7 +2,7 @@ import { useEffect, useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getQuizCategories } from '../services/api/quiz';
-import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/firebase/quiz';
+import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/api/megaTest';
 import { AuthContext } from '../App';
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
