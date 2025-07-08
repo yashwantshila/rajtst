@@ -2,10 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Gift } from 'lucide-react';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
-import { MegaTestPrize } from '../services/firebase/quiz';
-import { Timestamp } from 'firebase/firestore';
+import { getUserPrizes, UserPrize } from '../services/api/megaTest';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import PrizeClaimForm from './PrizeClaimForm';
@@ -14,13 +11,6 @@ interface UserPrizesProps {
   userId: string;
 }
 
-interface UserPrize {
-  megaTestId: string;
-  megaTestTitle: string;
-  prize: string;
-  rank: number;
-  claimStatus: 'unclaimed' | 'pending' | 'approved' | 'rejected' | 'claimed';
-}
 
 const UserPrizes = ({ userId }: UserPrizesProps) => {
   const [selectedPrize, setSelectedPrize] = useState<{
@@ -31,65 +21,7 @@ const UserPrizes = ({ userId }: UserPrizesProps) => {
 
   const { data: prizes, isLoading, refetch } = useQuery({
     queryKey: ['user-prizes', userId],
-    queryFn: async () => {
-      // Get all mega tests
-      const megaTestsRef = collection(db, 'mega-tests');
-      const megaTestsSnapshot = await getDocs(megaTestsRef);
-      
-      const userPrizes: UserPrize[] = [];
-      
-      const now = Timestamp.now();
-      
-      // For each mega test, check if user is in leaderboard and get their rank
-      for (const megaTestDoc of megaTestsSnapshot.docs) {
-        const megaTestId = megaTestDoc.id;
-        const megaTest = megaTestDoc.data();
-        
-        // Only process mega tests where result time has been reached
-        if (megaTest.resultTime.toMillis() > now.toMillis()) {
-          continue;
-        }
-        
-        // Get user's leaderboard entry
-        const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
-        const leaderboardQuery = query(leaderboardRef, where('userId', '==', userId));
-        const leaderboardSnapshot = await getDocs(leaderboardQuery);
-        
-        if (!leaderboardSnapshot.empty) {
-          const userEntry = leaderboardSnapshot.docs[0].data();
-          const rank = userEntry.rank;
-          
-          // Get prizes for this mega test
-          const prizesRef = collection(db, 'mega-tests', megaTestId, 'prizes');
-          const prizesSnapshot = await getDocs(prizesRef);
-          const prizes = prizesSnapshot.docs.map(doc => doc.data() as MegaTestPrize);
-          
-          // Find the prize for user's rank
-          const prize = prizes.find(p => p.rank === rank);
-          if (prize) {
-            // Check if prize has been claimed
-            const claimRef = doc(db, 'mega-tests', megaTestId, 'prize-claims', userId);
-            const claimSnap = await getDoc(claimRef);
-            let claimStatus: UserPrize['claimStatus'] = 'unclaimed';
-
-            if (claimSnap.exists()) {
-              const claimData = claimSnap.data();
-              claimStatus = claimData.status || 'claimed';
-            }
-
-            userPrizes.push({
-              megaTestId,
-              megaTestTitle: megaTest.title,
-              prize: prize.prize,
-              rank: prize.rank,
-              claimStatus,
-            });
-          }
-        }
-      }
-      
-      return userPrizes;
-    },
+    queryFn: () => getUserPrizes(userId),
     enabled: !!userId
   });
 

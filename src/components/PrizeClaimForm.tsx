@@ -6,9 +6,9 @@ import { SanitizedInput } from "@/components/ui/sanitized-input";
 import { SanitizedTextarea } from "@/components/ui/sanitized-textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
-import { doc, setDoc } from 'firebase/firestore';
-import { db, auth } from '../services/firebase/config';
+import { auth } from '../services/firebase/config';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { submitPrizeClaim } from '../services/api/megaTest';
 import { getClientIP } from '@/utils/ipDetection';
 import { getDeviceId } from '@/utils/deviceId';
 
@@ -42,16 +42,11 @@ const PrizeClaimForm = ({ megaTestId, prize, rank, onSuccess }: PrizeClaimFormPr
       const ipAddress = await getClientIP();
       const deviceId = getDeviceId();
 
-      // Create a new document in the prize-claims collection
-      const claimRef = doc(db, 'mega-tests', megaTestId, 'prize-claims', user.uid);
-      await setDoc(claimRef, {
+      await submitPrizeClaim(megaTestId, {
         ...formData,
         prize,
         rank,
-        userId: user.uid,
-        status: 'pending',
-        createdAt: new Date(),
-        ipAddress,
+        ipAddress: ipAddress || undefined,
         deviceId,
       });
 
