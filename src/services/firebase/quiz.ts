@@ -3,6 +3,15 @@ import { db } from './config';
 import { updateUserBalance } from './balance';
 import { getClientIP } from '@/utils/ipDetection';
 import { getDeviceId } from '@/utils/deviceId';
+import axios from 'axios';
+import { getAuthToken } from '../api/auth';
+import { refreshAdminToken } from '../api/adminAuth';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const getApiEndpoint = (endpoint: string) => {
+  const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
+  return `${baseUrl}${endpoint}`;
+};
 
 export interface QuizCategory {
   id: string;
@@ -469,19 +478,8 @@ export interface MegaTestPrize {
 
 export const getMegaTests = async (): Promise<MegaTest[]> => {
   try {
-    const megaTestsRef = collection(db, 'mega-tests');
-    const snapshot = await getDocs(megaTestsRef);
-    const megaTests = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as MegaTest[];
-    
-    // Sort by createdAt timestamp in descending order (newest first)
-    return megaTests.sort((a, b) => {
-      const aTime = a.createdAt?.toMillis?.() || 0;
-      const bTime = b.createdAt?.toMillis?.() || 0;
-      return bTime - aTime; // Descending order (newest first)
-    });
+    const response = await axios.get(getApiEndpoint('/mega-tests'));
+    return response.data as MegaTest[];
   } catch (error) {
     console.error('Error fetching mega tests:', error);
     return [];
@@ -490,30 +488,8 @@ export const getMegaTests = async (): Promise<MegaTest[]> => {
 
 export const getMegaTestById = async (id: string): Promise<{ megaTest: MegaTest | null, questions: MegaTestQuestion[] }> => {
   try {
-    const megaTestRef = doc(db, 'mega-tests', id);
-    const questionsRef = collection(db, 'mega-tests', id, 'questions');
-    
-    const [megaTestDoc, questionsSnapshot] = await Promise.all([
-      getDoc(megaTestRef),
-      getDocs(questionsRef)
-    ]);
-    
-    if (!megaTestDoc.exists()) {
-      return { megaTest: null, questions: [] };
-    }
-    
-    const questions = questionsSnapshot.docs.map(doc => ({ // Using doc directly as in original
-      id: doc.id,
-      ...doc.data()
-    })) as MegaTestQuestion[];
-    
-    return {
-      megaTest: {
-        id: megaTestDoc.id,
-        ...megaTestDoc.data()
-      } as MegaTest,
-      questions
-    };
+    const response = await axios.get(getApiEndpoint(`/mega-tests/${id}`));
+    return response.data as { megaTest: MegaTest | null; questions: MegaTestQuestion[] };
   } catch (error) {
     console.error('Error fetching mega test:', error);
     return { megaTest: null, questions: [] };
@@ -522,56 +498,24 @@ export const getMegaTestById = async (id: string): Promise<{ megaTest: MegaTest 
 
 export const getMegaTestPrizes = async (megaTestId: string): Promise<MegaTestPrize[]> => {
   try {
-    const prizesRef = collection(db, 'mega-tests', megaTestId, 'prizes');
-    const snapshot = await getDocs(prizesRef);
-    return snapshot.docs
-      .map(doc => doc.data() as MegaTestPrize)
-      .sort((a, b) => a.rank - b.rank);
+    const response = await axios.get(getApiEndpoint(`/mega-tests/${megaTestId}/prizes`));
+    return response.data as MegaTestPrize[];
   } catch (error) {
     console.error('Error fetching prizes:', error);
     return [];
   }
 };
 
-export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'totalQuestions'> & { 
+export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'totalQuestions'> & {
   questions: MegaTestQuestion[]; // Original type
   prizes: MegaTestPrize[];
 }): Promise<MegaTest | null> => {
   try {
-    const batch = writeBatch(db);
-    const megaTestsRef = collection(db, 'mega-tests');
-    const newMegaTestRef = doc(megaTestsRef);
-    
-    // Create main mega test document
-    const { prizes, ...megaTestData } = data; // Original destructuring
-    batch.set(newMegaTestRef, {
-      ...megaTestData, // This will include data.questions as it's part of megaTestData
-      totalQuestions: data.questions.length,
-      status: 'upcoming',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      timeLimit: data.timeLimit || 60 
+    const token = await refreshAdminToken();
+    const response = await axios.post(getApiEndpoint('/mega-tests'), data, {
+      headers: { Authorization: `Bearer ${token}` }
     });
-    
-    // Create questions in subcollection
-    data.questions.forEach(question => { // Using data.questions directly
-      const questionRef = doc(collection(newMegaTestRef, 'questions'));
-      batch.set(questionRef, question); // Storing the whole question object, including its original id field if present
-    });
-
-    // Create prizes in subcollection
-    prizes.forEach(prize => {
-      const prizeRef = doc(collection(newMegaTestRef, 'prizes'));
-      batch.set(prizeRef, prize);
-    });
-    
-    await batch.commit();
-    
-    const newDoc = await getDoc(newMegaTestRef);
-    return {
-      id: newDoc.id,
-      ...newDoc.data()
-    } as MegaTest;
+    return response.data as MegaTest;
   } catch (error) {
     console.error('Error creating mega test:', error);
     return null;
@@ -580,66 +524,27 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
 
 export const registerForMegaTest = async (megaTestId: string, userId: string, username: string, email: string): Promise<boolean> => {
   try {
-    const megaTestRef = doc(db, 'mega-tests', megaTestId);
-    const megaTestDoc = await getDoc(megaTestRef);
-    
-    if (!megaTestDoc.exists()) {
-      throw new Error('Mega test not found');
-    }
-    
-    const megaTest = megaTestDoc.data() as MegaTest;
-    const entryFee = megaTest.entryFee || 0;
-    
-    const balanceRef = doc(db, 'balance', userId);
-    const balanceDoc = await getDoc(balanceRef);
-    
-    if (!balanceDoc.exists()) {
-      throw new Error('User balance not found');
-    }
-    
-    const currentBalance = balanceDoc.data()!.amount || 0; // Added non-null assertion as per original logic expectation
-    
-    if (currentBalance < entryFee) {
-      throw new Error(`Insufficient balance. Required: ₹${entryFee}, Available: ₹${currentBalance}`);
-    }
-    
-    const batch = writeBatch(db);
-    
-    if (entryFee > 0) {
-      batch.update(balanceRef, {
-        amount: currentBalance - entryFee,
-        lastUpdated: new Date().toISOString(),
-      });
-    }
-    
-    const ipAddress = await getClientIP();
-    const deviceId = getDeviceId();
-    
-    const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
-    batch.set(participantRef, {
-      userId,
-      username,
-      email,
-      registeredAt: serverTimestamp(),
-      entryFeePaid: entryFee, // This field was in original logic but not MegaTestParticipant interface
-      ipAddress: ipAddress,
-      lastSeenIP: ipAddress,
-      deviceId: deviceId
-    });
-    
-    await batch.commit();
+    const token = await getAuthToken();
+    await axios.post(
+      getApiEndpoint(`/mega-tests/${megaTestId}/register`),
+      { userId, username, email },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error registering for mega test:', error);
-    throw error; 
+    throw new Error(error.response?.data?.error || 'Registration failed');
   }
 };
 
 export const isUserRegistered = async (megaTestId: string, userId: string): Promise<boolean> => {
   try {
-    const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
-    const participantDoc = await getDoc(participantRef);
-    return participantDoc.exists();
+    const token = await getAuthToken();
+    const response = await axios.get(
+      getApiEndpoint(`/mega-tests/${megaTestId}/is-registered/${userId}`),
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data.registered as boolean;
   } catch (error) {
     console.error('Error checking registration:', error);
     return false;
@@ -648,9 +553,12 @@ export const isUserRegistered = async (megaTestId: string, userId: string): Prom
 
 export const hasUserSubmittedMegaTest = async (megaTestId: string, userId: string): Promise<boolean> => {
   try {
-    const leaderboardRef = doc(collection(db, 'mega-tests', megaTestId, 'leaderboard'), userId);
-    const leaderboardDoc = await getDoc(leaderboardRef);
-    return leaderboardDoc.exists();
+    const token = await getAuthToken();
+    const response = await axios.get(
+      getApiEndpoint(`/mega-tests/${megaTestId}/has-submitted/${userId}`),
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data.submitted as boolean;
   } catch (error) {
     console.error('Error checking submission status:', error);
     return false;
@@ -659,11 +567,12 @@ export const hasUserSubmittedMegaTest = async (megaTestId: string, userId: strin
 
 export const markMegaTestStarted = async (megaTestId: string, userId: string): Promise<void> => {
   try {
-    const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
-    const participantDoc = await getDoc(participantRef);
-    if (participantDoc.exists() && !participantDoc.data().startTime) {
-      await updateDoc(participantRef, { startTime: serverTimestamp() });
-    }
+    const token = await getAuthToken();
+    await axios.post(
+      getApiEndpoint(`/mega-tests/${megaTestId}/start`),
+      { userId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
   } catch (error) {
     console.error('Error recording mega test start time:', error);
   }
@@ -676,48 +585,12 @@ export const submitMegaTestResult = async (
   completionTime: number // Time taken to complete the quiz in seconds
 ): Promise<boolean> => {
   try {
-    const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
-    const participantDoc = await getDoc(participantRef);
-
-    let finalCompletionTime = completionTime;
-    if (participantDoc.exists()) {
-      const data = participantDoc.data();
-      if (data.startTime) {
-        const startTime = (data.startTime as Timestamp).toMillis();
-        finalCompletionTime = Math.floor((Timestamp.now().toMillis() - startTime) / 1000);
-      }
-    }
-
-    const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
-    const leaderboardSnapshot = await getDocs(leaderboardRef);
-    const leaderboard = leaderboardSnapshot.docs.map(doc => doc.data() as MegaTestLeaderboardEntry);
-    
-    const newEntry = {
-      userId,
-      score,
-      rank: 0, // Will be recalculated
-      submittedAt: serverTimestamp() as Timestamp,
-      completionTime: finalCompletionTime
-    };
-    leaderboard.push(newEntry);
-    
-    leaderboard.sort((a, b) => {
-      if (a.score !== b.score) {
-        return b.score - a.score;
-      }
-      return a.completionTime - b.completionTime;
-    });
-    
-    const batch = writeBatch(db);
-    leaderboard.forEach((entry, index) => {
-      const entryRef = doc(leaderboardRef, entry.userId);
-      batch.set(entryRef, {
-        ...entry,
-        rank: index + 1
-      });
-    });
-    
-    await batch.commit();
+    const token = await getAuthToken();
+    await axios.post(
+      getApiEndpoint(`/mega-tests/${megaTestId}/submit`),
+      { userId, score, completionTime },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return true;
   } catch (error) {
     console.error('Error submitting mega test result:', error);
@@ -728,11 +601,8 @@ export const submitMegaTestResult = async (
 
 export const getMegaTestLeaderboard = async (megaTestId: string): Promise<MegaTestLeaderboardEntry[]> => {
   try {
-    const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
-    const snapshot = await getDocs(leaderboardRef);
-    return snapshot.docs
-      .map(doc => doc.data() as MegaTestLeaderboardEntry)
-      .sort((a, b) => a.rank - b.rank);
+    const response = await axios.get(getApiEndpoint(`/mega-tests/${megaTestId}/leaderboard`));
+    return response.data as MegaTestLeaderboardEntry[];
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     return [];
@@ -741,55 +611,16 @@ export const getMegaTestLeaderboard = async (megaTestId: string): Promise<MegaTe
 
 export const updateMegaTest = async (
   id: string,
-  data: Partial<Omit<MegaTest, 'id' | 'createdAt' | 'status'>> & { 
+  data: Partial<Omit<MegaTest, 'id' | 'createdAt' | 'status'>> & {
     questions?: MegaTestQuestion[]; // Original type
     prizes?: MegaTestPrize[];
   }
 ): Promise<boolean> => {
   try {
-    const batch = writeBatch(db);
-    const megaTestRef = doc(db, 'mega-tests', id);
-
-    const updateData: any = {
-      ...data,
-      updatedAt: serverTimestamp()
-    };
-
-    if (data.questions) {
-      updateData.totalQuestions = data.questions.length;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { questions, prizes, ...mainDocData } = updateData; // questions and prizes are removed here
-    batch.update(megaTestRef, mainDocData); // mainDocData is correct
-
-    if (data.questions) { // Use original data.questions
-      const questionsRef = collection(megaTestRef, 'questions');
-      const existingQuestions = await getDocs(questionsRef);
-      existingQuestions.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-
-      data.questions.forEach(question => {
-        const questionRef = doc(collection(megaTestRef, 'questions'));
-        batch.set(questionRef, question); // Storing whole question object
-      });
-    }
-
-    if (data.prizes) { // Use original data.prizes
-      const prizesRef = collection(megaTestRef, 'prizes');
-      const existingPrizes = await getDocs(prizesRef);
-      existingPrizes.docs.forEach(doc => {
-        batch.delete(doc.ref);
-      });
-
-      data.prizes.forEach(prize => {
-        const prizeRef = doc(collection(megaTestRef, 'prizes'));
-        batch.set(prizeRef, prize);
-      });
-    }
-
-    await batch.commit();
+    const token = await refreshAdminToken();
+    await axios.put(getApiEndpoint(`/mega-tests/${id}`), data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return true;
   } catch (error) {
     console.error('Error updating mega test:', error);
@@ -799,41 +630,10 @@ export const updateMegaTest = async (
 
 export const deleteMegaTest = async (megaTestId: string): Promise<boolean> => {
   try {
-    const batch = writeBatch(db);
-    const megaTestRef = doc(db, 'mega-tests', megaTestId);
-
-    // Delete questions subcollection
-    const questionsRef = collection(megaTestRef, 'questions');
-    const questionsSnapshot = await getDocs(questionsRef);
-    questionsSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
+    const token = await refreshAdminToken();
+    await axios.delete(getApiEndpoint(`/mega-tests/${megaTestId}`), {
+      headers: { Authorization: `Bearer ${token}` }
     });
-
-    // Delete participants subcollection
-    const participantsRef = collection(megaTestRef, 'participants');
-    const participantsSnapshot = await getDocs(participantsRef);
-    participantsSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-
-    // Delete leaderboard subcollection
-    const leaderboardRef = collection(megaTestRef, 'leaderboard');
-    const leaderboardSnapshot = await getDocs(leaderboardRef);
-    leaderboardSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-
-    // Delete prizes subcollection
-    const prizesRef = collection(megaTestRef, 'prizes');
-    const prizesSnapshot = await getDocs(prizesRef);
-    prizesSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
-
-    // Delete the main mega test document
-    batch.delete(megaTestRef);
-
-    await batch.commit();
     return true;
   } catch (error) {
     console.error('Error deleting mega test:', error);
@@ -844,14 +644,8 @@ export const deleteMegaTest = async (megaTestId: string): Promise<boolean> => {
 
 export const getMegaTestPrizePool = async (megaTestId: string): Promise<number> => {
   try {
-    const participantsRef = collection(db, 'mega-tests', megaTestId, 'participants');
-    const snapshot = await getDocs(participantsRef);
-    const participants = snapshot.docs.map(doc => doc.data()); // as in original
-    // Original logic for reduce: participant.entryFeePaid.
-    // This field is set in registerForMegaTest but not in MegaTestParticipant interface.
-    // Assuming participants data structure will have entryFeePaid due to registerForMegaTest.
-    const totalPrizePool = participants.reduce((total, participant) => total + (participant.entryFeePaid || 0), 0);
-    return totalPrizePool;
+    const response = await axios.get(getApiEndpoint(`/mega-tests/${megaTestId}/prize-pool`));
+    return response.data.prizePool as number;
   } catch (error) {
     console.error('Error calculating prize pool:', error);
     return 0;
@@ -860,9 +654,8 @@ export const getMegaTestPrizePool = async (megaTestId: string): Promise<number> 
 
 export const getMegaTestParticipantCount = async (megaTestId: string): Promise<number> => {
   try {
-    const participantsRef = collection(db, 'mega-tests', megaTestId, 'participants');
-    const snapshot = await getDocs(participantsRef);
-    return snapshot.size;
+    const response = await axios.get(getApiEndpoint(`/mega-tests/${megaTestId}/participant-count`));
+    return response.data.count as number;
   } catch (error) {
     console.error('Error getting participant count:', error);
     return 0;
@@ -880,41 +673,12 @@ export const adminAddOrUpdateLeaderboardEntry = async (
   completionTime: number // Time taken to complete the quiz in seconds
 ): Promise<boolean> => {
   try {
-    const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
-    const leaderboardSnapshot = await getDocs(leaderboardRef);
-    let leaderboard = leaderboardSnapshot.docs.map(doc => doc.data() as MegaTestLeaderboardEntry);
-
-    // Remove any existing entry for this userId
-    leaderboard = leaderboard.filter(entry => entry.userId !== userId);
-
-    // Add the new/updated entry
-    const newEntry: MegaTestLeaderboardEntry = {
-      userId,
-      score,
-      rank: 0, // Will be recalculated
-      submittedAt: serverTimestamp() as Timestamp,
-      completionTime
-    };
-    leaderboard.push(newEntry);
-
-    // Sort and assign ranks
-    leaderboard.sort((a, b) => {
-      if (a.score !== b.score) {
-        return b.score - a.score;
-      }
-      return a.completionTime - b.completionTime;
-    });
-
-    const batch = writeBatch(db);
-    leaderboard.forEach((entry, index) => {
-      const entryRef = doc(leaderboardRef, entry.userId);
-      batch.set(entryRef, {
-        ...entry,
-        rank: index + 1
-      });
-    });
-
-    await batch.commit();
+    const token = await refreshAdminToken();
+    await axios.post(
+      getApiEndpoint(`/mega-tests/${megaTestId}/leaderboard`),
+      { userId, score, completionTime },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return true;
   } catch (error) {
     console.error('Error adding/updating leaderboard entry (admin):', error);
@@ -924,20 +688,11 @@ export const adminAddOrUpdateLeaderboardEntry = async (
 
 export const getMegaTestParticipants = async (megaTestId: string): Promise<{ userId: string; username: string; email: string; registeredAt: any; ipAddress?: string, lastSeenIP?: string, deviceId?: string }[]> => {
   try {
-    const participantsRef = collection(db, 'mega-tests', megaTestId, 'participants');
-    const snapshot = await getDocs(participantsRef);
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        userId: data.userId,
-        username: data.username || '',
-        email: data.email || '',
-        registeredAt: data.registeredAt || null,
-        ipAddress: data.ipAddress || 'N/A',
-        lastSeenIP: data.lastSeenIP || 'N/A',
-        deviceId: data.deviceId || 'N/A'
-      };
+    const token = await refreshAdminToken();
+    const response = await axios.get(getApiEndpoint(`/mega-tests/${megaTestId}/participants`), {
+      headers: { Authorization: `Bearer ${token}` }
     });
+    return response.data as any[];
   } catch (error) {
     console.error('Error fetching participants:', error);
     return [];
