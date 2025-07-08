@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Search } from 'lucide-react';
-import { getQuizzesByCategory, getQuizCategories, getSubCategories } from '@/services/firebase/quiz';
+import { getQuizzesByCategory, getQuizCategories, getSubCategories } from '@/services/api/quiz';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 
