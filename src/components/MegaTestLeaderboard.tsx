@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Trophy, Medal, User, ArrowUpRight, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
-import { MegaTestLeaderboardEntry } from '../services/firebase/quiz';
+import { Trophy, Medal, User, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MegaTestLeaderboardEntry } from '../services/api/megaTest';
+import { getMegaTestLeaderboard } from '../services/api/megaTest';
 import { useQuery } from '@tanstack/react-query';
 import { getUserById } from '../services/firebase/auth';
 import { Button } from "@/components/ui/button";
@@ -26,30 +25,8 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
   const { data: leaderboardData, refetch } = useQuery({
     queryKey: ['leaderboard', megaTestId],
     queryFn: async () => {
-      const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
-      const q = query(leaderboardRef, orderBy('score', 'desc'));
-      const snapshot = await new Promise<MegaTestLeaderboardEntry[]>((resolve) => {
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-          const entries = querySnapshot.docs.map((doc) => ({
-            ...doc.data(),
-            id: doc.id,
-          })) as MegaTestLeaderboardEntry[];
+      const snapshot = await getMegaTestLeaderboard(megaTestId);
 
-          // Sort entries by score (descending) and then by completion time (ascending)
-          entries.sort((a, b) => {
-            if (a.score !== b.score) {
-              return b.score - a.score; // Higher score first
-            }
-            // If scores are equal, faster completion gets higher rank
-            return a.completionTime - b.completionTime;
-          });
-
-          resolve(entries);
-          unsubscribe();
-        });
-      });
-
-      // Fetch user details for each entry
       const entriesWithUserDetails = await Promise.all(
         snapshot.map(async (entry) => {
           const user = await getUserById(entry.userId);
@@ -63,19 +40,8 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
 
       return entriesWithUserDetails;
     },
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    refetchInterval: 5000, // Refetch every 5 seconds for polling
   });
-
-  useEffect(() => {
-    const leaderboardRef = collection(db, 'mega-tests', megaTestId, 'leaderboard');
-    const q = query(leaderboardRef, orderBy('score', 'desc'));
-
-    const unsubscribe = onSnapshot(q, () => {
-      refetch();
-    });
-
-    return () => unsubscribe();
-  }, [megaTestId, refetch]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
