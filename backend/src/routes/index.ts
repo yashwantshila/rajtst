@@ -4,6 +4,7 @@ import userRoutes from './userRoutes.js';
 import paymentRoutes from './paymentRoutes.js';
 import adminRoutes from './adminRoutes.js';
 import quizRoutes from './quizRoutes.js';
+import questionPaperRoutes from './questionPaperRoutes.js';
 
 const router = express.Router();
 
@@ -18,6 +19,9 @@ router.use('/payments', paymentRoutes);
 
 // Quiz routes
 router.use('/quiz', quizRoutes);
+
+// Question paper routes
+router.use('/question-papers', questionPaperRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);

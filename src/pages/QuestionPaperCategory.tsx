@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getQuestionPapersByCategory, getQuestionPaperCategories } from '../services/firebase/questionPapers';
-import type { QuestionPaper, QuestionPaperCategory } from '../services/firebase/questionPapers';
+import { getQuestionPapersByCategory, getQuestionPaperCategories } from '../services/api/questionPapers';
+import type { QuestionPaper, QuestionPaperCategory } from '../services/api/questionPapers';
 import { ArrowLeft, Download, Calendar, FileText, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
