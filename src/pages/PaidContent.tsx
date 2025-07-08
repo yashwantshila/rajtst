@@ -5,7 +5,7 @@ import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { toast } from 'sonner';
-import { getUserBalance, updateUserBalance, UserBalance } from '../services/firebase/balance';
+import { getUserBalance, updateUserBalance, UserBalance } from '../services/api/balance';
 import { DollarSign, FileText, Loader2, BookOpen, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { getAuthToken } from './api/auth';
-import { updateUserBalance } from './firebase/balance';
+import { updateUserBalance } from './api/balance';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 

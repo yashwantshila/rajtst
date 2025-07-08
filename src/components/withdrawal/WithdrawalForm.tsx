@@ -17,7 +17,7 @@ import {
   createWithdrawalRequest,
   MINIMUM_WITHDRAWAL_AMOUNT 
 } from '../../services/firebase/withdrawal';
-import { updateUserBalance } from '../../services/firebase/balance';
+import { updateUserBalance } from '../../services/api/balance';
 
 interface WithdrawalFormProps {
   userId: string;

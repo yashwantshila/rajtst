@@ -41,24 +41,22 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { 
-  QuizCategory, 
+  QuizCategory,
   Quiz, // This type now has questions?: QuizQuestion[]
   QuizQuestion,
   SubCategory,
-  getQuizCategories, 
-  createQuizCategory, 
-  updateQuizCategory, 
+  createQuizCategory,
+  updateQuizCategory,
   deleteQuizCategory,
-  getSubCategories,
   createSubCategory,
   updateSubCategory,
   deleteSubCategory,
-  getQuizzesByCategory,
   createQuiz,
   updateQuiz,
   deleteQuiz,
   getQuizQuestions // Added import
 } from '@/services/firebase/quiz';
+import { getQuizCategories, getSubCategories, getQuizzesByCategory } from '@/services/api/quiz';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
