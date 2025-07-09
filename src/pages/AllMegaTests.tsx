@@ -3,13 +3,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, ListChecks, CreditCard, Trophy, Loader2 } from 'lucide-react';
-import { getMegaTests, isUserRegistered, hasUserSubmittedMegaTest } from '@/services/firebase/quiz';
+import { getMegaTests, isUserRegistered, hasUserSubmittedMegaTest, registerForMegaTest } from '@/services/api/megaTest';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
 import MegaTestLeaderboard from '../components/MegaTestLeaderboard';
 import MegaTestPrizes from '../components/MegaTestPrizes';
-import { registerForMegaTest } from '@/services/firebase/quiz';
 import { useState } from 'react';
 import RegistrationCountdown from '../components/RegistrationCountdown';
 
