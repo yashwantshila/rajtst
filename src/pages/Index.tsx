@@ -2,7 +2,7 @@ import { useEffect, useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getQuizCategories } from '../services/api/quiz';
-import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/firebase/quiz';
+import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/api/megaTest';
 import { AuthContext } from '../App';
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
@@ -26,10 +26,8 @@ import {
 } from "../components/ui/dropdown-menu";
 import { SessionTimer } from '../components/SessionTimer';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
-import { collection, getDocs, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
+import { getPaidContents, purchaseContent } from '../services/api/paidContent';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { getUserBalance, updateUserBalance } from '../services/api/balance';
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { captureUserIP } from '../services/api/user';
 import { getDeviceId } from '../utils/deviceId';
@@ -103,14 +101,7 @@ const Home = () => {
 
   const { data: paidContents, isLoading: isLoadingPaidContents } = useQuery<PaidContent[]>({
     queryKey: ['paid-contents'],
-    queryFn: async () => {
-      const contentsRef = collection(db, 'paidContents');
-      const snapshot = await getDocs(contentsRef);
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as PaidContent[];
-    }
+    queryFn: getPaidContents
   });
 
   const registerMutation = useMutation({
@@ -214,44 +205,8 @@ const Home = () => {
 
     try {
       setIsPurchasing(true);
-      // Check if user has already purchased
-      const userPurchasesRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userPurchasesRef);
-      const userData = userDoc.data();
-      
-      if (userData?.purchases?.includes(content.id)) {
-        // If already purchased, redirect to PDF
-        window.open(content.pdfUrl, '_blank');
-        return;
-      }
-
-      // Check user's balance
-      const balance = await getUserBalance(user.uid);
-      if (balance.amount < content.price) {
-        toast.error(`Insufficient balance. You need ₹${content.price}. Current balance: ₹${balance.amount}`);
-        navigate('/profile'); // Redirect to profile page to add money
-        return;
-      }
-
-      // Deduct the price from user's balance
-      try {
-        await updateUserBalance(user.uid, -content.price);
-      } catch (error: any) {
-        if (error.name === 'InsufficientBalanceError') {
-          toast.error('Insufficient balance to complete the purchase');
-          return;
-        }
-        throw error;
-      }
-
-      // Update user's purchases
-      await updateDoc(userPurchasesRef, {
-        purchases: arrayUnion(content.id)
-      });
-      
+      await purchaseContent(user.uid, content.id);
       toast.success('Purchase successful!');
-      
-      // Open the PDF after successful purchase
       window.open(content.pdfUrl, '_blank');
       
     } catch (error) {

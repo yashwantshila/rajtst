@@ -120,3 +120,99 @@ export const getMegaTestLeaderboard = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
   }
 };
+
+export const getMegaTests = async (_req: Request, res: Response) => {
+  try {
+    const snap = await db.collection('mega-tests').get();
+    const tests = snap.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .sort((a, b) => {
+        const aTime = (a as any).createdAt?.toMillis?.() ?? 0;
+        const bTime = (b as any).createdAt?.toMillis?.() ?? 0;
+        return bTime - aTime;
+      });
+    res.json(tests);
+  } catch (error) {
+    console.error('Error fetching mega tests:', error);
+    res.status(500).json({ error: 'Failed to fetch mega tests' });
+  }
+};
+
+export const registerForMegaTest = async (req: Request, res: Response) => {
+  try {
+    const { megaTestId } = req.params;
+    const { userId, username, email } = req.body;
+    const megaTestRef = db.collection('mega-tests').doc(megaTestId);
+    const megaTestDoc = await megaTestRef.get();
+    if (!megaTestDoc.exists) {
+      return res.status(404).json({ error: 'Mega test not found' });
+    }
+    const megaTest = megaTestDoc.data() as any;
+    const entryFee = megaTest.entryFee || 0;
+
+    const balanceRef = db.collection('balance').doc(userId);
+    const balanceDoc = await balanceRef.get();
+    if (!balanceDoc.exists) {
+      return res.status(400).json({ error: 'User balance not found' });
+    }
+    const currentBalance = balanceDoc.data()?.amount || 0;
+    if (currentBalance < entryFee) {
+      return res.status(400).json({ error: 'Insufficient balance' });
+    }
+
+    const batch = db.batch();
+    if (entryFee > 0) {
+      batch.update(balanceRef, {
+        amount: currentBalance - entryFee,
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+
+    const participantRef = megaTestRef.collection('participants').doc(userId);
+    batch.set(participantRef, {
+      userId,
+      username,
+      email,
+      registeredAt: new Date().toISOString(),
+      entryFeePaid: entryFee,
+    });
+
+    await batch.commit();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error registering for mega test:', error);
+    res.status(500).json({ error: 'Failed to register' });
+  }
+};
+
+export const isUserRegistered = async (req: Request, res: Response) => {
+  try {
+    const { megaTestId, userId } = req.params;
+    const docSnap = await db
+      .collection('mega-tests')
+      .doc(megaTestId)
+      .collection('participants')
+      .doc(userId)
+      .get();
+    res.json({ registered: docSnap.exists });
+  } catch (error) {
+    console.error('Error checking registration:', error);
+    res.status(500).json({ error: 'Failed to check registration' });
+  }
+};
+
+export const hasUserSubmittedMegaTest = async (req: Request, res: Response) => {
+  try {
+    const { megaTestId, userId } = req.params;
+    const docSnap = await db
+      .collection('mega-tests')
+      .doc(megaTestId)
+      .collection('leaderboard')
+      .doc(userId)
+      .get();
+    res.json({ submitted: docSnap.exists });
+  } catch (error) {
+    console.error('Error checking submission:', error);
+    res.status(500).json({ error: 'Failed to check submission' });
+  }
+};
