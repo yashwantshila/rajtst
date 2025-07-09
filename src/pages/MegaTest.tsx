@@ -4,7 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, ChevronRight, ChevronLeft, Clock, CreditCard, Trophy } from 'lucide-react';
-import { getMegaTestById, submitMegaTestResult, MegaTestQuestion, hasUserSubmittedMegaTest } from '@/services/firebase/quiz';
+import {
+  getMegaTestById,
+  submitMegaTestResult,
+  MegaTestQuestion,
+  hasUserSubmittedMegaTest
+} from '@/services/api/megaTest';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';

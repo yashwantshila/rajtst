@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
+import { getContent } from '../services/api/content';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -12,14 +11,7 @@ const Guide = () => {
   
   const { data: guideData, isLoading, error } = useQuery({
     queryKey: ['guide'],
-    queryFn: async () => {
-      const docRef = doc(db, 'content', 'guide');
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        return docSnap.data();
-      }
-      return { content: '' };
-    }
+    queryFn: () => getContent('guide')
   });
 
   if (isLoading) {

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Trophy } from 'lucide-react';
-import { getMegaTestById, getMegaTestPrizes } from '@/services/firebase/quiz';
+import { getMegaTestById, getMegaTestPrizes } from '@/services/api/megaTest';
 
 const MegaTestPrizesPage = () => {
   const { megaTestId } = useParams();
