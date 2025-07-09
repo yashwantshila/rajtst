@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
+import { getPurchasedContents } from '../services/api/paidContent';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -36,36 +35,8 @@ export default function PurchasedContentPage() { // Renamed component
     setLoading(true);
 
     try {
-      const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-      const userData = userDocSnap.data();
-      const purchasedIds = userData?.purchases || [];
-
-      if (purchasedIds.length === 0) {
-        setContents([]);
-        setLoading(false);
-        return;
-      }
-
-      const contentsRef = collection(db, 'paidContents');
-      const snapshot = await getDocs(contentsRef);
-      
-      const purchasedContentsData = snapshot.docs
-        .map(docSnapshot => ({
-          id: docSnapshot.id,
-          ...docSnapshot.data()
-        }))
-        .filter(content => purchasedIds.includes(content.id)) as PurchasedContent[];
-      
-      // TODO: Enrich with purchase date if stored. For now, it's optional.
-      // Example: if you store purchase dates in user document:
-      // const purchasedItemsWithDate = purchasedContentsData.map(item => {
-      //   const purchaseRecord = userData?.purchaseHistory?.find(p => p.contentId === item.id);
-      //   return { ...item, purchaseDate: purchaseRecord?.date.toDate().toISOString() };
-      // });
-      // setContents(purchasedItemsWithDate);
-
-      setContents(purchasedContentsData);
+      const data = await getPurchasedContents(user.uid);
+      setContents(data);
     } catch (error) {
       console.error('Error fetching purchased contents:', error);
       toast.error('Failed to load purchased contents');
