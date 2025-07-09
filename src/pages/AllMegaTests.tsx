@@ -22,7 +22,6 @@ const AllMegaTests = () => {
   const { data: megaTests, isLoading } = useQuery({
     queryKey: ['mega-tests'],
     queryFn: getMegaTests,
-    enabled: !!user,
   });
 
   const { data: registrationStatus } = useQuery({

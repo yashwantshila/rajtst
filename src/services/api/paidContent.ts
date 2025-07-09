@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from './auth';
+import { getAuthToken, getOptionalAuthToken } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -13,9 +13,9 @@ export interface PaidContent {
 }
 
 export const getPaidContents = async (): Promise<PaidContent[]> => {
-  const token = await getAuthToken();
+  const token = await getOptionalAuthToken();
   const res = await axios.get(`${API_URL}/api/paid-contents`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return res.data;
 };

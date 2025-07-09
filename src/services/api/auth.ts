@@ -196,5 +196,16 @@ export const getAuthToken = async (): Promise<string> => {
   } catch (error) {
     console.error('Error getting auth token:', error);
     throw new Error('Failed to get authentication token');
+  }};
+
+export const getOptionalAuthToken = async (): Promise<string | null> => {
+  const auth = getAuth(app);
+  const user = auth.currentUser;
+  if (!user) return null;
+  try {
+    return await user.getIdToken();
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
   }
-}; 
+};
