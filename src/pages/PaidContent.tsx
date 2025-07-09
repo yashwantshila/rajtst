@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, getDocs, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from '../services/firebase/config';
+import { getPaidContents, purchaseContent } from '../services/api/paidContent';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -31,13 +30,8 @@ export default function PaidContentPage() { // Renamed component to avoid confli
 
   const fetchPaidContents = async () => {
     try {
-      const contentsRef = collection(db, 'paidContents');
-      const snapshot = await getDocs(contentsRef);
-      const contentsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as PaidContent[];
-      setContents(contentsList);
+      const list = await getPaidContents();
+      setContents(list);
     } catch (error) {
       console.error('Error fetching paid contents:', error);
       toast.error('Failed to load paid contents');
@@ -54,14 +48,6 @@ export default function PaidContentPage() { // Renamed component to avoid confli
     }
 
     try {
-      const userPurchasesRef = doc(db, 'users', user.uid);
-      const userDoc = await getDoc(userPurchasesRef);
-      const userData = userDoc.data();
-      
-      if (userData?.purchases?.includes(content.id)) {
-        window.open(content.pdfUrl, '_blank');
-        return;
-      }
 
       const balance = await getUserBalance(user.uid);
       if (balance.amount < content.price) {
@@ -71,37 +57,20 @@ export default function PaidContentPage() { // Renamed component to avoid confli
 
       try {
         await updateUserBalance(user.uid, -content.price);
+        await purchaseContent(user.uid, content.id);
       } catch (error: any) {
-        if (error.name === 'InsufficientBalanceError') {
-          toast.error('Insufficient balance to complete the purchase');
-          return;
-        }
-        throw error;
+        console.error('Error processing purchase:', error);
+        toast.error(error?.response?.data?.error || 'Failed to process purchase');
+        return;
       }
 
-      await updateUserPurchases(content.id);
-      
       toast.success('Purchase successful!');
-      
+
       window.open(content.pdfUrl, '_blank');
       
     } catch (error) {
       console.error('Error processing purchase:', error);
       toast.error('Failed to process purchase');
-    }
-  };
-
-  const updateUserPurchases = async (contentId: string) => {
-    if (!user) return;
-    
-    try {
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        purchases: arrayUnion(contentId)
-      });
-    } catch (error) {
-      console.error('Error updating user purchases:', error);
-      throw error;
     }
   };
 

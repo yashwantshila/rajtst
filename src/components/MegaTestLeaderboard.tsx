@@ -5,7 +5,7 @@ import { Trophy, Medal, User, Search, ChevronLeft, ChevronRight } from 'lucide-r
 import { MegaTestLeaderboardEntry } from '../services/api/megaTest';
 import { getMegaTestLeaderboard } from '../services/api/megaTest';
 import { useQuery } from '@tanstack/react-query';
-import { getUserById } from '../services/firebase/auth';
+import { getUserProfile } from '../services/api/user';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from '../App';
@@ -29,11 +29,10 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
 
       const entriesWithUserDetails = await Promise.all(
         snapshot.map(async (entry) => {
-          const user = await getUserById(entry.userId);
+          const user = await getUserProfile(entry.userId);
           return {
             ...entry,
-            userName: user?.username || user?.displayName || 'Anonymous User',
-            userPhotoURL: user?.photoURL,
+            userName: user?.username || 'Anonymous User',
           };
         })
       );
@@ -132,17 +131,9 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {entry.userPhotoURL ? (
-                    <img
-                      src={entry.userPhotoURL}
-                      alt={entry.userName}
-                      className="w-6 h-6 rounded-full"
-                    />
-                  ) : (
-                    <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
+                  <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                  </div>
                   <span className="font-medium">{entry.userName}</span>
                 </div>
               </div>

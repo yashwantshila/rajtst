@@ -216,3 +216,90 @@ export const hasUserSubmittedMegaTest = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to check submission' });
   }
 };
+
+export const getMegaTestById = async (req: Request, res: Response) => {
+  try {
+    const { megaTestId } = req.params;
+    const megaTestRef = db.collection('mega-tests').doc(megaTestId);
+    const [megaTestDoc, questionsSnap] = await Promise.all([
+      megaTestRef.get(),
+      megaTestRef.collection('questions').get(),
+    ]);
+
+    if (!megaTestDoc.exists) {
+      return res.status(404).json({ error: 'Mega test not found' });
+    }
+
+    const megaTest = { id: megaTestDoc.id, ...megaTestDoc.data() };
+    const questions = questionsSnap.docs.map(q => ({ id: q.id, ...q.data() }));
+
+    res.json({ megaTest, questions });
+  } catch (error) {
+    console.error('Error fetching mega test:', error);
+    res.status(500).json({ error: 'Failed to fetch mega test' });
+  }
+};
+
+export const getMegaTestPrizes = async (req: Request, res: Response) => {
+  try {
+    const { megaTestId } = req.params;
+    const snap = await db
+      .collection('mega-tests')
+      .doc(megaTestId)
+      .collection('prizes')
+      .get();
+    const prizes = snap.docs
+      .map(p => p.data())
+      .sort((a: any, b: any) => a.rank - b.rank);
+    res.json(prizes);
+  } catch (error) {
+    console.error('Error fetching prizes:', error);
+    res.status(500).json({ error: 'Failed to fetch prizes' });
+  }
+};
+
+export const submitMegaTestResult = async (req: Request, res: Response) => {
+  try {
+    const { megaTestId } = req.params;
+    const userId = req.user?.uid;
+    const { score, completionTime } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const leaderboardRef = db
+      .collection('mega-tests')
+      .doc(megaTestId)
+      .collection('leaderboard');
+
+    const leaderboardSnap = await leaderboardRef.get();
+    const leaderboard = leaderboardSnap.docs.map(doc => doc.data() as any);
+
+    const newEntry = {
+      userId,
+      score,
+      rank: 0,
+      submittedAt: new Date().toISOString(),
+      completionTime,
+    };
+
+    leaderboard.push(newEntry);
+    leaderboard.sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+      return a.completionTime - b.completionTime;
+    });
+
+    const batch = db.batch();
+    leaderboard.forEach((entry: any, index: number) => {
+      const ref = leaderboardRef.doc(entry.userId);
+      batch.set(ref, { ...entry, rank: index + 1 });
+    });
+
+    await batch.commit();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error submitting mega test result:', error);
+    res.status(500).json({ error: 'Failed to submit result' });
+  }
+};

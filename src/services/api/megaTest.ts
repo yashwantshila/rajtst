@@ -54,6 +54,18 @@ export interface MegaTest {
   timeLimit: number;
 }
 
+export interface MegaTestQuestion {
+  id: string;
+  text: string;
+  options: any[];
+  correctAnswer: string;
+}
+
+export interface MegaTestPrize {
+  rank: number;
+  prize: string;
+}
+
 export const getMegaTestLeaderboard = async (
   megaTestId: string
 ): Promise<MegaTestLeaderboardEntry[]> => {
@@ -109,4 +121,37 @@ export const hasUserSubmittedMegaTest = async (
     { headers: { Authorization: `Bearer ${token}` } }
   );
   return res.data.submitted;
+};
+
+export const getMegaTestById = async (
+  megaTestId: string
+): Promise<{ megaTest: MegaTest; questions: MegaTestQuestion[] }> => {
+  const token = await getOptionalAuthToken();
+  const res = await axios.get(`${API_URL}/api/mega-tests/${megaTestId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  return res.data;
+};
+
+export const getMegaTestPrizes = async (
+  megaTestId: string
+): Promise<MegaTestPrize[]> => {
+  const token = await getOptionalAuthToken();
+  const res = await axios.get(`${API_URL}/api/mega-tests/${megaTestId}/prizes`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  return res.data;
+};
+
+export const submitMegaTestResult = async (
+  megaTestId: string,
+  score: number,
+  completionTime: number
+): Promise<void> => {
+  const token = await getAuthToken();
+  await axios.post(
+    `${API_URL}/api/mega-tests/${megaTestId}/submit`,
+    { score, completionTime },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
 };
