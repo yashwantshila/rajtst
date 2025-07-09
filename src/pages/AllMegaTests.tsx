@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, ListChecks, CreditCard, Trophy, Loader2 } from 'lucide-react';
 import { getMegaTests, isUserRegistered, hasUserSubmittedMegaTest, registerForMegaTest } from '@/services/api/megaTest';
+import { parseTimestamp } from '@/utils/parseTimestamp';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useAuth } from '../App';
@@ -20,7 +21,8 @@ const AllMegaTests = () => {
 
   const { data: megaTests, isLoading } = useQuery({
     queryKey: ['mega-tests'],
-    queryFn: getMegaTests
+    queryFn: getMegaTests,
+    enabled: !!user,
   });
 
   const { data: registrationStatus } = useQuery({
@@ -61,11 +63,11 @@ const AllMegaTests = () => {
 
   const getMegaTestStatus = (megaTest: any) => {
     const now = new Date();
-    const registrationStart = megaTest.registrationStartTime.toDate();
-    const registrationEnd = megaTest.registrationEndTime.toDate();
-    const testStart = megaTest.testStartTime.toDate();
-    const testEnd = megaTest.testEndTime.toDate();
-    const resultTime = megaTest.resultTime.toDate();
+    const registrationStart = parseTimestamp(megaTest.registrationStartTime);
+    const registrationEnd = parseTimestamp(megaTest.registrationEndTime);
+    const testStart = parseTimestamp(megaTest.testStartTime);
+    const testEnd = parseTimestamp(megaTest.testEndTime);
+    const resultTime = parseTimestamp(megaTest.resultTime);
 
     if (now < registrationStart) return 'upcoming';
     if (now >= registrationStart && now <= registrationEnd) return 'registration';
@@ -156,19 +158,19 @@ const AllMegaTests = () => {
               <CardContent>
                 <div className="space-y-1">
                   <div className="flex flex-col gap-1 mb-2">
-                    <RegistrationCountdown 
-                      registrationStart={megaTest.registrationStartTime.toDate()} 
-                      registrationEnd={megaTest.registrationEndTime.toDate()} 
-                      className="mb-2" 
+                    <RegistrationCountdown
+                      registrationStart={parseTimestamp(megaTest.registrationStartTime)}
+                      registrationEnd={parseTimestamp(megaTest.registrationEndTime)}
+                      className="mb-2"
                     />
                     <div className="flex flex-wrap gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 mr-1 text-green-500" />
-                        <span>Test: {format(megaTest.testStartTime.toDate(), 'MMM d, yyyy h:mm')} - {format(megaTest.testEndTime.toDate(), 'h:mm a')}</span>
+                        <span>Test: {format(parseTimestamp(megaTest.testStartTime), 'MMM d, yyyy h:mm')} - {format(parseTimestamp(megaTest.testEndTime), 'h:mm a')}</span>
                       </div>
                       <div className="flex items-center">
                         <Clock className="h-4 w-4 mr-1 text-blue-500" />
-                        <span>Results: {format(megaTest.resultTime.toDate(), 'MMM d, yyyy h:mm a')}</span>
+                        <span>Results: {format(parseTimestamp(megaTest.resultTime), 'MMM d, yyyy h:mm a')}</span>
                       </div>
                       <div className="flex items-center">
                         <ListChecks className="h-4 w-4 mr-1 text-yellow-500" />
