@@ -202,23 +202,13 @@ const MegaTest = () => {
   const handleSubmit = async () => {
     if (!megaTest || !user) return;
 
-    let totalScore = 0;
-    const totalQuestions = questions.length;
-
-    questions.forEach(question => {
-      const selectedAnswer = selectedAnswers[question.id];
-      if (selectedAnswer === question.correctAnswer) {
-        totalScore++;
-      }
-    });
-
     const completionTime = Math.floor((Date.now() - startTime) / 1000); // Convert to seconds
 
-    setScore(totalScore);
     setIsSubmitted(true);
 
     try {
-      await submitMegaTestResult(megaTest.id, user.uid, totalScore, completionTime);
+      const res = await submitMegaTestResult(megaTest.id, selectedAnswers, completionTime);
+      setScore(res.score);
       toast.success('Quiz submitted successfully!');
     } catch (error) {
       toast.error('Failed to submit quiz. Please try again.');

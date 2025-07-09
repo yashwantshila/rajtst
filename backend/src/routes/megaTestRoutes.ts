@@ -16,7 +16,7 @@ const router = express.Router();
 
 router.get('/', getMegaTests);
 router.get('/:megaTestId/leaderboard', getMegaTestLeaderboard);
-router.get('/:megaTestId', getMegaTestById);
+router.get('/:megaTestId', authenticateUser, getMegaTestById);
 router.get('/:megaTestId/prizes', getMegaTestPrizes);
 
 router.use(authenticateUser);

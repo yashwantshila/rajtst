@@ -178,7 +178,7 @@ export const registerForMegaTest = async (req: Request, res: Response) => {
     });
 
     await batch.commit();
-    res.json({ success: true });
+    res.json({ success: true, score });
   } catch (error) {
     console.error('Error registering for mega test:', error);
     res.status(500).json({ error: 'Failed to register' });
@@ -231,7 +231,14 @@ export const getMegaTestById = async (req: Request, res: Response) => {
     }
 
     const megaTest = { id: megaTestDoc.id, ...megaTestDoc.data() };
-    const questions = questionsSnap.docs.map(q => ({ id: q.id, ...q.data() }));
+    const questions = questionsSnap.docs.map(q => {
+      const data = q.data() as any;
+      return {
+        id: q.id,
+        text: data.text,
+        options: data.options,
+      };
+    });
 
     res.json({ megaTest, questions });
   } catch (error) {
@@ -262,16 +269,28 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
   try {
     const { megaTestId } = req.params;
     const userId = req.user?.uid;
-    const { score, completionTime } = req.body;
+    const { answers, completionTime } = req.body as {
+      answers: Record<string, string>;
+      completionTime: number;
+    };
 
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const leaderboardRef = db
-      .collection('mega-tests')
-      .doc(megaTestId)
-      .collection('leaderboard');
+    const megaTestRef = db.collection('mega-tests').doc(megaTestId);
+    const leaderboardRef = megaTestRef.collection('leaderboard');
+
+    const questionsSnap = await megaTestRef.collection('questions').get();
+    const questions = questionsSnap.docs.map(q => q.data() as any);
+
+    let score = 0;
+    questions.forEach(q => {
+      const ans = answers?.[q.id];
+      if (ans && ans === q.correctAnswer) {
+        score++;
+      }
+    });
 
     const leaderboardSnap = await leaderboardRef.get();
     const leaderboard = leaderboardSnap.docs.map(doc => doc.data() as any);
