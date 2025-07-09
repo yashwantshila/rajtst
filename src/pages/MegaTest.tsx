@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from '../App';
 import MegaTestLeaderboard from '../components/MegaTestLeaderboard';
 import { format } from 'date-fns';
+import { parseTimestamp } from '@/utils/parseTimestamp';
 import MegaTestPrizes from '../components/MegaTestPrizes';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -238,7 +239,7 @@ const MegaTest = () => {
     if (!megaTest) return 0;
     
     const now = Date.now();
-    const endTime = megaTest.testEndTime.toDate().getTime();
+    const endTime = parseTimestamp(megaTest.testEndTime).getTime();
     const configuredTimeLimit = megaTest.timeLimit * 60 * 1000; // Convert minutes to milliseconds
     const timeUntilEnd = endTime - now;
     
@@ -546,7 +547,7 @@ const MegaTest = () => {
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">
-                  {format(megaTest.testStartTime.toDate(), 'PPP p')} - {format(megaTest.testEndTime.toDate(), 'PPP p')}
+                  {format(parseTimestamp(megaTest.testStartTime), 'PPP p')} - {format(parseTimestamp(megaTest.testEndTime), 'PPP p')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
