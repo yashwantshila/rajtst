@@ -1,5 +1,4 @@
 import express from 'express';
-import { authenticateUser } from '../middleware/auth.js';
 import {
   getQuizCategories,
   getSubCategories,
@@ -9,9 +8,9 @@ import {
 
 const router = express.Router();
 
-router.get('/categories', authenticateUser, getQuizCategories);
-router.get('/categories/:categoryId/sub-categories', authenticateUser, getSubCategories);
-router.get('/quizzes', authenticateUser, getQuizzesByCategory);
-router.get('/quizzes/:quizId', authenticateUser, getQuizById);
+router.get('/categories', getQuizCategories);
+router.get('/categories/:categoryId/sub-categories', getSubCategories);
+router.get('/quizzes', getQuizzesByCategory);
+router.get('/quizzes/:quizId', getQuizById);
 
 export default router;

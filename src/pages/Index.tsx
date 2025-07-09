@@ -57,13 +57,11 @@ const Home = () => {
   const { data: quizCategories, isLoading: isLoadingCategories, error: categoriesError } = useQuery({
     queryKey: ['quiz-categories'],
     queryFn: getQuizCategories,
-    enabled: isAuthenticated,
   });
 
   const { data: megaTests, isLoading: isLoadingMegaTests, error: megaTestsError } = useQuery({
     queryKey: ['mega-tests'],
     queryFn: getMegaTests,
-    enabled: isAuthenticated,
   });
 
   const { data: registrationStatus, isLoading: isLoadingRegistrations } = useQuery({
@@ -105,7 +103,6 @@ const Home = () => {
   const { data: paidContents, isLoading: isLoadingPaidContents } = useQuery<PaidContent[]>({
     queryKey: ['paid-contents'],
     queryFn: getPaidContents,
-    enabled: isAuthenticated,
   });
 
   const registerMutation = useMutation({

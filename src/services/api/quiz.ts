@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from './auth';
+import { getAuthToken, getOptionalAuthToken } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -32,18 +32,18 @@ export interface QuizQuestion {
 }
 
 export const getQuizCategories = async (): Promise<QuizCategory[]> => {
-  const token = await getAuthToken();
+  const token = await getOptionalAuthToken();
   const res = await axios.get(`${API_URL}/api/quiz/categories`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return res.data;
 };
 
 export const getSubCategories = async (categoryId: string): Promise<SubCategory[]> => {
-  const token = await getAuthToken();
+  const token = await getOptionalAuthToken();
   const res = await axios.get(
     `${API_URL}/api/quiz/categories/${categoryId}/sub-categories`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
   );
   return res.data;
 };
@@ -52,19 +52,19 @@ export const getQuizzesByCategory = async (
   categoryId: string,
   subcategoryId?: string
 ): Promise<Quiz[]> => {
-  const token = await getAuthToken();
+  const token = await getOptionalAuthToken();
   const params = new URLSearchParams({ categoryId });
   if (subcategoryId) params.append('subcategoryId', subcategoryId);
   const res = await axios.get(`${API_URL}/api/quiz/quizzes?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return res.data;
 };
 
 export const getQuizById = async (quizId: string): Promise<Quiz & { questions: QuizQuestion[] }> => {
-  const token = await getAuthToken();
+  const token = await getOptionalAuthToken();
   const res = await axios.get(`${API_URL}/api/quiz/quizzes/${quizId}`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return res.data;
 };

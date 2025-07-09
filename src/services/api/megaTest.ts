@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getAuthToken } from './auth';
+import { getAuthToken, getOptionalAuthToken } from './auth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -57,18 +57,18 @@ export interface MegaTest {
 export const getMegaTestLeaderboard = async (
   megaTestId: string
 ): Promise<MegaTestLeaderboardEntry[]> => {
-  const token = await getAuthToken();
+  const token = await getOptionalAuthToken();
   const res = await axios.get(
     `${API_URL}/api/mega-tests/${megaTestId}/leaderboard`,
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
   );
   return res.data;
 };
 
 export const getMegaTests = async (): Promise<MegaTest[]> => {
-  const token = await getAuthToken();
+  const token = await getOptionalAuthToken();
   const res = await axios.get(`${API_URL}/api/mega-tests`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return res.data;
 };

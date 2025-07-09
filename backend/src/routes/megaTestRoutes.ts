@@ -11,12 +11,13 @@ import {
 
 const router = express.Router();
 
-router.use(authenticateUser);
 router.get('/', getMegaTests);
+router.get('/:megaTestId/leaderboard', getMegaTestLeaderboard);
+
+router.use(authenticateUser);
 router.post('/:megaTestId/register', registerForMegaTest);
 router.get('/:megaTestId/registration-status/:userId', isUserRegistered);
 router.get('/:megaTestId/submission-status/:userId', hasUserSubmittedMegaTest);
 router.post('/:megaTestId/prize-claims', submitPrizeClaim);
-router.get('/:megaTestId/leaderboard', getMegaTestLeaderboard);
 
 export default router;
