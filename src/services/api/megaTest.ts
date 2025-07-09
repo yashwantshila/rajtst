@@ -58,7 +58,7 @@ export interface MegaTestQuestion {
   id: string;
   text: string;
   options: any[];
-  correctAnswer: string;
+  correctAnswer?: string;
 }
 
 export interface MegaTestPrize {
@@ -143,15 +143,25 @@ export const getMegaTestPrizes = async (
   return res.data;
 };
 
+export interface MegaTestAnswers {
+  [questionId: string]: string;
+}
+
+export interface SubmitMegaTestResultResponse {
+  success: boolean;
+  score: number;
+}
+
 export const submitMegaTestResult = async (
   megaTestId: string,
-  score: number,
+  answers: MegaTestAnswers,
   completionTime: number
-): Promise<void> => {
+): Promise<SubmitMegaTestResultResponse> => {
   const token = await getAuthToken();
-  await axios.post(
+  const res = await axios.post(
     `${API_URL}/api/mega-tests/${megaTestId}/submit`,
-    { score, completionTime },
+    { answers, completionTime },
     { headers: { Authorization: `Bearer ${token}` } }
   );
+  return res.data;
 };
