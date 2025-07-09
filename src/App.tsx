@@ -33,6 +33,7 @@ import { Button } from './components/ui/button';
 import { User as UserIcon, Book, LogOut } from 'lucide-react';
 import { api } from './api/config';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import QuizCategories from './pages/QuizCategories';
 import SubCategories from './pages/SubCategories';
 import AllMegaTests from './pages/AllMegaTests';
@@ -116,9 +117,9 @@ const AppContent: React.FC = () => {
         </ProtectedRoute>
       } />
       <Route path="/admin/mega-tests" element={
-        <ProtectedRoute>
+        <AdminRoute>
           <MegaTestManager />
-        </ProtectedRoute>
+        </AdminRoute>
       } />
       <Route path="/mega-test/:megaTestId" element={
         <ProtectedRoute>
