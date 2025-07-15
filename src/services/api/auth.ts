@@ -1,6 +1,7 @@
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile, onIdTokenChanged } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { app, db } from '../firebase/config';
+import { setCookie, getCookie, removeCookie } from '@/utils/cookies';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -63,8 +64,8 @@ export const loginUser = async (email: string, password: string): Promise<LoginR
     // Get fresh token
     const token = await user.getIdToken(true);
     
-    // Store user data in localStorage
-    localStorage.setItem('user', JSON.stringify({
+    // Store user data in cookie
+    setCookie('user', JSON.stringify({
       id: user.uid,
       email: user.email,
       username: user.displayName || '',
@@ -124,8 +125,8 @@ export const registerUser = async (email: string, password: string, username: st
       lastUpdated: new Date().toISOString(),
     });
     
-    // Store user data in localStorage
-    localStorage.setItem('user', JSON.stringify({
+    // Store user data in cookie
+    setCookie('user', JSON.stringify({
       id: user.uid,
       email: user.email,
       username: username,
@@ -166,7 +167,7 @@ export const logoutUser = async () => {
   try {
     const auth = getAuth(app);
     await signOut(auth);
-    localStorage.removeItem('user');
+    removeCookie('user');
     stopTokenRefresh();
   } catch (error) {
     console.error('Error logging out:', error);
@@ -175,7 +176,7 @@ export const logoutUser = async () => {
 };
 
 export const getCurrentUser = (): { id: string; email: string; username: string } | null => {
-  const userStr = localStorage.getItem('user');
+  const userStr = getCookie('user');
   if (!userStr) return null;
   return JSON.parse(userStr);
 };

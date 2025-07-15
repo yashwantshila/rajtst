@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getCookie, setCookie, removeCookie } from '@/utils/cookies';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,10 +39,10 @@ const MegaTest = () => {
   const [startTime, setStartTime] = useState<number>(0);
   const [showExitDialog, setShowExitDialog] = useState(false);
 
-  // Load saved quiz state from localStorage
+  // Load saved quiz state from cookies
   useEffect(() => {
     if (megaTestId && user) {
-      const savedState = localStorage.getItem(`megaTest_${megaTestId}_${user.uid}`);
+      const savedState = getCookie(`megaTest_${megaTestId}_${user.uid}`);
       if (savedState) {
         const { currentQuestionIndex: savedIndex, selectedAnswers: savedAnswers, skippedQuestions: savedSkipped, isStarted, startTime: savedStartTime } = JSON.parse(savedState);
         setCurrentQuestionIndex(savedIndex);
@@ -53,7 +54,7 @@ const MegaTest = () => {
     }
   }, [megaTestId, user]);
 
-  // Save quiz state to localStorage
+  // Save quiz state to cookies
   useEffect(() => {
     if (megaTestId && user && isQuizStarted) {
       const stateToSave = {
@@ -63,14 +64,14 @@ const MegaTest = () => {
         isStarted: isQuizStarted,
         startTime
       };
-      localStorage.setItem(`megaTest_${megaTestId}_${user.uid}`, JSON.stringify(stateToSave));
+      setCookie(`megaTest_${megaTestId}_${user.uid}`, JSON.stringify(stateToSave));
     }
   }, [megaTestId, user, currentQuestionIndex, selectedAnswers, skippedQuestions, isQuizStarted, startTime]);
 
   // Clear saved state when quiz is submitted
   useEffect(() => {
     if (isSubmitted && megaTestId && user) {
-      localStorage.removeItem(`megaTest_${megaTestId}_${user.uid}`);
+      removeCookie(`megaTest_${megaTestId}_${user.uid}`);
     }
   }, [isSubmitted, megaTestId, user]);
 

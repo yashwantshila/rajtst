@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Clock } from 'lucide-react';
 import { logoutUser } from '../services/firebase/auth';
 import { useNavigate } from 'react-router-dom';
+import { removeCookie } from '@/utils/cookies';
 
 const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
 
@@ -20,8 +21,8 @@ export const SessionTimer = ({ isAuthenticated, onReset, className, hideIcon = f
   const handleLogout = async () => {
     try {
       await logoutUser();
-      localStorage.removeItem('user');
-      localStorage.removeItem('adminAuth');
+      removeCookie('user');
+      removeCookie('adminAuth');
       navigate('/auth');
     } catch (error) {
       console.error('Error logging out:', error);
