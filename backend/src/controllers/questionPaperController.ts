@@ -12,6 +12,12 @@ export const getQuestionPaperCategories = async (_req: Request, res: Response) =
   }
 };
 
+interface Paper {
+  id: string;
+  createdAt?: { toMillis?: () => number };
+  [key: string]: any;
+}
+
 export const getQuestionPapersByCategory = async (req: Request, res: Response) => {
   try {
     const { categoryId } = req.params;
@@ -20,10 +26,10 @@ export const getQuestionPapersByCategory = async (req: Request, res: Response) =
       .where('categoryId', '==', categoryId)
       .get();
     const papers = snapshot.docs
-      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .map(doc => ({ id: doc.id, ...doc.data() } as Paper))
       .sort((a, b) => {
-        const aTime = (a.createdAt as any)?.toMillis?.() ?? 0;
-        const bTime = (b.createdAt as any)?.toMillis?.() ?? 0;
+        const aTime = (a.createdAt && typeof a.createdAt.toMillis === 'function') ? a.createdAt.toMillis() : 0;
+        const bTime = (b.createdAt && typeof b.createdAt.toMillis === 'function') ? b.createdAt.toMillis() : 0;
         return bTime - aTime;
       });
     res.json(papers);
