@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { db } from '../config/firebase.js';
+import { db, storage } from '../config/firebase.js';
 
 export const getPaidContents = async (_req: Request, res: Response) => {
   try {
@@ -71,5 +71,79 @@ export const purchaseContent = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error processing purchase:', error);
     res.status(500).json({ error: error.message || 'Failed to process purchase' });
+  }
+};
+
+// Helper to extract the storage path from a Firebase Storage download URL
+// Example url:
+// https://firebasestorage.googleapis.com/v0/b/<bucket>/o/path%2Fto%2Ffile.pdf?alt=media&token=xyz
+// This returns "path/to/file.pdf" which can be used with storage.bucket().file()
+const extractFilePath = (url: string): string | null => {
+  try {
+    const { pathname } = new URL(url);
+    const idx = pathname.indexOf('/o/');
+    if (idx === -1) return null;
+    return decodeURIComponent(pathname.slice(idx + 3));
+  } catch {
+    return null;
+  }
+};
+
+export const downloadPaidContent = async (req: Request, res: Response) => {
+  try {
+    const { contentId } = req.params;
+    const docSnap = await db.collection('paidContents').doc(contentId).get();
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: 'Content not found' });
+    }
+    const data = docSnap.data() as any;
+    const filePath = extractFilePath(data.pdfUrl);
+    if (!filePath) {
+      return res.status(500).json({ error: 'Invalid file path' });
+    }
+
+    const file = storage.bucket().file(filePath);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.name.split('/').pop()}"`);
+    file.createReadStream()
+      .on('error', err => {
+        console.error('Error streaming file:', err);
+        res.status(500).end();
+      })
+      .pipe(res);
+  } catch (error) {
+    console.error('Error downloading paid content:', error);
+    res.status(500).json({ error: 'Failed to download content' });
+  }
+};
+
+export const downloadSampleContent = async (req: Request, res: Response) => {
+  try {
+    const { contentId } = req.params;
+    const docSnap = await db.collection('paidContents').doc(contentId).get();
+    if (!docSnap.exists) {
+      return res.status(404).json({ error: 'Content not found' });
+    }
+    const data = docSnap.data() as any;
+    if (!data.samplePdfUrl) {
+      return res.status(404).json({ error: 'Sample not available' });
+    }
+    const filePath = extractFilePath(data.samplePdfUrl);
+    if (!filePath) {
+      return res.status(500).json({ error: 'Invalid file path' });
+    }
+
+    const file = storage.bucket().file(filePath);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.name.split('/').pop()}"`);
+    file.createReadStream()
+      .on('error', err => {
+        console.error('Error streaming file:', err);
+        res.status(500).end();
+      })
+      .pipe(res);
+  } catch (error) {
+    console.error('Error downloading sample pdf:', error);
+    res.status(500).json({ error: 'Failed to download sample' });
   }
 };

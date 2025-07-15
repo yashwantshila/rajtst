@@ -1,6 +1,7 @@
 import { initializeApp, cert, getApps, ServiceAccount } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -51,8 +52,9 @@ const initializeFirebaseAdmin = () => {
   
   return {
     db: getFirestore(),
-    auth: getAuth()
+    auth: getAuth(),
+    storage: getStorage()
   };
 };
 
-export const { db, auth } = initializeFirebaseAdmin(); 
+export const { db, auth, storage } = initializeFirebaseAdmin();
