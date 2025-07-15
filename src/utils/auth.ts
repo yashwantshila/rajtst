@@ -1,4 +1,5 @@
 import { api } from '../api/config';
+import { removeCookie } from '@/utils/cookies';
 
 export const login = async (credentials: { email: string; password: string }) => {
   try {
@@ -13,8 +14,7 @@ export const logout = async () => {
   try {
     await api.post('/api/auth/logout');
     // Clear any client-side storage
-    localStorage.clear();
-    sessionStorage.clear();
+    removeCookie('user');
     // Redirect to login page
     window.location.href = '/login';
   } catch (error) {

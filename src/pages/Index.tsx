@@ -18,6 +18,7 @@ import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User,
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import MegaTestLeaderboard from "../components/MegaTestLeaderboard";
+import { getCookie } from '@/utils/cookies';
 import MegaTestPrizes from "../components/MegaTestPrizes";
 import { 
   DropdownMenu, 
@@ -155,7 +156,7 @@ const Home = () => {
   
   useEffect(() => {
     try {
-      const adminAuth = localStorage.getItem('adminAuth');
+      const adminAuth = getCookie('adminAuth');
       if (adminAuth) {
         const parsedAuth = JSON.parse(adminAuth);
         if (parsedAuth && parsedAuth.isAdmin) {

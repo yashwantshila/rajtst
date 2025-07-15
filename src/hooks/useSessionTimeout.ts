@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { logoutUser } from '../services/firebase/auth';
+import { removeCookie } from '@/utils/cookies';
 
 const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
 
@@ -12,8 +13,8 @@ export const useSessionTimeout = (isAuthenticated: boolean) => {
   const handleLogout = async () => {
     try {
       await logoutUser();
-      localStorage.removeItem('user');
-      localStorage.removeItem('adminAuth');
+      removeCookie('user');
+      removeCookie('adminAuth');
       toast.info('Your session has expired. Please log in again.');
       navigate('/auth');
     } catch (error) {
