@@ -28,7 +28,11 @@ import {
 } from "../components/ui/dropdown-menu";
 import { SessionTimer } from '../components/SessionTimer';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
-import { getPaidContents, purchaseContent } from '../services/api/paidContent';
+import {
+  getPaidContents,
+  purchaseContent,
+  downloadPaidContent,
+} from '../services/api/paidContent';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { captureUserIP } from '../services/api/user';
@@ -209,7 +213,9 @@ const Home = () => {
       setIsPurchasing(true);
       await purchaseContent(user.uid, content.id);
       toast.success('Purchase successful!');
-      window.open(content.pdfUrl, '_blank');
+      const blob = await downloadPaidContent(content.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
       
     } catch (error) {
       console.error('Error processing purchase:', error);

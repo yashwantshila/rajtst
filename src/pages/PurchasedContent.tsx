@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPurchasedContents } from '../services/api/paidContent';
+import { getPurchasedContents, downloadPaidContent } from '../services/api/paidContent';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -45,8 +45,14 @@ export default function PurchasedContentPage() { // Renamed component
     }
   };
 
-  const handleViewContent = (pdfUrl: string) => {
-    window.open(pdfUrl, '_blank');
+  const handleViewContent = async (contentId: string) => {
+    try {
+      const blob = await downloadPaidContent(contentId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Failed to open content', err);
+    }
   };
 
   if (loading) {
@@ -137,7 +143,7 @@ export default function PurchasedContentPage() { // Renamed component
                 </CardContent>
                 <CardFooter>
                   <Button
-                    onClick={() => handleViewContent(content.pdfUrl)}
+                    onClick={() => handleViewContent(content.id)}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300 group-hover:scale-[1.02]"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" /> {/* Added mr-2 for spacing */}
