@@ -39,6 +39,7 @@ export const getQuestionPapersByCategory = async (req: Request, res: Response) =
   }
 };
 
+
 // Helper to extract a file path from Firebase Storage URLs.
 // Converts a signed download URL into the original path inside the bucket.
 const extractFilePath = (url: string): string | null => {
@@ -50,6 +51,10 @@ const extractFilePath = (url: string): string | null => {
   } catch {
     return null;
   }
+  
+const extractFilePath = (url: string): string | null => {
+  const match = decodeURIComponent(url).match(/\/o\/(.+)\?/);
+  return match ? match[1] : null;
 };
 
 export const downloadQuestionPaper = async (req: Request, res: Response) => {

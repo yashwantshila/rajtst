@@ -74,6 +74,7 @@ export const purchaseContent = async (req: Request, res: Response) => {
   }
 };
 
+
 // Helper to extract the storage path from a Firebase Storage download URL
 // Example url:
 // https://firebasestorage.googleapis.com/v0/b/<bucket>/o/path%2Fto%2Ffile.pdf?alt=media&token=xyz
@@ -87,6 +88,11 @@ const extractFilePath = (url: string): string | null => {
   } catch {
     return null;
   }
+
+const extractFilePath = (url: string): string | null => {
+  const match = decodeURIComponent(url).match(/\/o\/(.+)\?/);
+  return match ? match[1] : null;
+
 };
 
 export const downloadPaidContent = async (req: Request, res: Response) => {
