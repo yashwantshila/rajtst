@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
+import { getStorage } from 'firebase-admin/storage';
 
 export const getPaidContents = async (_req: Request, res: Response) => {
   try {
@@ -71,5 +72,44 @@ export const purchaseContent = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error processing purchase:', error);
     res.status(500).json({ error: error.message || 'Failed to process purchase' });
+  }
+};
+
+export const downloadPaidContent = async (req: Request, res: Response) => {
+  try {
+    const { contentId } = req.params;
+
+    // Fetch content info from Firestore
+    const doc = await db.collection('paidContents').doc(contentId).get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Content not found' });
+    }
+
+    const data = doc.data() as { pdfUrl: string };
+    const pdfUrl = data.pdfUrl;
+
+    // Extract file path from the download URL
+    const match = pdfUrl.match(/\/o\/(.+)\?alt=media/);
+    const filePath = match ? decodeURIComponent(match[1]) : null;
+
+    if (!filePath) {
+      return res.status(400).json({ error: 'Invalid file path' });
+    }
+
+    const bucketName = `${process.env.FIREBASE_PROJECT_ID}.appspot.com`;
+    const bucket = getStorage().bucket(bucketName);
+    const file = bucket.file(filePath);
+
+    // Create a read stream and pipe to response
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${file.name.split('/').pop()}"`);
+
+    file.createReadStream().on('error', err => {
+      console.error('Error streaming file:', err);
+      res.status(500).end();
+    }).pipe(res);
+  } catch (error) {
+    console.error('Error downloading content:', error);
+    res.status(500).json({ error: 'Failed to download content' });
   }
 };
