@@ -56,7 +56,6 @@ export default function PaidContentPage() { // Renamed component to avoid confli
       }
 
       try {
-        await updateUserBalance(user.uid, -content.price);
         await purchaseContent(user.uid, content.id);
       } catch (error: any) {
         console.error('Error processing purchase:', error);
