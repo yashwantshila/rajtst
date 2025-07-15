@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPaidContents, purchaseContent } from '../services/api/paidContent';
+import { getPaidContents, purchaseContent, downloadContent } from '../services/api/paidContent';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -66,7 +66,18 @@ export default function PaidContentPage() { // Renamed component to avoid confli
 
       toast.success('Purchase successful!');
 
-      window.open(content.pdfUrl, '_blank');
+      try {
+        const blob = await downloadContent(content.id);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${content.title}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Failed to download file:', err);
+        toast.error('Unable to download file');
+      }
       
     } catch (error) {
       console.error('Error processing purchase:', error);

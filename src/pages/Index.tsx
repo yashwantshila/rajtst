@@ -28,7 +28,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { SessionTimer } from '../components/SessionTimer';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
-import { getPaidContents, purchaseContent } from '../services/api/paidContent';
+import { getPaidContents, purchaseContent, downloadContent } from '../services/api/paidContent';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { captureUserIP } from '../services/api/user';
@@ -209,7 +209,19 @@ const Home = () => {
       setIsPurchasing(true);
       await purchaseContent(user.uid, content.id);
       toast.success('Purchase successful!');
-      window.open(content.pdfUrl, '_blank');
+
+      try {
+        const blob = await downloadContent(content.id);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${content.title}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Failed to download file:', err);
+        toast.error('Unable to download file');
+      }
       
     } catch (error) {
       console.error('Error processing purchase:', error);

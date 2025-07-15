@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPurchasedContents } from '../services/api/paidContent';
+import { getPurchasedContents, downloadContent } from '../services/api/paidContent';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -45,8 +45,19 @@ export default function PurchasedContentPage() { // Renamed component
     }
   };
 
-  const handleViewContent = (pdfUrl: string) => {
-    window.open(pdfUrl, '_blank');
+  const handleViewContent = async (id: string, title: string) => {
+    try {
+      const blob = await downloadContent(id);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${title}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download content:', error);
+      toast.error('Failed to download file');
+    }
   };
 
   if (loading) {
@@ -137,7 +148,7 @@ export default function PurchasedContentPage() { // Renamed component
                 </CardContent>
                 <CardFooter>
                   <Button
-                    onClick={() => handleViewContent(content.pdfUrl)}
+                    onClick={() => handleViewContent(content.id, content.title)}
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300 group-hover:scale-[1.02]"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" /> {/* Added mr-2 for spacing */}
