@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from './services/firebase/config';
@@ -6,36 +6,36 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 import { initializeGTM } from './services/gtm';
-import Auth from './pages/Auth';
-import Home from './pages/Index';
-import Profile from './pages/Profile';
-import Admin from './pages/Admin';
-import AdminAuth from './pages/AdminAuth';
-import CategoryQuizzes from './pages/CategoryQuizzes';
-import Quiz from './pages/Quiz';
-import MegaTestManager from './pages/admin/MegaTestManager';
-import MegaTest from './pages/MegaTest';
-import LeaderboardPage from './pages/LeaderboardPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsAndConditions from './pages/TermsAndConditions';
-import AboutUs from './pages/AboutUs';
-import Guide from './pages/Guide';
-import MegaTestPrizesPage from './pages/MegaTestPrizes';
-import QuestionPapers from './pages/QuestionPapers';
-import QuestionPaperCategory from './pages/QuestionPaperCategory';
-import AdminQuestionPaperCategories from './pages/admin/QuestionPaperCategories';
-import AdminQuestionPapers from './pages/admin/QuestionPapers';
-import PaidContent from './pages/PaidContent';
-import PaidContentManager from './pages/admin/PaidContentManager';
-import PurchasedContent from './pages/PurchasedContent';
+const Auth = React.lazy(() => import('./pages/Auth'));
+const Home = React.lazy(() => import('./pages/Index'));
+const Profile = React.lazy(() => import('./pages/Profile'));
+const Admin = React.lazy(() => import('./pages/Admin'));
+const AdminAuth = React.lazy(() => import('./pages/AdminAuth'));
+const CategoryQuizzes = React.lazy(() => import('./pages/CategoryQuizzes'));
+const Quiz = React.lazy(() => import('./pages/Quiz'));
+const MegaTestManager = React.lazy(() => import('./pages/admin/MegaTestManager'));
+const MegaTest = React.lazy(() => import('./pages/MegaTest'));
+const LeaderboardPage = React.lazy(() => import('./pages/LeaderboardPage'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const TermsAndConditions = React.lazy(() => import('./pages/TermsAndConditions'));
+const AboutUs = React.lazy(() => import('./pages/AboutUs'));
+const Guide = React.lazy(() => import('./pages/Guide'));
+const MegaTestPrizesPage = React.lazy(() => import('./pages/MegaTestPrizes'));
+const QuestionPapers = React.lazy(() => import('./pages/QuestionPapers'));
+const QuestionPaperCategory = React.lazy(() => import('./pages/QuestionPaperCategory'));
+const AdminQuestionPaperCategories = React.lazy(() => import('./pages/admin/QuestionPaperCategories'));
+const AdminQuestionPapers = React.lazy(() => import('./pages/admin/QuestionPapers'));
+const PaidContent = React.lazy(() => import('./pages/PaidContent'));
+const PaidContentManager = React.lazy(() => import('./pages/admin/PaidContentManager'));
+const PurchasedContent = React.lazy(() => import('./pages/PurchasedContent'));
 import { SessionTimer } from './components/SessionTimer';
 import { Button } from './components/ui/button';
 import { User as UserIcon, Book, LogOut } from 'lucide-react';
 import { api } from './api/config';
 import ProtectedRoute from './components/ProtectedRoute';
-import QuizCategories from './pages/QuizCategories';
-import SubCategories from './pages/SubCategories';
-import AllMegaTests from './pages/AllMegaTests';
+const QuizCategories = React.lazy(() => import('./pages/QuizCategories'));
+const SubCategories = React.lazy(() => import('./pages/SubCategories'));
+const AllMegaTests = React.lazy(() => import('./pages/AllMegaTests'));
 
 interface AuthContextProps {
   user: User | null;
@@ -79,6 +79,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
+    <Suspense fallback={<div>Loading...</div>}>
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Home />} />
@@ -161,6 +162,7 @@ const AppContent: React.FC = () => {
         </ProtectedRoute>
       } />
     </Routes>
+    </Suspense>
   );
 };
 

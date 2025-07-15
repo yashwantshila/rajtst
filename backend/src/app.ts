@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import compression from 'compression';
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -20,6 +21,9 @@ dotenv.config();
 
 const app = express();
 const port = parseInt(process.env.PORT || '8080', 10);
+
+// Enable gzip compression for better performance
+app.use(compression());
 
 // --- Trust the proxy to get the real client IP address ---
 // This is crucial for environments like Google Cloud Run.
