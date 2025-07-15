@@ -4,11 +4,17 @@ import { db } from '../config/firebase.js';
 export const submitPrizeClaim = async (req: Request, res: Response) => {
   try {
     const { megaTestId } = req.params;
-    const { name, mobile, address, prize, rank, ipAddress, deviceId } = req.body;
+    const { name, mobile, address, prize, rank, deviceId } = req.body;
     const userId = req.user?.uid;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    const forwardedForHeader = req.headers['x-forwarded-for'];
+    const detectedIp =
+      typeof forwardedForHeader === 'string'
+        ? forwardedForHeader.split(',')[0].trim()
+        : req.ip;
 
     const claimRef = db
       .collection('mega-tests')
@@ -25,7 +31,7 @@ export const submitPrizeClaim = async (req: Request, res: Response) => {
       userId,
       status: 'pending',
       createdAt: new Date().toISOString(),
-      ipAddress: ipAddress || req.ip,
+      ipAddress: detectedIp,
       deviceId: deviceId || null,
     });
 
@@ -141,7 +147,17 @@ export const getMegaTests = async (_req: Request, res: Response) => {
 export const registerForMegaTest = async (req: Request, res: Response) => {
   try {
     const { megaTestId } = req.params;
-    const { userId, username, email } = req.body;
+    const { userId: bodyUserId, username, email } = req.body;
+    const userId = req.user?.uid;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (bodyUserId && bodyUserId !== userId) {
+      return res.status(403).json({ error: 'User ID mismatch' });
+    }
+
     const megaTestRef = db.collection('mega-tests').doc(megaTestId);
     const megaTestDoc = await megaTestRef.get();
     if (!megaTestDoc.exists) {
@@ -169,6 +185,11 @@ export const registerForMegaTest = async (req: Request, res: Response) => {
     }
 
     const participantRef = megaTestRef.collection('participants').doc(userId);
+    const existingParticipant = await participantRef.get();
+    if (existingParticipant.exists) {
+      return res.status(400).json({ error: 'Already registered' });
+    }
+
     batch.set(participantRef, {
       userId,
       username,
@@ -178,7 +199,7 @@ export const registerForMegaTest = async (req: Request, res: Response) => {
     });
 
     await batch.commit();
-    res.json({ success: true, score });
+    res.json({ success: true });
   } catch (error) {
     console.error('Error registering for mega test:', error);
     res.status(500).json({ error: 'Failed to register' });
