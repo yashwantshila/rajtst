@@ -36,3 +36,21 @@ export const purchaseContent = async (userId: string, contentId: string): Promis
     { headers: { Authorization: `Bearer ${token}` } }
   );
 };
+
+export const downloadPaidContent = async (contentId: string): Promise<Blob> => {
+  const token = await getAuthToken();
+  const res = await axios.get(`${API_URL}/api/paid-contents/${contentId}/download`, {
+    responseType: 'blob',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};
+
+export const downloadSampleContent = async (contentId: string): Promise<Blob> => {
+  const token = await getAuthToken();
+  const res = await axios.get(`${API_URL}/api/paid-contents/${contentId}/sample`, {
+    responseType: 'blob',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};

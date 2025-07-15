@@ -37,3 +37,12 @@ export const getQuestionPapersByCategory = async (categoryId: string): Promise<Q
   );
   return res.data;
 };
+
+export const downloadQuestionPaper = async (paperId: string): Promise<Blob> => {
+  const token = await getAuthToken();
+  const res = await axios.get(`${API_URL}/api/question-papers/papers/${paperId}/download`, {
+    responseType: 'blob',
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
+};

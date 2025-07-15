@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getQuestionPapersByCategory, getQuestionPaperCategories } from '../services/api/questionPapers';
+import { getQuestionPapersByCategory, getQuestionPaperCategories, downloadQuestionPaper } from '../services/api/questionPapers';
 import type { QuestionPaper, QuestionPaperCategory } from '../services/api/questionPapers';
 import { ArrowLeft, Download, Calendar, FileText, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -38,6 +38,16 @@ export default function QuestionPaperCategory() {
 
     fetchData();
   }, [categoryId]);
+
+  const handleDownload = async (paperId: string) => {
+    try {
+      const blob = await downloadQuestionPaper(paperId);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Failed to download paper', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -108,18 +118,12 @@ export default function QuestionPaperCategory() {
               </div>
             </CardContent>
             <CardFooter className="p-3 md:p-6 pt-0">
-              <Button 
+              <Button
                 className="w-full group-hover:bg-blue-600 transition-colors text-sm md:text-base"
-                asChild
+                onClick={() => handleDownload(paper.id)}
               >
-                <a
-                  href={paper.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                  Download
-                </a>
+                <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                Download
               </Button>
             </CardFooter>
           </Card>

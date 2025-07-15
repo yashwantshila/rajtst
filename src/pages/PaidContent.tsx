@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react';
-import { getPaidContents, purchaseContent } from '../services/api/paidContent';
+import {
+  getPaidContents,
+  purchaseContent,
+  downloadPaidContent,
+  downloadSampleContent,
+} from '../services/api/paidContent';
 import { useAuth } from '../App';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
@@ -66,7 +71,9 @@ export default function PaidContentPage() { // Renamed component to avoid confli
 
       toast.success('Purchase successful!');
 
-      window.open(content.pdfUrl, '_blank');
+      const blob = await downloadPaidContent(content.id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
       
     } catch (error) {
       console.error('Error processing purchase:', error);
@@ -130,7 +137,11 @@ export default function PaidContentPage() { // Renamed component to avoid confli
                   <Button
                     variant="outline"
                     className="w-full mb-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50 dark:border-gray-600 dark:text-indigo-300 dark:hover:bg-gray-700"
-                    onClick={() => window.open(content.samplePdfUrl, '_blank')}
+                    onClick={async () => {
+                      const blob = await downloadSampleContent(content.id);
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, '_blank');
+                    }}
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     View Sample
