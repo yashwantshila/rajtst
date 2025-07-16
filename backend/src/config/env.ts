@@ -5,10 +5,11 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Define environment schema
-const envSchema = z.object({
-  // Server Configuration
-  PORT: z.string().transform(Number),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+const envSchema = z
+  .object({
+    // Server Configuration
+    PORT: z.string().default('5000').transform(Number),
+    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   // Firebase Configuration
   FIREBASE_PROJECT_ID: z.string(),
@@ -16,23 +17,23 @@ const envSchema = z.object({
   FIREBASE_CLIENT_EMAIL: z.string().email(),
 
   // Admin Configuration
-  ADMIN_EMAIL: z.string().email(),
-  ADMIN_PASSWORD: z.string().min(8),
-  ADMIN_PASSWORD_HASH: z.string().optional(),
+    ADMIN_EMAIL: z.string().email(),
+    ADMIN_PASSWORD: z.string().min(8).optional(),
+    ADMIN_PASSWORD_HASH: z.string().optional(),
 
   // Payment Gateway Configuration
-  RAZORPAY_KEY_ID: z.string(),
-  RAZORPAY_KEY_SECRET: z.string(),
+    RAZORPAY_KEY_ID: z.string().optional(),
+    RAZORPAY_KEY_SECRET: z.string().optional(),
 
   // Security Configuration
-  JWT_SECRET: z.string().min(32),
-  SESSION_SECRET: z.string().min(32),
+    JWT_SECRET: z.string().min(32).optional(),
+    SESSION_SECRET: z.string().min(32).optional(),
 
   // Database Configuration
-  MONGODB_URI: z.string().url(),
+    MONGODB_URI: z.string().url().optional(),
 
   // CORS Configuration
-  CORS_ORIGIN: z.string().url(),
+    CORS_ORIGIN: z.string().url().optional(),
 
   // Logging Configuration
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
@@ -42,10 +43,16 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
 
   // Cookie Configuration
-  COOKIE_SECRET: z.string().min(32),
-  COOKIE_DOMAIN: z.string().url(),
-  FRONTEND_URL: z.string().url(),
-});
+    COOKIE_SECRET: z.string().min(32).optional(),
+    COOKIE_DOMAIN: z.string().optional(),
+    FRONTEND_URL: z.string().url().optional(),
+  })
+  .refine(
+    (data) => data.ADMIN_PASSWORD || data.ADMIN_PASSWORD_HASH,
+    {
+      message: 'Either ADMIN_PASSWORD or ADMIN_PASSWORD_HASH must be provided'
+    }
+  );
 
 // Validate environment variables
 const validateEnv = () => {
