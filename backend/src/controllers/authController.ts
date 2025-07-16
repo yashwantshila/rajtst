@@ -42,7 +42,7 @@ export const register = async (req: Request, res: Response) => {
         username: username,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Registration error:', error);
     if (error.code === 'auth/email-already-exists') {
       res.status(400).json({ error: 'User already exists' });
@@ -79,7 +79,7 @@ export const login = async (req: Request, res: Response) => {
         username: userData?.username,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Login error:', error);
     if (error.code === 'auth/user-not-found') {
       res.status(401).json({ error: 'Invalid credentials' });
@@ -104,7 +104,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     // TODO: Send reset email with link
     // For now, just return success
     res.json({ message: 'Password reset email sent' });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Password reset error:', error);
     if (error.code === 'auth/user-not-found') {
       res.status(404).json({ error: 'User not found' });
@@ -137,7 +137,7 @@ export const adminLogin = async (req: Request, res: Response) => {
     } else {
       res.status(401).json({ error: 'Invalid admin credentials' });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Admin login error:', error);
     res.status(500).json({ error: 'Failed to login as admin' });
   }

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { auth, db } from '../config/firebase.js';
+// Admin authentication via a simple backend-issued token
 
 // Extend Express Request type to include admin user
 declare module 'express' {
@@ -12,7 +12,11 @@ declare module 'express' {
   }
 }
 
-export const verifyFirebaseAdmin = async (req: Request, res: Response, next: NextFunction) => {
+export const verifyFirebaseAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
@@ -20,40 +24,27 @@ export const verifyFirebaseAdmin = async (req: Request, res: Response, next: Nex
     }
 
     const token = authHeader.split('Bearer ')[1];
-    
-    // Verify Firebase token
-    const decodedToken = await auth.verifyIdToken(token);
-    
-    // Get user from database
-    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-    if (!userDoc.exists) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    const decoded = Buffer.from(token, 'base64').toString('utf-8');
+    const [email, timestamp] = decoded.split(':');
 
-    const userData = userDoc.data();
-    if (userData?.role !== 'admin') {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-
-    // Add user data to request
-    req.admin = {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-      isAdmin: true
-    };
-    
-    next();
-  } catch (error: any) {
-    console.error('Firebase admin authentication error:', error);
-    
-    if (error.code === 'auth/id-token-expired') {
-      return res.status(401).json({ error: 'Token expired. Please log in again.' });
-    }
-    
-    if (error.code === 'auth/invalid-token') {
+    if (email !== process.env.ADMIN_EMAIL) {
       return res.status(401).json({ error: 'Invalid token' });
     }
-    
-    res.status(401).json({ error: 'Unauthorized' });
+
+    const issuedAt = parseInt(timestamp, 10);
+    if (!issuedAt || Date.now() - issuedAt > 24 * 60 * 60 * 1000) {
+      return res.status(401).json({ error: 'Token expired' });
+    }
+
+    req.admin = {
+      uid: 'admin',
+      email,
+      isAdmin: true,
+    };
+
+    return next();
+  } catch (error) {
+    console.error('Admin authentication error:', error);
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-}; 
+};
