@@ -17,8 +17,7 @@ import PrizeClaimsManager from './admin/PrizeClaimsManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
 import { getAllUsers, getAllBalances } from '@/services/api/admin';
-import { db } from '@/services/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
+import { checkAdminSession } from '@/services/api/adminAuth';
 
 const Admin = () => {
   const { user } = useAuth();
@@ -33,27 +32,25 @@ const Admin = () => {
       return;
     }
 
-    // Check if user is admin in Firestore
-    const checkAdminStatus = async () => {
+    const verify = async () => {
       try {
-        const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-        if (!adminDoc.exists() || !adminDoc.data()?.isAdmin) {
-          console.log('Admin page - User is not an admin. Redirecting to admin login');
+        const valid = await checkAdminSession();
+        if (!valid) {
+          console.log('Admin page - Invalid admin session. Redirecting to admin login');
           toast.error('Access denied. Admin privileges required.');
           navigate('/admin-auth');
           return;
         }
-        
         console.log('Admin page - Access granted');
         setLoading(false);
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('Error verifying admin status:', error);
         toast.error('Error verifying admin status');
         navigate('/admin-auth');
       }
     };
 
-    checkAdminStatus();
+    verify();
   }, [user, navigate]);
   
   const { data: users, isLoading: isUsersLoading, error: usersError, refetch: refetchUsers } = useQuery({
