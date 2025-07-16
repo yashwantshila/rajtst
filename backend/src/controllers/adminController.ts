@@ -58,4 +58,22 @@ export const updateUserRole = async (req: Request, res: Response) => {
     console.error('Error updating user role:', error);
     res.status(500).json({ error: 'Failed to update user role' });
   }
-}; 
+};
+
+// Return the authenticated admin's status
+export const getAdminStatus = (req: Request, res: Response) => {
+  try {
+    if (!req.admin) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    res.json({
+      isAdmin: true,
+      uid: req.admin.uid,
+      email: req.admin.email
+    });
+  } catch (error) {
+    console.error('Error getting admin status:', error);
+    res.status(500).json({ error: 'Failed to get admin status' });
+  }
+};

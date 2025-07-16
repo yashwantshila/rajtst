@@ -7,10 +7,13 @@ const AdminAuth = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    const admin = getCurrentAdmin();
-    if (admin?.isAdmin) {
-      navigate('/admin');
-    }
+    const checkAdmin = async () => {
+      const admin = await getCurrentAdmin();
+      if (admin?.isAdmin) {
+        navigate('/admin');
+      }
+    };
+    checkAdmin();
   }, [navigate]);
   
   return (
