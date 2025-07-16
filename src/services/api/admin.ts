@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { getAuth } from 'firebase/auth';
 import { refreshAdminToken } from './adminAuth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -78,7 +77,7 @@ export const getAllUsers = async (): Promise<User[]> => {
     const api = await createApiInstance();
     const response = await api.get('/api/admin/users');
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching users:', error);
     if (error.response?.status === 403) {
       throw new Error('You do not have permission to access this resource');
@@ -93,7 +92,7 @@ export const getAllBalances = async (): Promise<UserBalance[]> => {
     const api = await createApiInstance();
     const response = await api.get('/api/admin/balances');
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching balances:', error);
     if (error.response?.status === 403) {
       throw new Error('You do not have permission to access this resource');
@@ -107,7 +106,7 @@ export const updateUserRole = async (userId: string, role: 'user' | 'admin'): Pr
   try {
     const api = await createApiInstance();
     await api.patch(`/admin/users/${userId}/role`, { role });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error updating user role:', error);
     if (error.response?.status === 403) {
       throw new Error('You do not have permission to update user roles');
