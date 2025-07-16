@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { auth, db } from '../config/firebase.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -123,16 +125,30 @@ export const adminLogin = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Only Gmail addresses (gmail.com) are allowed to login as admin' });
     }
     
-    // Check against environment variables
-    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-      // Generate a simple token (in production, use a proper JWT)
-      const token = Buffer.from(`${email}:${Date.now()}`).toString('base64');
-      
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    const adminHash = process.env.ADMIN_PASSWORD_HASH;
+    const jwtSecret = process.env.JWT_SECRET || '';
+
+    let passwordMatch = false;
+    if (adminHash) {
+      passwordMatch = await bcrypt.compare(password, adminHash);
+    } else if (adminPassword) {
+      passwordMatch = password === adminPassword;
+    }
+
+    if (email === adminEmail && passwordMatch) {
+      const token = jwt.sign(
+        { email: adminEmail, role: 'admin' },
+        jwtSecret,
+        { expiresIn: '1h' }
+      );
+
       res.json({
         success: true,
         isAdmin: true,
-        email: process.env.ADMIN_EMAIL,
-        token: token
+        email: adminEmail,
+        token
       });
     } else {
       res.status(401).json({ error: 'Invalid admin credentials' });

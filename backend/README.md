@@ -17,6 +17,8 @@ cp .env.example .env
 3. Update the `.env` file with your configuration:
 - Set the `PORT` if you want to use a different port (default: 5000)
 - Add your Firebase Admin SDK credentials in the `FIREBASE_ADMIN_CREDENTIALS` variable
+- Set `ADMIN_PASSWORD_HASH` to a bcrypt hash of your admin password for secure logins
+- Ensure `JWT_SECRET` is a strong secret used to sign admin tokens
 
 ## Development
 
