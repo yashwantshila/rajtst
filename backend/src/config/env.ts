@@ -18,6 +18,7 @@ const envSchema = z.object({
   // Admin Configuration
   ADMIN_EMAIL: z.string().email(),
   ADMIN_PASSWORD: z.string().min(8),
+  ADMIN_PASSWORD_HASH: z.string().optional(),
 
   // Payment Gateway Configuration
   RAZORPAY_KEY_ID: z.string(),
