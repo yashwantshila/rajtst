@@ -1,6 +1,6 @@
 import express from 'express';
 import { verifyFirebaseAdmin } from '../middleware/firebaseAdminAuth.js';
-import { getAllUsers, getAllBalances, updateUserRole } from '../controllers/adminController.js';
+import { getAllUsers, getAllBalances, updateUserRole, getAdminStatus } from '../controllers/adminController.js';
 
 const router = express.Router();
 
@@ -15,5 +15,8 @@ router.get('/balances', getAllBalances);
 
 // Update user role
 router.put('/users/:userId/role', updateUserRole);
+
+// Get current admin status
+router.get('/status', getAdminStatus);
 
 export default router; 

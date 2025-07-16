@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { captureUserIP } from '../services/api/user';
 import { getDeviceId } from '../utils/deviceId';
+import { getCurrentAdmin } from '@/services/api/adminAuth';
 
 interface PaidContent {
   id: string;
@@ -149,8 +150,24 @@ const Home = () => {
     }
   };
 
-  const isAdmin = user && user.email && 
-    (['admin@example.com', 'ij@gmail.com', 'test@example.com', 'ww@gmail.com'].includes(user.email));
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+      try {
+        const admin = await getCurrentAdmin();
+        setIsAdmin(!!admin?.isAdmin);
+      } catch (error) {
+        console.error('Error checking admin status', error);
+        setIsAdmin(false);
+      }
+    };
+    checkAdmin();
+  }, [user]);
   
   const [isCustomAdmin, setIsCustomAdmin] = useState(false);
   

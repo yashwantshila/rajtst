@@ -53,7 +53,7 @@ export const useAdminSession = () => {
   }, [clearTimers, handleLogout]);
 
   const refreshSession = useCallback(async () => {
-    const admin = getCurrentAdmin();
+    const admin = await getCurrentAdmin();
     if (admin?.isAdmin) {
       try {
         // Refresh the Firebase token

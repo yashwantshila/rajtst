@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { auth } from '../config/firebase.js';
 import { db } from '../config/firebase.js';
+import { isDevelopment } from '../config/env.js';
 
 // Extend Express Request type to include user
 declare module 'express' {
@@ -18,8 +19,10 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
-      console.log('No Bearer token found in Authorization header');
-      return res.status(401).json({ 
+      if (isDevelopment()) {
+        console.log('No Bearer token found in Authorization header');
+      }
+      return res.status(401).json({
         error: 'No token provided',
         requiresAuth: true
       });
@@ -28,9 +31,13 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
     const token = authHeader.split('Bearer ')[1];
     
     try {
-      console.log('Verifying token with Firebase Admin...');
+      if (isDevelopment()) {
+        console.log('Verifying token with Firebase Admin...');
+      }
       const decodedToken = await auth.verifyIdToken(token);
-      console.log('Token verified successfully. User ID:', decodedToken.uid);
+      if (isDevelopment()) {
+        console.log('Token verified successfully. User ID:', decodedToken.uid);
+      }
       
       // Get user from database (optional - user document might not exist yet)
       const userDoc = await db.collection('users').doc(decodedToken.uid).get();

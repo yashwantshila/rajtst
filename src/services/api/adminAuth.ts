@@ -1,7 +1,8 @@
 import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { app, db } from '../firebase/config';
-import { toast } from 'sonner';
+import axios from 'axios';
+import { app } from '../firebase/config';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export interface AdminUser {
   uid: string;
@@ -15,26 +16,21 @@ export const loginAdmin = async (email: string, password: string): Promise<Admin
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
 
-    // Check if the user is an admin in Firestore
-    const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-    if (!adminDoc.exists() || !adminDoc.data()?.isAdmin) {
+    // Verify admin status via backend
+    const token = await user.getIdToken();
+    const api = axios.create({
+      baseURL: API_URL,
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    const status = await api.get('/api/admin/status');
+    if (!status.data?.isAdmin) {
       await signOut(auth);
       throw new Error('You do not have admin privileges');
     }
 
-    // Update the user's role in the users collection
-    const userDoc = await getDoc(doc(db, 'users', user.uid));
-    if (userDoc.exists()) {
-      await updateDoc(doc(db, 'users', user.uid), {
-        role: 'admin'
-      });
-    } else {
-      await setDoc(doc(db, 'users', user.uid), {
-        email: user.email,
-        role: 'admin',
-        createdAt: new Date().toISOString()
-      });
-    }
+    // Update role through backend
+    await api.put(`/api/admin/users/${user.uid}/role`, { role: 'admin' });
 
     return {
       uid: user.uid,
@@ -73,14 +69,17 @@ export const getCurrentAdmin = async (): Promise<AdminUser | null> => {
   try {
     const auth = getAuth(app);
     const user = auth.currentUser;
-    
+
     if (!user) {
       return null;
     }
 
-    // Check if the user is an admin in Firestore
-    const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-    if (!adminDoc.exists() || !adminDoc.data()?.isAdmin) {
+    const token = await user.getIdToken();
+    const response = await axios.get(`${API_URL}/api/admin/status`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (!response.data?.isAdmin) {
       return null;
     }
 
