@@ -123,6 +123,15 @@ export const hasUserSubmittedMegaTest = async (
   return res.data.submitted;
 };
 
+export const startMegaTest = async (megaTestId: string): Promise<void> => {
+  const token = await getAuthToken();
+  await axios.post(
+    `${API_URL}/api/mega-tests/${megaTestId}/start`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+};
+
 export const getMegaTestById = async (
   megaTestId: string
 ): Promise<{ megaTest: MegaTest; questions: MegaTestQuestion[] }> => {

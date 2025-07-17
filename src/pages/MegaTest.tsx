@@ -8,6 +8,7 @@ import { ArrowLeft, Loader2, ChevronRight, ChevronLeft, Clock, CreditCard, Troph
 import {
   getMegaTestById,
   submitMegaTestResult,
+  startMegaTest,
   MegaTestQuestion,
   hasUserSubmittedMegaTest
 } from '@/services/api/megaTest';
@@ -216,13 +217,18 @@ const MegaTest = () => {
     }
   };
 
-  const startQuiz = () => {
+  const startQuiz = async () => {
     if (isQuizStarted) {
       toast.error('You have already started this quiz');
       return;
     }
     setIsQuizStarted(true);
     setStartTime(Date.now());
+    try {
+      await startMegaTest(megaTestId!);
+    } catch (error) {
+      toast.error('Failed to record start time');
+    }
   };
 
   // Add this new function to calculate the actual time limit

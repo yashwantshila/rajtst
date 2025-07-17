@@ -185,6 +185,34 @@ export const registerForMegaTest = async (req: Request, res: Response) => {
   }
 };
 
+export const startMegaTest = async (req: Request, res: Response) => {
+  try {
+    const { megaTestId } = req.params;
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const participantRef = db
+      .collection('mega-tests')
+      .doc(megaTestId)
+      .collection('participants')
+      .doc(userId);
+
+    await participantRef.set(
+      {
+        startTime: new Date().toISOString(),
+      },
+      { merge: true },
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error starting mega test:', error);
+    res.status(500).json({ error: 'Failed to start mega test' });
+  }
+};
+
 export const isUserRegistered = async (req: Request, res: Response) => {
   try {
     const { megaTestId, userId } = req.params;
@@ -280,6 +308,8 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
 
     const megaTestRef = db.collection('mega-tests').doc(megaTestId);
     const leaderboardRef = megaTestRef.collection('leaderboard');
+    const participantRef = megaTestRef.collection('participants').doc(userId);
+    const participantDoc = await participantRef.get();
 
     const questionsSnap = await megaTestRef.collection('questions').get();
     const questions = questionsSnap.docs.map(q => q.data() as any);
@@ -295,12 +325,21 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
     const leaderboardSnap = await leaderboardRef.get();
     const leaderboard = leaderboardSnap.docs.map(doc => doc.data() as any);
 
+    let computedCompletionTime = completionTime;
+    if (participantDoc.exists) {
+      const start = (participantDoc.data() as any).startTime;
+      if (start) {
+        const startMs = new Date(start).getTime();
+        computedCompletionTime = Math.floor((Date.now() - startMs) / 1000);
+      }
+    }
+
     const newEntry = {
       userId,
       score,
       rank: 0,
       submittedAt: new Date().toISOString(),
-      completionTime,
+      completionTime: computedCompletionTime,
     };
 
     leaderboard.push(newEntry);
