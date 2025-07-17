@@ -178,7 +178,7 @@ export const registerForMegaTest = async (req: Request, res: Response) => {
     });
 
     await batch.commit();
-    res.json({ success: true, score });
+    res.json({ success: true });
   } catch (error) {
     console.error('Error registering for mega test:', error);
     res.status(500).json({ error: 'Failed to register' });
