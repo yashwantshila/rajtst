@@ -28,6 +28,8 @@ const AdminQuestionPapers = React.lazy(() => import('./pages/admin/QuestionPaper
 const PaidContent = React.lazy(() => import('./pages/PaidContent'));
 const PaidContentManager = React.lazy(() => import('./pages/admin/PaidContentManager'));
 const PurchasedContent = React.lazy(() => import('./pages/PurchasedContent'));
+const Blog = React.lazy(() => import('./pages/Blog'));
+const BlogPost = React.lazy(() => import('./pages/BlogPost'));
 import { SessionTimer } from './components/SessionTimer';
 import { Button } from './components/ui/button';
 import { User as UserIcon, Book, LogOut } from 'lucide-react';
@@ -161,6 +163,8 @@ const AppContent: React.FC = () => {
           <PaidContentManager />
         </ProtectedRoute>
       } />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/blog/:slug" element={<BlogPost />} />
     </Routes>
     </Suspense>
   );

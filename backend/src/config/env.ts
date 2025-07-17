@@ -44,6 +44,9 @@ const envSchema = z.object({
   COOKIE_SECRET: z.string().min(32),
   COOKIE_DOMAIN: z.string().url(),
   FRONTEND_URL: z.string().url(),
+
+  // Gemini API
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 // Validate environment variables
