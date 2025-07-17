@@ -17,7 +17,7 @@ export const securityHeaders = [
       'Content-Security-Policy',
       "default-src 'self';" +
       `script-src 'self' 'nonce-${nonce}' 'strict-dynamic';` +
-      "style-src 'self' 'nonce-${nonce}';" +  // Using nonce for styles
+      `style-src 'self' 'nonce-${nonce}';` +
       "img-src 'self' data: https:;" +
       "font-src 'self' data:;" +
       "connect-src 'self' https:;" +
@@ -33,6 +33,10 @@ export const securityHeaders = [
         `__Host-session=; Path=/; Secure; HttpOnly; SameSite=Strict`,
         `__Host-csrf=; Path=/; Secure; HttpOnly; SameSite=Strict`
       ]);
+      res.setHeader(
+        'Strict-Transport-Security',
+        'max-age=63072000; includeSubDomains; preload'
+      );
     }
 
     // X-Content-Type-Options
