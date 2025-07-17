@@ -12,11 +12,12 @@ This system captures and stores the IP addresses of users when they visit the In
 - **Purpose**: Captures user IP address and stores it in Firestore
 - **Authentication**: Requires user authentication
 - **IP Sources**: Multiple fallback sources for IP detection:
-  - `req.ip` (Express.js built-in)
-  - `req.connection.remoteAddress`
-  - `req.socket.remoteAddress`
   - `req.headers['x-forwarded-for']`
   - `req.headers['x-real-ip']`
+  - `req.connection.remoteAddress`
+  - `req.socket.remoteAddress`
+  - `req.ip` (Express.js built-in)
+- **Validation**: Rejects invalid IP formats before storing
 
 #### 2. Firestore Storage
 - **Collection**: `userIPLogs`
@@ -46,6 +47,7 @@ This system captures and stores the IP addresses of users when they visit the In
 - **Purpose**: Calls backend endpoint to capture IP
 - **Error Handling**: Includes token refresh logic
 - **Response Type**: `IPCaptureResponse`
+- **Client Fallback**: Uses multiple public services with a 3s timeout and validates the IP if the backend fails
 
 #### 2. Index Page Integration (`src/pages/Index.tsx`)
 - **IP Display**: Shows captured IP at the top of the page
