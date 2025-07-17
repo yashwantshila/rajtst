@@ -9,7 +9,8 @@ import {
   hasUserSubmittedMegaTest,
   getMegaTestById,
   getMegaTestPrizes,
-  submitMegaTestResult
+  submitMegaTestResult,
+  startMegaTest
 } from '../controllers/megaTestController.js';
 
 const router = express.Router();
@@ -23,6 +24,7 @@ router.use(authenticateUser);
 router.post('/:megaTestId/register', registerForMegaTest);
 router.get('/:megaTestId/registration-status/:userId', isUserRegistered);
 router.get('/:megaTestId/submission-status/:userId', hasUserSubmittedMegaTest);
+router.post('/:megaTestId/start', startMegaTest);
 router.post('/:megaTestId/submit', submitMegaTestResult);
 router.post('/:megaTestId/prize-claims', submitPrizeClaim);
 
