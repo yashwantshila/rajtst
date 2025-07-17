@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { getCurrentAdmin, refreshAdminToken, logoutAdmin } from '@/services/api/adminAuth';
+import { getCurrentAdmin, logoutAdmin } from '@/services/api/adminAuth';
 
 const ADMIN_SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 const SESSION_WARNING_TIME = 5 * 60 * 1000; // 5 minutes before timeout
@@ -55,15 +55,8 @@ export const useAdminSession = () => {
   const refreshSession = useCallback(async () => {
     const admin = getCurrentAdmin();
     if (admin?.isAdmin) {
-      try {
-        // Refresh the Firebase token
-        await refreshAdminToken();
-        resetSession();
-        return true;
-      } catch (error) {
-        console.error('Error refreshing session:', error);
-        return false;
-      }
+      resetSession();
+      return true;
     }
     return false;
   }, [resetSession]);

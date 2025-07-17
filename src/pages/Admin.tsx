@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App';
+import { getCurrentAdmin, logoutAdmin } from '@/services/api/adminAuth';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, BookOpen, Wallet, Trophy, Gift, FileText, ScrollText, Info, Book, FileArchive, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,58 +17,35 @@ import PrizeClaimsManager from './admin/PrizeClaimsManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
 import { getAllUsers, getAllBalances } from '@/services/api/admin';
-import { db } from '@/services/firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
 
 const Admin = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
-    if (!user) {
-      console.log('Admin page - No user found. Redirecting to admin login');
+    const admin = getCurrentAdmin();
+    if (!admin?.isAdmin) {
       toast.error('Access denied. Please login first.');
       navigate('/admin-auth');
       return;
     }
-
-    // Check if user is admin in Firestore
-    const checkAdminStatus = async () => {
-      try {
-        const adminDoc = await getDoc(doc(db, 'admins', user.uid));
-        if (!adminDoc.exists() || !adminDoc.data()?.isAdmin) {
-          console.log('Admin page - User is not an admin. Redirecting to admin login');
-          toast.error('Access denied. Admin privileges required.');
-          navigate('/admin-auth');
-          return;
-        }
-        
-        console.log('Admin page - Access granted');
-        setLoading(false);
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-        toast.error('Error verifying admin status');
-        navigate('/admin-auth');
-      }
-    };
-
-    checkAdminStatus();
-  }, [user, navigate]);
+    setLoading(false);
+  }, [navigate]);
   
   const { data: users, isLoading: isUsersLoading, error: usersError, refetch: refetchUsers } = useQuery({
     queryKey: ['admin-users'],
     queryFn: getAllUsers,
-    enabled: !loading && !!user
+    enabled: !loading
   });
   
   const { data: balances = [], error: balancesError, refetch: refetchBalances } = useQuery({
     queryKey: ['admin-balances'],
     queryFn: getAllBalances,
-    enabled: !loading && !!user
+    enabled: !loading
   });
   
   const handleLogout = () => {
+    logoutAdmin();
     navigate('/admin-auth');
     toast.success('Logged out of admin panel');
   };

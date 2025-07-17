@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { getAuth } from 'firebase/auth';
 import { refreshAdminToken } from './adminAuth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -106,7 +105,7 @@ export const getAllBalances = async (): Promise<UserBalance[]> => {
 export const updateUserRole = async (userId: string, role: 'user' | 'admin'): Promise<void> => {
   try {
     const api = await createApiInstance();
-    await api.patch(`/admin/users/${userId}/role`, { role });
+    await api.put(`/api/admin/users/${userId}/role`, { uid: userId, role });
   } catch (error: any) {
     console.error('Error updating user role:', error);
     if (error.response?.status === 403) {
