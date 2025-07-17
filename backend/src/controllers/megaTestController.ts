@@ -312,7 +312,7 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
     const participantDoc = await participantRef.get();
 
     const questionsSnap = await megaTestRef.collection('questions').get();
-    const questions = questionsSnap.docs.map(q => q.data() as any);
+    const questions = questionsSnap.docs.map(q => ({ id: q.id, ...q.data() })) as any[];
 
     let score = 0;
     questions.forEach(q => {
