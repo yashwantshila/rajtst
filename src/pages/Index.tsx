@@ -29,6 +29,7 @@ import {
 import { SessionTimer } from '../components/SessionTimer';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
 import { getPaidContents, purchaseContent, downloadContent } from '../services/api/paidContent';
+import { getHeaderAds, HeaderAd } from '../services/api/headerAds';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { captureUserIP } from '../services/api/user';
@@ -104,6 +105,11 @@ const Home = () => {
   const { data: paidContents, isLoading: isLoadingPaidContents } = useQuery<PaidContent[]>({
     queryKey: ['paid-contents'],
     queryFn: getPaidContents,
+  });
+
+  const { data: headerAds } = useQuery<HeaderAd[]>({
+    queryKey: ['header-ads'],
+    queryFn: getHeaderAds,
   });
 
   const registerMutation = useMutation({
@@ -440,6 +446,17 @@ const Home = () => {
             <ModeToggle />
           </div>
         </div>
+        {headerAds && headerAds.length > 0 && (
+          <div className="bg-muted border-t">
+            <div className="container flex overflow-x-auto gap-4 py-2">
+              {headerAds.map(ad => (
+                <a key={ad.id} href={ad.linkUrl || '#'} target="_blank" rel="noreferrer" className="flex-shrink-0">
+                  <img src={ad.imageUrl} alt={ad.text || 'Ad'} className="h-12 w-auto object-contain" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="container mx-auto px-4 py-3">

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Wallet, Trophy, Gift, FileText, ScrollText, Info, Book, FileArchive, DollarSign } from 'lucide-react';
+import { Users, BookOpen, Wallet, Trophy, Gift, FileText, ScrollText, Info, Book, FileArchive, DollarSign, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -16,6 +16,7 @@ import MegaTestManager from './admin/MegaTestManager';
 import PrizeClaimsManager from './admin/PrizeClaimsManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
+import HeaderAdsManager from './admin/HeaderAdsManager';
 import { getAllUsers, getAllBalances } from '@/services/api/admin';
 import { db } from '@/services/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
@@ -114,6 +115,10 @@ const Admin = () => {
               <DollarSign className="h-4 w-4" />
               <span>Paid Content</span>
             </TabsTrigger>
+            <TabsTrigger value="header-ads" className="flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              <span>Header Ads</span>
+            </TabsTrigger>
             <TabsTrigger value="privacy-policy" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span>Privacy Policy</span>
@@ -162,6 +167,10 @@ const Admin = () => {
 
           <TabsContent value="paid-content">
             <PaidContentManager />
+          </TabsContent>
+
+          <TabsContent value="header-ads">
+            <HeaderAdsManager />
           </TabsContent>
 
           <TabsContent value="privacy-policy">

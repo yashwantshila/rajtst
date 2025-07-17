@@ -8,6 +8,7 @@ import questionPaperRoutes from './questionPaperRoutes.js';
 import megaTestRoutes from './megaTestRoutes.js';
 import contentRoutes from './contentRoutes.js';
 import paidContentRoutes from './paidContentRoutes.js';
+import headerAdsRoutes from './headerAdsRoutes.js';
 
 const router = express.Router();
 
@@ -32,6 +33,7 @@ router.use('/mega-tests', megaTestRoutes);
 // Public content routes
 router.use('/content', contentRoutes);
 router.use('/paid-contents', paidContentRoutes);
+router.use('/header-ads', headerAdsRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);
