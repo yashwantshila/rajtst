@@ -1,7 +1,6 @@
 // Client-side IP detection utilities
 export const getClientIP = async (): Promise<string | null> => {
   try {
-    // Try multiple IP detection services
     const ipServices = [
       'https://api.ipify.org?format=json',
       'https://api.myip.com',
@@ -11,18 +10,24 @@ export const getClientIP = async (): Promise<string | null> => {
 
     for (const service of ipServices) {
       try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+
         const response = await fetch(service, {
           method: 'GET',
           headers: {
-            'Accept': 'application/json',
+            'Accept': 'application/json'
           },
+          signal: controller.signal
         });
+
+        clearTimeout(timeout);
 
         if (response.ok) {
           const data = await response.json();
           const ip = data.ip || data.query || data.origin;
-          
-          if (ip && ip !== '127.0.0.1' && ip !== 'localhost') {
+
+          if (ip && isValidIP(ip) && ip !== '127.0.0.1' && ip !== 'localhost') {
             return ip;
           }
         }
@@ -31,7 +36,7 @@ export const getClientIP = async (): Promise<string | null> => {
         continue;
       }
     }
-    
+
     return null;
   } catch (error) {
     console.error('Error detecting client IP:', error);
@@ -40,9 +45,9 @@ export const getClientIP = async (): Promise<string | null> => {
 };
 
 // Validate IP address format
-export const isValidIP = (ip: string): boolean => {
+export function isValidIP(ip: string): boolean {
   const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
   const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
-  
+
   return ipv4Regex.test(ip) || ipv6Regex.test(ip);
-}; 
+}

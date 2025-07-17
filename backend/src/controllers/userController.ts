@@ -123,9 +123,22 @@ export const captureUserIP = async (req: Request, res: Response) => {
 
     let userIpAddress: string | undefined;
     const forwardedForHeader = req.headers['x-forwarded-for'];
+    const realIpHeader = req.headers['x-real-ip'];
 
     if (typeof forwardedForHeader === 'string') {
       userIpAddress = forwardedForHeader.split(',')[0].trim();
+    }
+
+    if (!userIpAddress && typeof realIpHeader === 'string') {
+      userIpAddress = realIpHeader.split(',')[0].trim();
+    }
+
+    if (!userIpAddress && req.connection && typeof req.connection.remoteAddress === 'string') {
+      userIpAddress = req.connection.remoteAddress;
+    }
+
+    if (!userIpAddress && req.socket && typeof req.socket.remoteAddress === 'string') {
+      userIpAddress = req.socket.remoteAddress;
     }
 
     if (!userIpAddress) {
@@ -133,12 +146,19 @@ export const captureUserIP = async (req: Request, res: Response) => {
     }
 
     if (!userIpAddress) {
-        console.error('CRITICAL: Could not determine any IP address from headers.');
-        return res.status(400).json({ error: 'Could not determine IP address.' });
+      console.error('CRITICAL: Could not determine any IP address from headers.');
+      return res.status(400).json({ error: 'Could not determine IP address.' });
     }
     
-    // --- NEW: Identify if the IP is IPv4 or IPv6 ---
+    // --- Validate and identify IP version ---
     const ipv4Regex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    const ipv6Regex = /^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+
+    if (!ipv4Regex.test(userIpAddress) && !ipv6Regex.test(userIpAddress)) {
+      console.warn(`Invalid IP format received: ${userIpAddress}`);
+      return res.status(400).json({ error: 'Invalid IP address format' });
+    }
+
     const ipVersion = ipv4Regex.test(userIpAddress) ? 'IPv4' : 'IPv6';
 
     console.log(`Determined IP Address: ${userIpAddress} (Version: ${ipVersion})`);
