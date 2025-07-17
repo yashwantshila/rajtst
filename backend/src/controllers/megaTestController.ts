@@ -355,7 +355,7 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
     });
 
     await batch.commit();
-    res.json({ success: true });
+    res.json({ success: true, score });
   } catch (error) {
     console.error('Error submitting mega test result:', error);
     res.status(500).json({ error: 'Failed to submit result' });
