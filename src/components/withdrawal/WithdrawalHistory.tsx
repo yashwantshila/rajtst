@@ -17,7 +17,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { WithdrawalRequest } from '../../services/firebase/withdrawal';
+import { WithdrawalRequest } from '../../services/api/withdrawal';
 import { StatusBadge } from './StatusBadge';
 import { toast } from 'sonner';
 

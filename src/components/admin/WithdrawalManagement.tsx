@@ -37,10 +37,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { 
   getAllWithdrawalRequests, 
-  updateWithdrawalStatus, 
-  deleteWithdrawalRequest, 
-  WithdrawalRequest 
-} from '@/services/firebase/withdrawal';
+  updateWithdrawalStatus,
+  deleteWithdrawalRequest,
+  WithdrawalRequest
+} from '@/services/api/withdrawal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export const WithdrawalManagement = () => {

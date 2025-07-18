@@ -15,8 +15,8 @@ import { Button } from '@/components/ui/button';
 import { useMutation } from '@tanstack/react-query';
 import { 
   createWithdrawalRequest,
-  MINIMUM_WITHDRAWAL_AMOUNT 
-} from '../../services/firebase/withdrawal';
+  MINIMUM_WITHDRAWAL_AMOUNT
+} from '../../services/api/withdrawal';
 import { updateUserBalance } from '../../services/api/balance';
 
 interface WithdrawalFormProps {
