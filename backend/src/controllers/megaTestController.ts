@@ -113,6 +113,33 @@ export const registerForMegaTest = async (req: Request, res: Response) => {
   try {
     const { megaTestId } = req.params;
     const { userId, username, email } = req.body;
+
+    // ---- Determine client IP address ----
+    let userIpAddress: string | undefined;
+    const forwardedForHeader = req.headers['x-forwarded-for'];
+    const realIpHeader = req.headers['x-real-ip'];
+
+    if (typeof forwardedForHeader === 'string') {
+      userIpAddress = forwardedForHeader.split(',')[0].trim();
+    }
+
+    if (!userIpAddress && typeof realIpHeader === 'string') {
+      userIpAddress = realIpHeader.split(',')[0].trim();
+    }
+
+    if (!userIpAddress && req.connection && typeof req.connection.remoteAddress === 'string') {
+      userIpAddress = req.connection.remoteAddress;
+    }
+
+    if (!userIpAddress && req.socket && typeof req.socket.remoteAddress === 'string') {
+      userIpAddress = req.socket.remoteAddress;
+    }
+
+    if (!userIpAddress) {
+      userIpAddress = req.ip;
+    }
+
+    const deviceId = req.cookies?.device_id;
     const megaTestRef = db.collection('mega-tests').doc(megaTestId);
     const megaTestDoc = await megaTestRef.get();
     if (!megaTestDoc.exists) {
@@ -146,6 +173,9 @@ export const registerForMegaTest = async (req: Request, res: Response) => {
       email,
       registeredAt: new Date().toISOString(),
       entryFeePaid: entryFee,
+      ipAddress: userIpAddress || 'N/A',
+      lastSeenIP: userIpAddress || 'N/A',
+      deviceId: deviceId || 'N/A',
     });
 
     await batch.commit();
