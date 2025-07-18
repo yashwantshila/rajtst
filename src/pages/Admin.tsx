@@ -15,6 +15,7 @@ import GuideManager from '../components/admin/GuideManager';
 import MegaTestManager from './admin/MegaTestManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
+import { WithdrawalManagement } from '../components/admin/WithdrawalManagement';
 import { getAllUsers, getAllBalances } from '@/services/api/admin';
 import { db } from '@/services/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
@@ -109,6 +110,10 @@ const Admin = () => {
               <DollarSign className="h-4 w-4" />
               <span>Paid Content</span>
             </TabsTrigger>
+            <TabsTrigger value="withdrawals" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              <span>Withdrawals</span>
+            </TabsTrigger>
             <TabsTrigger value="privacy-policy" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span>Privacy Policy</span>
@@ -154,6 +159,10 @@ const Admin = () => {
 
           <TabsContent value="paid-content">
             <PaidContentManager />
+          </TabsContent>
+
+          <TabsContent value="withdrawals">
+            <WithdrawalManagement />
           </TabsContent>
 
           <TabsContent value="privacy-policy">

@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, CreditCard, UserCircle, AlertTriangle, ShieldAlert, RefreshCw, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, CreditCard, UserCircle, AlertTriangle, ShieldAlert, RefreshCw, ExternalLink, Loader2, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import UserPrizes from '../components/UserPrizes';
+import WithdrawalSection from '../components/WithdrawalSection';
 import { getUserProfile, UserProfile } from '../services/api/user';
 
 const Profile = () => {
@@ -91,6 +92,10 @@ const Profile = () => {
         <Tabs defaultValue="account" className="space-y-6">
           <TabsList>
             <TabsTrigger value="account">Account</TabsTrigger>
+            <TabsTrigger value="withdrawals" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              <span>Withdrawals</span>
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="account" className="space-y-6">
@@ -209,6 +214,16 @@ const Profile = () => {
                 <UserPrizes userId={user.uid} />
               </Card>
             </div>
+          </TabsContent>
+          <TabsContent value="withdrawals" className="space-y-6">
+            {profile && (
+              <WithdrawalSection
+                userId={user.uid}
+                userName={user.displayName}
+                currentBalance={profile.balance.amount}
+                refetchBalance={refetchProfile}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </main>
