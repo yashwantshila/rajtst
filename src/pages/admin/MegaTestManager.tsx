@@ -1508,7 +1508,14 @@ const MegaTestManager = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{participant.username}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{participant.email}</td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {participant.registeredAt ? format(participant.registeredAt.toDate(), 'MMM d, yyyy h:mm a') : 'N/A'}
+                          {participant.registeredAt
+                            ? format(
+                                typeof participant.registeredAt.toDate === 'function'
+                                  ? participant.registeredAt.toDate()
+                                  : new Date(participant.registeredAt),
+                                'MMM d, yyyy h:mm a'
+                              )
+                            : 'N/A'}
                         </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex items-center gap-1">
                               {participant.ipAddress}
