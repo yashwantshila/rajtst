@@ -1,6 +1,6 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getUserWithdrawalRequests } from '../services/firebase/withdrawal';
+import { getUserWithdrawalRequests } from '../services/api/withdrawal';
 import { WithdrawalForm } from './withdrawal/WithdrawalForm';
 import { WithdrawalHistory } from './withdrawal/WithdrawalHistory';
 import { toast } from 'sonner';
