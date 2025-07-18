@@ -96,8 +96,10 @@ const MegaTest = () => {
     checkSubmissionStatus();
   }, [megaTestId, user, navigate]);
 
-  console.log('MegaTest data:', data);
-  console.log('MegaTest questions:', data?.questions);
+  if (import.meta.env.DEV) {
+    console.log('MegaTest data:', data);
+    console.log('MegaTest questions:', data?.questions);
+  }
 
   const { megaTest, questions } = data || { megaTest: null, questions: [] };
 
