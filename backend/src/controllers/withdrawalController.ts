@@ -71,11 +71,26 @@ export const getUserWithdrawalRequests = async (req: Request, res: Response) => 
       .where('userId', '==', userId)
       .get();
 
-    const withdrawals = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    withdrawals.sort(
+    const now = Date.now();
+    const withdrawals = await Promise.all(
+      snapshot.docs.map(async (doc) => {
+        const data = doc.data() as any;
+        const expiry = data.userExpiryDate ? new Date(data.userExpiryDate).getTime() : null;
+        if (expiry && expiry <= now) {
+          await doc.ref.delete();
+          return null;
+        }
+        if (data.deletedForAdmin) {
+          // still show to user until expiry
+        }
+        return { id: doc.id, ...data };
+      })
+    );
+    const validWithdrawals = withdrawals.filter(Boolean) as any[];
+    validWithdrawals.sort(
       (a, b) => new Date((b as any).requestDate).getTime() - new Date((a as any).requestDate).getTime()
     );
-    res.json(withdrawals);
+    res.json(validWithdrawals);
   } catch (error) {
     console.error('Error fetching user withdrawals:', error);
     res.status(500).json({ error: 'Failed to fetch withdrawal requests' });
@@ -85,7 +100,9 @@ export const getUserWithdrawalRequests = async (req: Request, res: Response) => 
 export const getAllWithdrawalRequests = async (_req: Request, res: Response) => {
   try {
     const snapshot = await db.collection('withdrawals').get();
-    const withdrawals = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    const withdrawals = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((w) => !(w as any).deletedForAdmin);
     withdrawals.sort(
       (a, b) => new Date((b as any).requestDate).getTime() - new Date((a as any).requestDate).getTime()
     );
@@ -137,6 +154,10 @@ export const updateWithdrawalStatus = async (req: Request, res: Response) => {
       status,
       notes: notes || '',
       completionDate: new Date().toISOString(),
+      userExpiryDate:
+        status !== 'pending'
+          ? new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+          : undefined,
     });
 
     res.json({ message: 'Withdrawal updated' });
@@ -152,8 +173,24 @@ export const deleteWithdrawalRequest = async (req: Request, res: Response) => {
     if (!withdrawalId) {
       return res.status(400).json({ error: 'Withdrawal ID is required' });
     }
-    await db.collection('withdrawals').doc(withdrawalId).delete();
-    res.json({ message: 'Withdrawal deleted' });
+    const withdrawalRef = db.collection('withdrawals').doc(withdrawalId);
+    const doc = await withdrawalRef.get();
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Withdrawal not found' });
+    }
+
+    const data = doc.data() as any;
+    const completionDate = data.completionDate
+      ? new Date(data.completionDate)
+      : new Date();
+    const expiry = new Date(completionDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+    await withdrawalRef.update({
+      deletedForAdmin: true,
+      userExpiryDate: data.userExpiryDate || expiry.toISOString(),
+    });
+
+    res.json({ message: 'Withdrawal hidden from admin' });
   } catch (error) {
     console.error('Error deleting withdrawal:', error);
     res.status(500).json({ error: 'Failed to delete withdrawal' });
