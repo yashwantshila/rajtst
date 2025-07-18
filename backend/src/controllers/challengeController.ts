@@ -1,0 +1,273 @@
+import { Request, Response } from 'express';
+import { db } from '../config/firebase.js';
+
+interface ChallengeEntry {
+  userId: string;
+  challengeId: string;
+  date: string;
+  correctCount: number;
+  attemptCount: number;
+  attemptedQuestions: string[];
+  completed: boolean;
+  won: boolean;
+  startedAt: string;
+  completedAt?: string;
+}
+
+export const createChallenge = async (req: Request, res: Response) => {
+  try {
+    const { title, reward, requiredCorrect } = req.body as {
+      title: string;
+      reward: number;
+      requiredCorrect: number;
+    };
+    if (!title || !reward || !requiredCorrect) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+    const challengeRef = await db.collection('daily-challenges').add({
+      title,
+      reward,
+      requiredCorrect,
+      maxAttempts: requiredCorrect * 10,
+      active: true,
+      createdAt: new Date().toISOString(),
+    });
+    res.json({ id: challengeRef.id });
+  } catch (error) {
+    console.error('Error creating challenge:', error);
+    res.status(500).json({ error: 'Failed to create challenge' });
+  }
+};
+
+export const addQuestion = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const { text, options, correctAnswer } = req.body as {
+      text: string;
+      options: string[];
+      correctAnswer: string;
+    };
+    if (!text || !options || !correctAnswer) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+    await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .add({ text, options, correctAnswer });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error adding question:', error);
+    res.status(500).json({ error: 'Failed to add question' });
+  }
+};
+
+export const getDailyChallenges = async (_req: Request, res: Response) => {
+  try {
+    const snap = await db
+      .collection('daily-challenges')
+      .where('active', '==', true)
+      .get();
+    const challenges = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(challenges);
+  } catch (error) {
+    console.error('Error fetching challenges:', error);
+    res.status(500).json({ error: 'Failed to fetch challenges' });
+  }
+};
+
+export const startChallenge = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const date = new Date().toISOString().split('T')[0];
+    const entryId = `${challengeId}_${userId}_${date}`;
+    const entryRef = db.collection('daily-challenge-entries').doc(entryId);
+    const entryDoc = await entryRef.get();
+    if (entryDoc.exists) {
+      return res.status(400).json({ error: 'Already participated today' });
+    }
+    const entry: ChallengeEntry = {
+      userId,
+      challengeId,
+      date,
+      correctCount: 0,
+      attemptCount: 0,
+      attemptedQuestions: [],
+      completed: false,
+      won: false,
+      startedAt: new Date().toISOString(),
+    };
+    await entryRef.set(entry);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error starting challenge:', error);
+    res.status(500).json({ error: 'Failed to start challenge' });
+  }
+};
+
+export const getChallengeStatus = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const date = new Date().toISOString().split('T')[0];
+    const entryId = `${challengeId}_${userId}_${date}`;
+    const entryDoc = await db
+      .collection('daily-challenge-entries')
+      .doc(entryId)
+      .get();
+    if (!entryDoc.exists) {
+      return res.status(404).json({ error: 'Challenge not started' });
+    }
+    res.json(entryDoc.data());
+  } catch (error) {
+    console.error('Error getting status:', error);
+    res.status(500).json({ error: 'Failed to get status' });
+  }
+};
+
+export const getNextQuestion = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const date = new Date().toISOString().split('T')[0];
+    const entryId = `${challengeId}_${userId}_${date}`;
+    const entryRef = db.collection('daily-challenge-entries').doc(entryId);
+    const entryDoc = await entryRef.get();
+    if (!entryDoc.exists) {
+      return res.status(400).json({ error: 'Challenge not started' });
+    }
+    const entry = entryDoc.data() as ChallengeEntry;
+    if (entry.completed) {
+      return res.status(400).json({ error: 'Challenge already completed' });
+    }
+    const attempted = entry.attemptedQuestions || [];
+    const questionsSnap = await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .get();
+    const available = questionsSnap.docs.filter(q => !attempted.includes(q.id));
+    if (available.length === 0) {
+      return res.status(400).json({ error: 'No more questions' });
+    }
+    const randomDoc =
+      available[Math.floor(Math.random() * available.length)];
+    const data = randomDoc.data() as any;
+    const { correctAnswer, ...question } = data;
+    res.json({ id: randomDoc.id, ...question });
+  } catch (error) {
+    console.error('Error getting question:', error);
+    res.status(500).json({ error: 'Failed to get question' });
+  }
+};
+
+export const submitAnswer = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const { questionId, answer } = req.body as {
+      questionId: string;
+      answer: string;
+    };
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const date = new Date().toISOString().split('T')[0];
+    const entryId = `${challengeId}_${userId}_${date}`;
+    const entryRef = db.collection('daily-challenge-entries').doc(entryId);
+    const entryDoc = await entryRef.get();
+    if (!entryDoc.exists) {
+      return res.status(400).json({ error: 'Challenge not started' });
+    }
+    const entry = entryDoc.data() as ChallengeEntry;
+    if (entry.completed) {
+      return res.status(400).json({ error: 'Challenge already completed' });
+    }
+    const challengeDoc = await db.collection('daily-challenges').doc(challengeId).get();
+    if (!challengeDoc.exists) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+    const challenge = challengeDoc.data() as any;
+    const required = challenge.requiredCorrect;
+    const maxAttempts = challenge.maxAttempts || required * 10;
+    const reward = challenge.reward || 0;
+
+    const questionDoc = await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .doc(questionId)
+      .get();
+    if (!questionDoc.exists) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+    const qData = questionDoc.data() as any;
+    const isCorrect = qData.correctAnswer === answer;
+
+    const updated: Partial<ChallengeEntry> = {
+      attemptCount: entry.attemptCount + 1,
+      attemptedQuestions: [...entry.attemptedQuestions, questionId],
+    };
+    let correctCount = entry.correctCount;
+    if (isCorrect) {
+      correctCount += 1;
+      updated.correctCount = correctCount;
+    }
+
+    let completed = entry.completed;
+    let won = entry.won;
+    if (correctCount >= required) {
+      completed = true;
+      won = true;
+      updated.completed = true;
+      updated.won = true;
+      updated.completedAt = new Date().toISOString();
+    } else if (updated.attemptCount! >= maxAttempts) {
+      completed = true;
+      won = false;
+      updated.completed = true;
+      updated.won = false;
+      updated.completedAt = new Date().toISOString();
+    }
+
+    await entryRef.set(updated, { merge: true });
+
+    if (won && !entry.won) {
+      const balanceRef = db.collection('balance').doc(userId);
+      await db.runTransaction(async tx => {
+        const balDoc = await tx.get(balanceRef);
+        const current = balDoc.exists ? balDoc.data()?.amount || 0 : 0;
+        tx.set(
+          balanceRef,
+          {
+            amount: current + reward,
+            currency: 'INR',
+            lastUpdated: new Date().toISOString(),
+          },
+          { merge: true },
+        );
+      });
+    }
+
+    res.json({
+      correct: isCorrect,
+      correctCount,
+      attemptCount: updated.attemptCount,
+      completed,
+      won,
+    });
+  } catch (error) {
+    console.error('Error submitting answer:', error);
+    res.status(500).json({ error: 'Failed to submit answer' });
+  }
+};

@@ -8,6 +8,7 @@ import questionPaperRoutes from './questionPaperRoutes.js';
 import megaTestRoutes from './megaTestRoutes.js';
 import contentRoutes from './contentRoutes.js';
 import paidContentRoutes from './paidContentRoutes.js';
+import dailyChallengeRoutes from './dailyChallengeRoutes.js';
 import withdrawalRoutes from './withdrawalRoutes.js';
 
 const router = express.Router();
@@ -34,6 +35,9 @@ router.use('/mega-tests', megaTestRoutes);
 router.use('/content', contentRoutes);
 router.use('/paid-contents', paidContentRoutes);
 
+// Daily challenge routes
+router.use('/daily-challenges', dailyChallengeRoutes);
+
 // Withdrawal routes
 router.use('/withdrawals', withdrawalRoutes);
 
@@ -43,4 +47,6 @@ router.use('/admin', adminRoutes);
 // Health check route
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});export default router; 
+});
+
+export default router;
