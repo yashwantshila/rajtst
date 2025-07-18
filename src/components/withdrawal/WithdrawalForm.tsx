@@ -17,7 +17,6 @@ import {
   createWithdrawalRequest,
   MINIMUM_WITHDRAWAL_AMOUNT
 } from '../../services/api/withdrawal';
-import { updateUserBalance } from '../../services/api/balance';
 
 interface WithdrawalFormProps {
   userId: string;
@@ -41,18 +40,15 @@ export function WithdrawalForm({
   const createWithdrawalMutation = useMutation({
     mutationFn: async () => {
       const amountValue = parseFloat(amount);
-      
+
       try {
-        await updateUserBalance(userId, -amountValue);
-        
         return createWithdrawalRequest(
-          userId, 
-          amountValue, 
+          userId,
+          amountValue,
           upiId,
           userName || undefined
         );
       } catch (error: any) {
-        // Handle errors properly and rollback if needed
         console.error('Withdrawal request error:', error);
         throw error;
       }
@@ -66,13 +62,16 @@ export function WithdrawalForm({
     },
     onError: (error: any) => {
       console.error('Withdrawal request error:', error);
-      
-      if (error.name === 'InsufficientBalanceError') {
+
+      const message =
+        error?.response?.data?.error || error?.message || 'Failed to submit withdrawal request';
+
+      if (message.toLowerCase().includes('insufficient balance')) {
         toast.error('Insufficient balance for this withdrawal');
-      } else if (error.message && error.message.includes('Minimum withdrawal amount')) {
-        toast.error(error.message);
+      } else if (message.toLowerCase().includes('minimum withdrawal amount')) {
+        toast.error(message);
       } else {
-        toast.error(`Error: ${error.message || 'Failed to submit withdrawal request'}`);
+        toast.error(`Error: ${message}`);
       }
     }
   });
