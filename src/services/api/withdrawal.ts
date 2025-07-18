@@ -14,6 +14,8 @@ export interface WithdrawalRequest {
   requestDate: string;
   completionDate?: string;
   notes?: string;
+  userExpiryDate?: string;
+  deletedForAdmin?: boolean;
 }
 
 export const MINIMUM_WITHDRAWAL_AMOUNT = 50;
