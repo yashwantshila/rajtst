@@ -1,11 +1,7 @@
-import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Gift } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 import { getUserPrizes, UserPrize } from '../services/api/megaTest';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import PrizeClaimForm from './PrizeClaimForm';
 
 interface UserPrizesProps {
   userId: string;
@@ -13,11 +9,6 @@ interface UserPrizesProps {
 
 
 const UserPrizes = ({ userId }: UserPrizesProps) => {
-  const [selectedPrize, setSelectedPrize] = useState<{
-    megaTestId: string;
-    prize: string;
-    rank: number;
-  } | null>(null);
 
   const { data: prizes, isLoading, refetch } = useQuery({
     queryKey: ['user-prizes', userId],
@@ -88,47 +79,9 @@ const UserPrizes = ({ userId }: UserPrizesProps) => {
                   <div className="text-sm text-muted-foreground">{prize.prize}</div>
                 </div>
               </div>
-              {prize.claimStatus === 'unclaimed' ? (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => setSelectedPrize({
-                        megaTestId: prize.megaTestId,
-                        prize: prize.prize,
-                        rank: prize.rank
-                      })}
-                    >
-                      <Gift className="h-4 w-4 mr-2" />
-                      Claim Prize
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Claim Your Prize</DialogTitle>
-                    </DialogHeader>
-                    {selectedPrize && (
-                      <PrizeClaimForm
-                        megaTestId={selectedPrize.megaTestId}
-                        prize={selectedPrize.prize}
-                        rank={selectedPrize.rank}
-                        onSuccess={() => {
-                          refetch();
-                          setSelectedPrize(null);
-                        }}
-                      />
-                    )}
-                  </DialogContent>
-                </Dialog>
-              ) : (
-                <div className="text-sm font-medium">
-                  {prize.claimStatus === 'pending' && <span className="text-yellow-600">Claim Pending</span>}
-                  {prize.claimStatus === 'approved' && <span className="text-green-600">Claim Approved</span>}
-                  {prize.claimStatus === 'rejected' && <span className="text-red-600">Claim Rejected</span>}
-                  {prize.claimStatus === 'claimed' && <span className="text-green-600">Prize Claimed</span>}
-                </div>
-              )}
+              <div className="text-sm font-medium text-green-600">
+                Credited to Balance
+              </div>
             </div>
           ))}
         </div>

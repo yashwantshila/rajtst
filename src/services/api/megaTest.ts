@@ -8,18 +8,8 @@ export interface UserPrize {
   megaTestTitle: string;
   prize: string;
   rank: number;
-  claimStatus: 'unclaimed' | 'pending' | 'approved' | 'rejected' | 'claimed';
+  claimStatus: 'credited';
 }
-
-export const submitPrizeClaim = async (
-  megaTestId: string,
-  data: { name: string; mobile: string; address: string; prize: string; rank: number; ipAddress?: string; deviceId?: string }
-): Promise<void> => {
-  const token = await getAuthToken();
-  await axios.post(`${API_URL}/api/mega-tests/${megaTestId}/prize-claims`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-};
 
 export const getUserPrizes = async (userId: string): Promise<UserPrize[]> => {
   const token = await getAuthToken();
@@ -63,7 +53,7 @@ export interface MegaTestQuestion {
 
 export interface MegaTestPrize {
   rank: number;
-  prize: string;
+  prize: number;
 }
 
 export const getMegaTestLeaderboard = async (

@@ -1,7 +1,6 @@
 import express from 'express';
 import { authenticateUser } from '../middleware/auth.js';
 import {
-  submitPrizeClaim,
   getMegaTestLeaderboard,
   getMegaTests,
   registerForMegaTest,
@@ -26,6 +25,5 @@ router.get('/:megaTestId/registration-status/:userId', isUserRegistered);
 router.get('/:megaTestId/submission-status/:userId', hasUserSubmittedMegaTest);
 router.post('/:megaTestId/start', startMegaTest);
 router.post('/:megaTestId/submit', submitMegaTestResult);
-router.post('/:megaTestId/prize-claims', submitPrizeClaim);
 
 export default router;

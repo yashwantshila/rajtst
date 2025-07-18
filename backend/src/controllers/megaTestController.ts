@@ -1,40 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
 
-export const submitPrizeClaim = async (req: Request, res: Response) => {
-  try {
-    const { megaTestId } = req.params;
-    const { name, mobile, address, prize, rank, ipAddress, deviceId } = req.body;
-    const userId = req.user?.uid;
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
-
-    const claimRef = db
-      .collection('mega-tests')
-      .doc(megaTestId)
-      .collection('prize-claims')
-      .doc(userId);
-
-    await claimRef.set({
-      name,
-      mobile,
-      address,
-      prize,
-      rank,
-      userId,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      ipAddress: ipAddress || req.ip,
-      deviceId: deviceId || null,
-    });
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error submitting prize claim:', error);
-    res.status(500).json({ error: 'Failed to submit prize claim' });
-  }
-};
 
 export const getUserPrizes = async (req: Request, res: Response) => {
   try {
@@ -50,16 +16,16 @@ export const getUserPrizes = async (req: Request, res: Response) => {
       const resultTime = megaTest.resultTime?.toMillis?.() ?? 0;
       if (resultTime > now) continue;
 
-      const leaderboardSnap = await db
+      const leaderboardRef = db
         .collection('mega-tests')
         .doc(megaTestId)
         .collection('leaderboard')
-        .where('userId', '==', userId)
-        .get();
+        .doc(userId);
+      const leaderboardDoc = await leaderboardRef.get();
 
-      if (leaderboardSnap.empty) continue;
+      if (!leaderboardDoc.exists) continue;
 
-      const userEntry = leaderboardSnap.docs[0].data();
+      const userEntry = leaderboardDoc.data() as any;
       const rank = userEntry.rank;
 
       const prizesSnap = await db
@@ -74,24 +40,29 @@ export const getUserPrizes = async (req: Request, res: Response) => {
 
       if (!prize) continue;
 
-      const claimSnap = await db
-        .collection('mega-tests')
-        .doc(megaTestId)
-        .collection('prize-claims')
-        .doc(userId)
-        .get();
+      const amount = parseFloat(String(prize.prize).replace(/[^0-9.]/g, ''));
+      if (isNaN(amount) || amount <= 0) continue;
 
-      let claimStatus = 'unclaimed';
-      if (claimSnap.exists) {
-        claimStatus = (claimSnap.data() as any).status || 'claimed';
+      if (!userEntry.prizeCredited) {
+        const balanceRef = db.collection('balance').doc(userId);
+        await db.runTransaction(async tx => {
+          const balDoc = await tx.get(balanceRef);
+          const current = balDoc.exists ? balDoc.data()?.amount || 0 : 0;
+          tx.set(balanceRef, {
+            amount: current + amount,
+            currency: 'INR',
+            lastUpdated: new Date().toISOString(),
+          }, { merge: true });
+          tx.update(leaderboardRef, { prizeCredited: true });
+        });
       }
 
       result.push({
         megaTestId,
         megaTestTitle: megaTest.title,
-        prize: prize.prize,
+        prize: `₹${amount}`,
         rank: prize.rank,
-        claimStatus,
+        claimStatus: 'credited',
       });
     }
 
