@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Wallet, Trophy, Gift, FileText, ScrollText, Info, Book, FileArchive, DollarSign } from 'lucide-react';
+import { Users, BookOpen, Wallet, Trophy, FileText, ScrollText, Info, Book, FileArchive, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -13,7 +13,6 @@ import { TermsAndConditionsManager } from '../components/admin/TermsAndCondition
 import { AboutUsManager } from '../components/admin/AboutUsManager';
 import GuideManager from '../components/admin/GuideManager';
 import MegaTestManager from './admin/MegaTestManager';
-import PrizeClaimsManager from './admin/PrizeClaimsManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
 import { getAllUsers, getAllBalances } from '@/services/api/admin';
@@ -102,10 +101,6 @@ const Admin = () => {
               <Trophy className="h-4 w-4" />
               <span>Mega Tests</span>
             </TabsTrigger>
-            <TabsTrigger value="prize-claims" className="flex items-center gap-2">
-              <Gift className="h-4 w-4" />
-              <span>Prize Claims</span>
-            </TabsTrigger>
             <TabsTrigger value="question-papers" className="flex items-center gap-2">
               <FileArchive className="h-4 w-4" />
               <span>Question Papers</span>
@@ -152,9 +147,6 @@ const Admin = () => {
             <MegaTestManager />
           </TabsContent>
 
-          <TabsContent value="prize-claims">
-            <PrizeClaimsManager />
-          </TabsContent>
 
           <TabsContent value="question-papers">
             <QuestionPaperCategories />

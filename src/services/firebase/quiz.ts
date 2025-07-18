@@ -465,7 +465,7 @@ export interface MegaTestLeaderboardEntry {
 
 export interface MegaTestPrize {
   rank: number;
-  prize: string;
+  prize: number;
 }
 
 export const getMegaTests = async (): Promise<MegaTest[]> => {

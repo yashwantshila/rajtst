@@ -73,7 +73,7 @@ const MegaTestManager = () => {
     testEndTime: '',
     resultTime: '',
     entryFee: 0,
-    prizes: [] as { rank: number; prize: string }[],
+    prizes: [] as { rank: number; prize: number }[],
     timeLimit: 60, // Default 60 minutes
   });
 
@@ -336,7 +336,7 @@ const MegaTestManager = () => {
       ...formData,
       prizes: [
         ...formData.prizes,
-        { rank: formData.prizes.length + 1, prize: '' }
+        { rank: formData.prizes.length + 1, prize: 0 }
       ],
     });
   };
@@ -351,10 +351,12 @@ const MegaTestManager = () => {
   };
 
   const handleUpdateWinnerPrize = (index: number, value: string) => {
+    const amount = parseFloat(value);
+    if (isNaN(amount)) return;
     setFormData({
       ...formData,
-      prizes: formData.prizes.map((prize, i) => 
-        i === index ? { ...prize, prize: value } : prize
+      prizes: formData.prizes.map((prize, i) =>
+        i === index ? { ...prize, prize: amount } : prize
       ),
     });
   };
@@ -688,9 +690,10 @@ const MegaTestManager = () => {
                         {prize.rank}
                       </div>
                       <Input
+                        type="number"
                         value={prize.prize}
                         onChange={(e) => handleUpdateWinnerPrize(index, e.target.value)}
-                        placeholder={`Enter prize for ${prize.rank}${prize.rank === 1 ? 'st' : prize.rank === 2 ? 'nd' : prize.rank === 3 ? 'rd' : 'th'} place`}
+                        placeholder={`Cash prize for ${prize.rank}${prize.rank === 1 ? 'st' : prize.rank === 2 ? 'nd' : prize.rank === 3 ? 'rd' : 'th'} place`}
                         required
                       />
                       {index >= 3 && (
@@ -1167,9 +1170,10 @@ const MegaTestManager = () => {
                       {prize.rank}
                     </div>
                     <Input
+                      type="number"
                       value={prize.prize}
                       onChange={(e) => handleUpdateWinnerPrize(index, e.target.value)}
-                      placeholder={`Enter prize for ${prize.rank}${prize.rank === 1 ? 'st' : prize.rank === 2 ? 'nd' : prize.rank === 3 ? 'rd' : 'th'} place`}
+                      placeholder={`Cash prize for ${prize.rank}${prize.rank === 1 ? 'st' : prize.rank === 2 ? 'nd' : prize.rank === 3 ? 'rd' : 'th'} place`}
                       required
                     />
                     {index >= 3 && (
