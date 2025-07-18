@@ -58,9 +58,23 @@ export const getUserBalance = async (req: Request, res: Response) => {
 export const updateUserBalance = async (req: Request, res: Response) => {
   try {
     const { userId, amount } = req.body;
-    
+    const authUserId = req.user?.uid;
+    const userRole = req.user?.role;
+
     if (!userId || amount === undefined) {
       return res.status(400).json({ error: 'User ID and amount are required' });
+    }
+
+    if (!authUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (authUserId !== userId && userRole !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    if (userRole !== 'admin' && amount > 0) {
+      return res.status(403).json({ error: 'Only admins can increase balance' });
     }
 
     const balanceRef = db.collection('balance').doc(userId);

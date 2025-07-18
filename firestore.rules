@@ -133,7 +133,8 @@ service cloud.firestore {
       // Mega test leaderboard
       match /leaderboard/{userId} {
         allow read: if true;
-        allow write: if isAuthenticated();
+        // Only admin users (server) may write leaderboard entries
+        allow write: if isAdmin();
       }
       
       // Mega test prize-claims

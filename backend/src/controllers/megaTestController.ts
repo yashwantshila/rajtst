@@ -170,6 +170,12 @@ export const startMegaTest = async (req: Request, res: Response) => {
       .collection('participants')
       .doc(userId);
 
+    const existing = await participantRef.get();
+    if (existing.exists && (existing.data() as any).startTime) {
+      // Prevent resetting start time to avoid manipulating completion time
+      return res.json({ success: true, message: 'Mega test already started' });
+    }
+
     await participantRef.set(
       {
         startTime: new Date().toISOString(),
@@ -269,9 +275,8 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
   try {
     const { megaTestId } = req.params;
     const userId = req.user?.uid;
-    const { answers, completionTime } = req.body as {
+    const { answers } = req.body as {
       answers: Record<string, string>;
-      completionTime: number;
     };
 
     if (!userId) {
@@ -300,14 +305,17 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
     const leaderboardSnap = await leaderboardRef.get();
     const leaderboard = leaderboardSnap.docs.map(doc => doc.data() as any);
 
-    let computedCompletionTime = completionTime;
-    if (participantDoc.exists) {
-      const start = (participantDoc.data() as any).startTime;
-      if (start) {
-        const startMs = new Date(start).getTime();
-        computedCompletionTime = Math.floor((Date.now() - startMs) / 1000);
-      }
+    if (!participantDoc.exists) {
+      return res.status(400).json({ error: 'Mega test not started' });
     }
+
+    const start = (participantDoc.data() as any).startTime;
+    if (!start) {
+      return res.status(400).json({ error: 'Mega test start time missing' });
+    }
+
+    const startMs = new Date(start).getTime();
+    const computedCompletionTime = Math.floor((Date.now() - startMs) / 1000);
 
     const newEntry = {
       userId,
