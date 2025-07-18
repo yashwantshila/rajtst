@@ -13,7 +13,7 @@ export interface UserPrize {
 
 export const getUserPrizes = async (userId: string): Promise<UserPrize[]> => {
   const token = await getAuthToken();
-  const res = await axios.get(`${API_URL}/api/users/${userId}/prizes`, {
+  const res = await axios.get(`${API_URL}/api/users/prizes/${userId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return res.data;
