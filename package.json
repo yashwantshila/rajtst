@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "validate-env": "tsx scripts/validate-env.ts",
-    "build:blog": "cd blog && npm run build"
+    "build:blog": "cd blog && npm run build",
+    "build:all": "npm run build:blog && vite build && cp -r blog/out dist/blog"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
