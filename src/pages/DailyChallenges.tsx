@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { getDailyChallenges, startChallenge, DailyChallenge, getChallengeStatus } from '@/services/api/dailyChallenge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Trophy, ListChecks, Clock } from 'lucide-react';
 import { useAuth } from '@/App';
 import { toast } from 'sonner';
 
