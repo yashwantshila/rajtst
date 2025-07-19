@@ -348,7 +348,15 @@ export const submitAnswer = async (req: Request, res: Response) => {
     }
     const qData = questionDoc.data() as any;
     const normalize = (val: string) => val.trim().toLowerCase();
-    const isCorrect = normalize(qData.correctAnswer) === normalize(answer);
+    let isCorrect: boolean;
+    const letter = normalize(qData.correctAnswer);
+    if (["a", "b", "c", "d"].includes(letter)) {
+      const idx = ["a", "b", "c", "d"].indexOf(letter);
+      const correctText = qData.options?.[idx] || "";
+      isCorrect = normalize(correctText) === normalize(answer);
+    } else {
+      isCorrect = normalize(qData.correctAnswer) === normalize(answer);
+    }
 
     const updated: Partial<ChallengeEntry> = {
       attemptedQuestions: [...entry.attemptedQuestions, questionId],
