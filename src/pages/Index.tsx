@@ -695,16 +695,28 @@ const Home = () => {
           <div className="grid gap-4">
             {dailyChallenges && dailyChallenges.length > 0 ? (
               dailyChallenges.slice(0, 3).map(ch => (
-                <Card key={ch.id} className="hover:shadow-lg transition-shadow">
-                  <CardHeader>
-                    <CardTitle>{ch.title}</CardTitle>
+                <Card
+                  key={ch.id}
+                  className="relative overflow-hidden border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-white via-purple-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-all duration-300 hover:shadow-xl"
+                >
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-semibold text-purple-700 dark:text-purple-400">
+                      {ch.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Reward: ₹{ch.reward}</p>
-                      <p className="text-sm text-muted-foreground">Required Correct: {ch.requiredCorrect}</p>
+                    <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                      <p className="flex items-center">
+                        <Trophy className="h-4 w-4 text-yellow-500 mr-1" />
+                        Reward: ₹{ch.reward}
+                      </p>
+                      <p className="flex items-center">
+                        <ListChecks className="h-4 w-4 text-green-500 mr-1" />
+                        Required Correct: {ch.requiredCorrect}
+                      </p>
                     </div>
                     <Button
+                      className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
                       onClick={() =>
                         !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)
                       }
@@ -722,7 +734,10 @@ const Home = () => {
               <p className="text-muted-foreground">No challenges available.</p>
             )}
             {dailyChallenges && dailyChallenges.length > 3 && (
-              <Button onClick={() => navigate('/daily-challenges')} variant="outline">
+              <Button
+                onClick={() => navigate('/daily-challenges')}
+                className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600"
+              >
                 View All Challenges
               </Button>
             )}
