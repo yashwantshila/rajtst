@@ -6,7 +6,6 @@ interface ChallengeEntry {
   challengeId: string;
   date: string;
   correctCount: number;
-  attemptCount: number;
   attemptedQuestions: string[];
   completed: boolean;
   won: boolean;
@@ -16,19 +15,20 @@ interface ChallengeEntry {
 
 export const createChallenge = async (req: Request, res: Response) => {
   try {
-    const { title, reward, requiredCorrect } = req.body as {
+    const { title, reward, requiredCorrect, timeLimit } = req.body as {
       title: string;
       reward: number;
       requiredCorrect: number;
+      timeLimit: number;
     };
-    if (!title || !reward || !requiredCorrect) {
+    if (!title || !reward || !requiredCorrect || !timeLimit) {
       return res.status(400).json({ error: 'Missing fields' });
     }
     const challengeRef = await db.collection('daily-challenges').add({
       title,
       reward,
       requiredCorrect,
-      maxAttempts: requiredCorrect * 10,
+      timeLimit,
       active: true,
       createdAt: new Date().toISOString(),
     });
@@ -101,6 +101,69 @@ export const getQuestions = async (req: Request, res: Response) => {
   }
 };
 
+export const updateQuestion = async (req: Request, res: Response) => {
+  try {
+    const { challengeId, questionId } = req.params;
+    const { text, options, correctAnswer } = req.body as {
+      text: string;
+      options: string[];
+      correctAnswer: string;
+    };
+    await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .doc(questionId)
+      .update({ text, options, correctAnswer });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating question:', error);
+    res.status(500).json({ error: 'Failed to update question' });
+  }
+};
+
+export const deleteQuestion = async (req: Request, res: Response) => {
+  try {
+    const { challengeId, questionId } = req.params;
+    await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .doc(questionId)
+      .delete();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting question:', error);
+    res.status(500).json({ error: 'Failed to delete question' });
+  }
+};
+
+export const deleteChallenge = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    await db.collection('daily-challenges').doc(challengeId).delete();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting challenge:', error);
+    res.status(500).json({ error: 'Failed to delete challenge' });
+  }
+};
+
+export const getQuestionCount = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const snap = await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .get();
+    res.json({ count: snap.size });
+  } catch (error) {
+    console.error('Error getting question count:', error);
+    res.status(500).json({ error: 'Failed to get count' });
+  }
+};
+
 export const getDailyChallenges = async (_req: Request, res: Response) => {
   try {
     const snap = await db
@@ -134,7 +197,6 @@ export const startChallenge = async (req: Request, res: Response) => {
       challengeId,
       date,
       correctCount: 0,
-      attemptCount: 0,
       attemptedQuestions: [],
       completed: false,
       won: false,
@@ -164,7 +226,9 @@ export const getChallengeStatus = async (req: Request, res: Response) => {
     if (!entryDoc.exists) {
       return res.status(404).json({ error: 'Challenge not started' });
     }
-    res.json(entryDoc.data());
+    const challengeDoc = await db.collection('daily-challenges').doc(challengeId).get();
+    const timeLimit = challengeDoc.exists ? (challengeDoc.data() as any).timeLimit : 0;
+    res.json({ ...(entryDoc.data() as any), timeLimit });
   } catch (error) {
     console.error('Error getting status:', error);
     res.status(500).json({ error: 'Failed to get status' });
@@ -238,8 +302,8 @@ export const submitAnswer = async (req: Request, res: Response) => {
     }
     const challenge = challengeDoc.data() as any;
     const required = challenge.requiredCorrect;
-    const maxAttempts = challenge.maxAttempts || required * 10;
     const reward = challenge.reward || 0;
+    const timeLimit = challenge.timeLimit || 0;
 
     const questionDoc = await db
       .collection('daily-challenges')
@@ -254,7 +318,6 @@ export const submitAnswer = async (req: Request, res: Response) => {
     const isCorrect = qData.correctAnswer === answer;
 
     const updated: Partial<ChallengeEntry> = {
-      attemptCount: entry.attemptCount + 1,
       attemptedQuestions: [...entry.attemptedQuestions, questionId],
     };
     let correctCount = entry.correctCount;
@@ -270,12 +333,6 @@ export const submitAnswer = async (req: Request, res: Response) => {
       won = true;
       updated.completed = true;
       updated.won = true;
-      updated.completedAt = new Date().toISOString();
-    } else if (updated.attemptCount! >= maxAttempts) {
-      completed = true;
-      won = false;
-      updated.completed = true;
-      updated.won = false;
       updated.completedAt = new Date().toISOString();
     }
 
@@ -301,9 +358,9 @@ export const submitAnswer = async (req: Request, res: Response) => {
     res.json({
       correct: isCorrect,
       correctCount,
-      attemptCount: updated.attemptCount,
       completed,
       won,
+      timeLimit,
     });
   } catch (error) {
     console.error('Error submitting answer:', error);

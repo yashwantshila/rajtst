@@ -61,6 +61,7 @@ const DailyChallenges = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Reward: ₹{ch.reward}</p>
                 <p className="text-sm text-muted-foreground">Required Correct: {ch.requiredCorrect}</p>
+                <p className="text-sm text-muted-foreground">Time Limit: {ch.timeLimit}s</p>
               </div>
               <Button onClick={() => handleStart(ch)}>Start</Button>
             </CardContent>

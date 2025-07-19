@@ -6,6 +6,10 @@ import {
   addQuestion,
   addBulkQuestions,
   getQuestions,
+  updateQuestion,
+  deleteQuestion,
+  deleteChallenge,
+  getQuestionCount,
   getDailyChallenges,
   startChallenge,
   getChallengeStatus,
@@ -31,5 +35,9 @@ router.post('/', createChallenge);
 router.post('/:challengeId/questions', addQuestion);
 router.post('/:challengeId/questions/bulk', addBulkQuestions);
 router.get('/:challengeId/questions', getQuestions);
+router.get('/:challengeId/questions/count', getQuestionCount);
+router.put('/:challengeId/questions/:questionId', updateQuestion);
+router.delete('/:challengeId/questions/:questionId', deleteQuestion);
+router.delete('/:challengeId', deleteChallenge);
 
 export default router;

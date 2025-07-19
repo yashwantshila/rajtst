@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getQuizCategories } from '../services/api/quiz';
 import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/api/megaTest';
-import { getDailyChallenges, DailyChallenge } from '../services/api/dailyChallenge';
+import { getDailyChallenges, DailyChallenge, startChallenge, getChallengeStatus } from '../services/api/dailyChallenge';
 import { parseTimestamp } from '@/utils/parseTimestamp';
 import { AuthContext } from '../App';
 import { Card } from "@/components/ui/card";
@@ -125,6 +125,25 @@ const Home = () => {
   });
 
   const [registeringId, setRegisteringId] = useState<string | null>(null);
+
+  const startMutation = useMutation({
+    mutationFn: (id: string) => startChallenge(id),
+    onSuccess: (_d, id) => {
+      toast.success('Challenge started');
+      navigate(`/daily-challenges/${id}`);
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to start'),
+  });
+
+  const handleStartChallenge = async (ch: DailyChallenge) => {
+    if (!user) { toast.error('Please login first'); navigate('/auth'); return; }
+    const status = await getChallengeStatus(ch.id).catch(() => null);
+    if (!status) {
+      await startMutation.mutateAsync(ch.id);
+    } else {
+      navigate(`/daily-challenges/${ch.id}`);
+    }
+  };
 
   const handleRegister = async (megaTestId: string) => {
     if (!user) {
@@ -643,10 +662,11 @@ const Home = () => {
 
         <div>
           <h2 className="text-2xl font-bold mb-6 flex items-center justify-center">
-            <div className="relative group">
+            <div className="relative group flex items-center">
               <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-extrabold text-2xl tracking-wide uppercase">
                 Daily Challenges
               </span>
+              <Button variant="outline" size="sm" className="ml-2" onClick={() => navigate('/daily-challenges')}>All</Button>
               <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
               <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 rounded-full"></div>
             </div>
@@ -663,7 +683,7 @@ const Home = () => {
                       <p className="text-sm text-muted-foreground">Reward: ₹{ch.reward}</p>
                       <p className="text-sm text-muted-foreground">Required Correct: {ch.requiredCorrect}</p>
                     </div>
-                    <Button onClick={() => !isAuthenticated ? navigate('/auth') : navigate(`/daily-challenges/${ch.id}`)}>
+                    <Button onClick={() => !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)}>
                       {!isAuthenticated ? 'Sign in' : 'Start'}
                     </Button>
                   </CardContent>
