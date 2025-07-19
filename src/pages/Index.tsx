@@ -891,12 +891,12 @@ const Home = () => {
               About Us
             </Link>
             <span className="hidden sm:inline text-sm">•</span>
-            <Link
-              to="/blog"
+            <a
+              href="/blog/"
               className="text-sm hover:text-foreground transition-colors"
             >
               Blog
-            </Link>
+            </a>
           </div>
         </div>
       </footer>
