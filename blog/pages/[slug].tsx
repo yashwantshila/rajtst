@@ -3,6 +3,7 @@ import { GetStaticPropsContext } from 'next';
 import { getPostSlugs, getPostBySlug, Post } from '../lib/posts';
 import { remark } from 'remark';
 import html from 'remark-html';
+import DOMPurify from 'isomorphic-dompurify';
 
 export async function getStaticPaths() {
   const slugs = getPostSlugs();
@@ -32,7 +33,9 @@ export default function PostPage({ post }: Props) {
       </Head>
       <main style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
         <h1>{post.title}</h1>
-        <div dangerouslySetInnerHTML={{ __html: post.content }} />
+        <div
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
+        />
       </main>
     </>
   );
