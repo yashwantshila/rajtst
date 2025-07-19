@@ -96,7 +96,7 @@ const DailyChallengePlay = () => {
   return (
     <div className="container mx-auto p-4 max-w-xl">
       {question ? (
-        <Card>
+        <Card className="border-2 border-purple-200 bg-gradient-to-br from-white via-purple-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700">
           <CardHeader>
             <CardTitle>{question.text}</CardTitle>
           </CardHeader>
@@ -104,7 +104,7 @@ const DailyChallengePlay = () => {
             {timeLeft !== null && (
               <div className="w-full bg-gray-200 h-2 rounded mb-2 overflow-hidden">
                 <div
-                  className="h-full bg-green-500"
+                  className="h-full bg-gradient-to-r from-green-400 to-blue-500"
                   style={{ width: `${(timeLeft / status.timeLimit) * 100}%` }}
                 />
               </div>

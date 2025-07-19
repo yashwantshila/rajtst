@@ -72,20 +72,39 @@ const DailyChallenges = () => {
 
   return (
     <div className="container mx-auto p-4 max-w-3xl">
-      <h1 className="text-3xl font-bold mb-6">Daily Challenges</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+        Daily Challenges
+      </h1>
       <div className="grid gap-4">
         {challenges?.map(ch => (
-          <Card key={ch.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <CardTitle>{ch.title}</CardTitle>
+          <Card
+            key={ch.id}
+            className="relative overflow-hidden border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-white via-purple-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-all duration-300 hover:shadow-xl"
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-semibold text-purple-700 dark:text-purple-400">
+                {ch.title}
+              </CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Reward: ₹{ch.reward}</p>
-                <p className="text-sm text-muted-foreground">Required Correct: {ch.requiredCorrect}</p>
-                <p className="text-sm text-muted-foreground">Time Limit: {ch.timeLimit}s</p>
+              <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                <p className="flex items-center">
+                  <Trophy className="h-4 w-4 text-yellow-500 mr-1" />
+                  Reward: ₹{ch.reward}
+                </p>
+                <p className="flex items-center">
+                  <ListChecks className="h-4 w-4 text-green-500 mr-1" />
+                  Required Correct: {ch.requiredCorrect}
+                </p>
+                <p className="flex items-center">
+                  <Clock className="h-4 w-4 text-blue-500 mr-1" />
+                  Time Limit: {ch.timeLimit}s
+                </p>
               </div>
-              <Button onClick={() => handleStart(ch)}>
+              <Button
+                className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
+                onClick={() => handleStart(ch)}
+              >
                 {played[ch.id] ? 'View Result' : 'Start'}
               </Button>
             </CardContent>
