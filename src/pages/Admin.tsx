@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Wallet, Trophy, FileText, ScrollText, Info, Book, FileArchive, DollarSign } from 'lucide-react';
+import { Users, BookOpen, Wallet, Trophy, FileText, ScrollText, Info, Book, FileArchive, DollarSign, Flame } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -15,6 +15,7 @@ import GuideManager from '../components/admin/GuideManager';
 import MegaTestManager from './admin/MegaTestManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
+import DailyChallengeManager from './admin/DailyChallengeManager';
 import { WithdrawalManagement } from '../components/admin/WithdrawalManagement';
 import { getAllUsers, getAllBalances } from '@/services/api/admin';
 import { db } from '@/services/firebase/config';
@@ -102,6 +103,10 @@ const Admin = () => {
               <Trophy className="h-4 w-4" />
               <span>Mega Tests</span>
             </TabsTrigger>
+            <TabsTrigger value="daily-challenges" className="flex items-center gap-2">
+              <Flame className="h-4 w-4" />
+              <span>Daily Challenges</span>
+            </TabsTrigger>
             <TabsTrigger value="question-papers" className="flex items-center gap-2">
               <FileArchive className="h-4 w-4" />
               <span>Question Papers</span>
@@ -152,6 +157,9 @@ const Admin = () => {
             <MegaTestManager />
           </TabsContent>
 
+          <TabsContent value="daily-challenges">
+            <DailyChallengeManager />
+          </TabsContent>
 
           <TabsContent value="question-papers">
             <QuestionPaperCategories />
