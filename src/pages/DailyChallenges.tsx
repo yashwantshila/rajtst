@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { getDailyChallenges, startChallenge, DailyChallenge, getChallengeStatus } from '@/services/api/dailyChallenge';
@@ -16,6 +16,8 @@ const DailyChallenges = () => {
     queryFn: getDailyChallenges,
   });
 
+  const [played, setPlayed] = useState<Record<string, boolean>>({});
+
   const startMutation = useMutation({
     mutationFn: (id: string) => startChallenge(id),
     onSuccess: (_data, id) => {
@@ -31,6 +33,25 @@ const DailyChallenges = () => {
     refetch();
   }, [refetch]);
 
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      if (!user || !challenges) return;
+      const results = await Promise.all(
+        challenges.map(ch =>
+          getChallengeStatus(ch.id)
+            .then(() => true)
+            .catch(() => false),
+        ),
+      );
+      const map: Record<string, boolean> = {};
+      challenges.forEach((ch, idx) => {
+        map[ch.id] = results[idx];
+      });
+      setPlayed(map);
+    };
+    fetchStatuses();
+  }, [user, challenges]);
+
   const handleStart = async (challenge: DailyChallenge) => {
     if (!user) {
       toast.error('Please login first');
@@ -40,6 +61,7 @@ const DailyChallenges = () => {
       const status = await getChallengeStatus(challenge.id).catch(() => null);
       if (!status) {
         await startMutation.mutateAsync(challenge.id);
+        setPlayed(prev => ({ ...prev, [challenge.id]: true }));
       } else {
         navigate(`/daily-challenges/${challenge.id}`);
       }
@@ -63,7 +85,12 @@ const DailyChallenges = () => {
                 <p className="text-sm text-muted-foreground">Required Correct: {ch.requiredCorrect}</p>
                 <p className="text-sm text-muted-foreground">Time Limit: {ch.timeLimit}s</p>
               </div>
-              <Button onClick={() => handleStart(ch)}>Start</Button>
+              <Button
+                onClick={() => handleStart(ch)}
+                disabled={!!played[ch.id]}
+              >
+                {played[ch.id] ? 'Already Played' : 'Start'}
+              </Button>
             </CardContent>
           </Card>
         ))}

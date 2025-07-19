@@ -125,6 +125,7 @@ const Home = () => {
   });
 
   const [registeringId, setRegisteringId] = useState<string | null>(null);
+  const [playedChallenges, setPlayedChallenges] = useState<Record<string, boolean>>({});
 
   const startMutation = useMutation({
     mutationFn: (id: string) => startChallenge(id),
@@ -135,11 +136,31 @@ const Home = () => {
     onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to start'),
   });
 
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      if (!user || !dailyChallenges) return;
+      const results = await Promise.all(
+        dailyChallenges.map(ch =>
+          getChallengeStatus(ch.id)
+            .then(() => true)
+            .catch(() => false),
+        ),
+      );
+      const map: Record<string, boolean> = {};
+      dailyChallenges.forEach((ch, idx) => {
+        map[ch.id] = results[idx];
+      });
+      setPlayedChallenges(map);
+    };
+    fetchStatuses();
+  }, [user, dailyChallenges]);
+
   const handleStartChallenge = async (ch: DailyChallenge) => {
     if (!user) { toast.error('Please login first'); navigate('/auth'); return; }
     const status = await getChallengeStatus(ch.id).catch(() => null);
     if (!status) {
       await startMutation.mutateAsync(ch.id);
+      setPlayedChallenges(prev => ({ ...prev, [ch.id]: true }));
     } else {
       navigate(`/daily-challenges/${ch.id}`);
     }
@@ -683,8 +704,17 @@ const Home = () => {
                       <p className="text-sm text-muted-foreground">Reward: ₹{ch.reward}</p>
                       <p className="text-sm text-muted-foreground">Required Correct: {ch.requiredCorrect}</p>
                     </div>
-                    <Button onClick={() => !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)}>
-                      {!isAuthenticated ? 'Sign in' : 'Start'}
+                    <Button
+                      onClick={() =>
+                        !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)
+                      }
+                      disabled={!!playedChallenges[ch.id] && isAuthenticated}
+                    >
+                      {!isAuthenticated
+                        ? 'Sign in'
+                        : playedChallenges[ch.id]
+                        ? 'Already Played'
+                        : 'Start'}
                     </Button>
                   </CardContent>
                 </Card>
