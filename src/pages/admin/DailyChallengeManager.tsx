@@ -5,6 +5,10 @@ import {
   adminAddQuestion,
   adminAddBulkQuestions,
   adminGetQuestions,
+  adminDeleteChallenge,
+  adminUpdateQuestion,
+  adminDeleteQuestion,
+  adminGetQuestionCount,
   getDailyChallenges,
 } from '@/services/api/dailyChallenge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -23,8 +27,8 @@ const DailyChallengeManager = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: ({ title, reward, requiredCorrect }: { title: string; reward: number; requiredCorrect: number }) =>
-      adminCreateChallenge(title, reward, requiredCorrect),
+    mutationFn: ({ title, reward, requiredCorrect, timeLimit }: { title: string; reward: number; requiredCorrect: number; timeLimit: number }) =>
+      adminCreateChallenge(title, reward, requiredCorrect, timeLimit),
     onSuccess: () => {
       toast.success('Challenge created');
       queryClient.invalidateQueries({ queryKey: ['daily-challenges-admin'] });
@@ -32,7 +36,7 @@ const DailyChallengeManager = () => {
     onError: (err: any) => toast.error(err.response?.data?.error || 'Failed'),
   });
 
-  const [createForm, setCreateForm] = useState({ title: '', reward: '', requiredCorrect: '' });
+  const [createForm, setCreateForm] = useState({ title: '', reward: '', requiredCorrect: '', timeLimit: '' });
   const [questionForm, setQuestionForm] = useState({ text: '', a: '', b: '', c: '', d: '', correct: 'a' });
   const [activeChallenge, setActiveChallenge] = useState<string | null>(null);
   const [bulkChallenge, setBulkChallenge] = useState<string | null>(null);
@@ -58,11 +62,40 @@ const DailyChallengeManager = () => {
     onError: (err: any) => toast.error(err.response?.data?.error || 'Failed'),
   });
 
-  const { data: questionList } = useQuery({
+  const { data: questionList, refetch: refetchQuestions } = useQuery({
     queryKey: ['challenge-questions', viewChallenge],
     queryFn: () => adminGetQuestions(viewChallenge!),
     enabled: !!viewChallenge,
   });
+
+  const ChallengeCard = ({ ch }: { ch: any }) => {
+    const { data: count } = useQuery({
+      queryKey: ['challenge-count', ch.id],
+      queryFn: () => adminGetQuestionCount(ch.id),
+    });
+    const deleteMut = useMutation({
+      mutationFn: () => adminDeleteChallenge(ch.id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['daily-challenges-admin'] }),
+      onError: (err: any) => toast.error(err.response?.data?.error || 'Failed'),
+    });
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{ch.title}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm">Reward: ₹{ch.reward}</p>
+          <p className="text-sm">Questions: {count ?? '...'}/{ch.requiredCorrect}</p>
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" onClick={() => setActiveChallenge(ch.id)}>Add Question</Button>
+            <Button size="sm" variant="outline" onClick={() => setBulkChallenge(ch.id)}>Bulk Add</Button>
+            <Button size="sm" variant="secondary" onClick={() => setViewChallenge(ch.id)}>View MCQs</Button>
+            <Button size="sm" variant="destructive" onClick={() => deleteMut.mutate()}>Delete</Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -87,7 +120,11 @@ const DailyChallengeManager = () => {
               <Label>Required Correct</Label>
               <SanitizedInput value={createForm.requiredCorrect} onChange={v => setCreateForm(f => ({ ...f, requiredCorrect: v }))} type="number" />
             </div>
-            <Button onClick={() => createMutation.mutate({ title: createForm.title, reward: Number(createForm.reward), requiredCorrect: Number(createForm.requiredCorrect) })}>Create</Button>
+            <div>
+              <Label>Time Limit (seconds)</Label>
+              <SanitizedInput value={createForm.timeLimit} onChange={v => setCreateForm(f => ({ ...f, timeLimit: v }))} type="number" />
+            </div>
+            <Button onClick={() => createMutation.mutate({ title: createForm.title, reward: Number(createForm.reward), requiredCorrect: Number(createForm.requiredCorrect), timeLimit: Number(createForm.timeLimit) })}>Create</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -95,19 +132,7 @@ const DailyChallengeManager = () => {
       <h2 className="text-xl font-semibold">Existing Challenges</h2>
       <div className="grid gap-4">
         {challenges?.map(ch => (
-          <Card key={ch.id}>
-            <CardHeader>
-              <CardTitle>{ch.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p className="text-sm">Reward: ₹{ch.reward}</p>
-              <div className="flex gap-2 flex-wrap">
-                <Button size="sm" onClick={() => setActiveChallenge(ch.id)}>Add Question</Button>
-                <Button size="sm" variant="outline" onClick={() => setBulkChallenge(ch.id)}>Bulk Add</Button>
-                <Button size="sm" variant="secondary" onClick={() => setViewChallenge(ch.id)}>View MCQs</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ChallengeCard key={ch.id} ch={ch} />
         ))}
         {challenges && challenges.length === 0 && <p>No challenges</p>}
       </div>
@@ -178,8 +203,21 @@ const DailyChallengeManager = () => {
           </DialogHeader>
           <div className="space-y-2 max-h-[400px] overflow-auto">
             {questionList?.map(q => (
-              <div key={q.id} className="border p-2 rounded text-sm">
-                {q.text}
+              <div key={q.id} className="border p-2 rounded text-sm space-y-1">
+                <div>{q.text}</div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => {
+                    const text = prompt('Question text', q.text) || q.text;
+                    const opts = q.options.map((o, i) => prompt(`Option ${i+1}`, o) || o);
+                    const correct = prompt('Correct answer', q.correctAnswer) || q.correctAnswer;
+                    adminUpdateQuestion(viewChallenge!, q.id, text, opts, correct).then(() => refetchQuestions());
+                  }}>Edit</Button>
+                  <Button size="sm" variant="destructive" onClick={() => {
+                    if (confirm('Delete this question?')) {
+                      adminDeleteQuestion(viewChallenge!, q.id).then(() => refetchQuestions());
+                    }
+                  }}>Delete</Button>
+                </div>
               </div>
             ))}
             {questionList && questionList.length === 0 && <p>No questions</p>}

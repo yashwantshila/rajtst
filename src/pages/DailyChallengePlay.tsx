@@ -13,6 +13,7 @@ const DailyChallengePlay = () => {
   const [status, setStatus] = useState<any>(null);
   const [question, setQuestion] = useState<ChallengeQuestion | null>(null);
   const [selected, setSelected] = useState('');
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const fetchNext = async () => {
     if (!challengeId) return;
@@ -32,6 +33,17 @@ const DailyChallengePlay = () => {
       .then(() => fetchNext())
       .catch(err => toast.error(err.response?.data?.error || 'Failed to load'));
   }, [challengeId]);
+
+  useEffect(() => {
+    if (!status) return;
+    const end = new Date(status.startedAt).getTime() + (status.timeLimit || 0) * 1000;
+    const interval = setInterval(() => {
+      const diff = Math.max(0, Math.floor((end - Date.now()) / 1000));
+      setTimeLeft(diff);
+      if (diff <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [status]);
 
   const submitMutation = useMutation({
     mutationFn: (answer: string) => submitAnswer(challengeId!, question!.id, answer),
@@ -55,7 +67,6 @@ const DailyChallengePlay = () => {
       <div className="container mx-auto p-4 max-w-xl text-center">
         <h1 className="text-2xl font-bold mb-4">Challenge Result</h1>
         <p className="mb-2">Correct: {status.correctCount}</p>
-        <p className="mb-2">Attempts: {status.attemptCount}</p>
         <p className="mb-6 font-semibold">{status.won ? 'You won!' : 'Better luck next time.'}</p>
         <Link to="/daily-challenges" className="text-blue-500">Back to Challenges</Link>
       </div>
@@ -70,6 +81,14 @@ const DailyChallengePlay = () => {
             <CardTitle>{question.text}</CardTitle>
           </CardHeader>
           <CardContent>
+            {timeLeft !== null && (
+              <div className="w-full bg-gray-200 h-2 rounded mb-2 overflow-hidden">
+                <div
+                  className="h-full bg-green-500"
+                  style={{ width: `${(timeLeft / status.timeLimit) * 100}%` }}
+                />
+              </div>
+            )}
             <RadioGroup value={selected} onValueChange={setSelected} className="space-y-2">
               {question.options.map(opt => (
                 <div key={opt} className="flex items-center space-x-2">
@@ -78,7 +97,7 @@ const DailyChallengePlay = () => {
                 </div>
               ))}
             </RadioGroup>
-            <Button className="mt-4" disabled={!selected || submitMutation.isPending} onClick={() => submitMutation.mutate(selected)}>
+            <Button className="mt-4" disabled={!selected || submitMutation.isPending || timeLeft === 0} onClick={() => submitMutation.mutate(selected)}>
               Submit
             </Button>
           </CardContent>
@@ -86,8 +105,9 @@ const DailyChallengePlay = () => {
       ) : (
         <p>Loading...</p>
       )}
-      <div className="mt-4 text-sm text-muted-foreground">
-        Correct: {status?.correctCount || 0} / Attempts: {status?.attemptCount || 0}
+      <div className="mt-4 text-sm text-muted-foreground flex justify-between">
+        <span>Correct: {status?.correctCount || 0}</span>
+        <span>Time Left: {timeLeft ?? ''}s</span>
       </div>
       <div className="mt-4">
         <Link to="/daily-challenges" className="text-blue-500">Back to Challenges</Link>

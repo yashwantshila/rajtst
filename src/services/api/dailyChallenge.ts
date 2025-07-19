@@ -9,7 +9,7 @@ export interface DailyChallenge {
   title: string;
   reward: number;
   requiredCorrect: number;
-  maxAttempts?: number;
+  timeLimit: number;
   active: boolean;
 }
 
@@ -18,12 +18,12 @@ export interface ChallengeStatus {
   challengeId: string;
   date: string;
   correctCount: number;
-  attemptCount: number;
   attemptedQuestions: string[];
   completed: boolean;
   won: boolean;
   startedAt: string;
   completedAt?: string;
+  timeLimit: number;
 }
 
 export interface ChallengeQuestion {
@@ -98,12 +98,14 @@ export const adminCreateChallenge = async (
   title: string,
   reward: number,
   requiredCorrect: number,
+  timeLimit: number,
 ): Promise<string> => {
   const api = await createAdminApi();
   const res = await api.post('/api/daily-challenges', {
     title,
     reward,
     requiredCorrect,
+    timeLimit,
   });
   return res.data.id;
 };
@@ -127,6 +129,40 @@ export const adminAddBulkQuestions = async (
 ): Promise<void> => {
   const api = await createAdminApi();
   await api.post(`/api/daily-challenges/${challengeId}/questions/bulk`, { questions });
+};
+
+export const adminUpdateQuestion = async (
+  challengeId: string,
+  questionId: string,
+  text: string,
+  options: string[],
+  correctAnswer: string,
+): Promise<void> => {
+  const api = await createAdminApi();
+  await api.put(`/api/daily-challenges/${challengeId}/questions/${questionId}`, {
+    text,
+    options,
+    correctAnswer,
+  });
+};
+
+export const adminDeleteQuestion = async (
+  challengeId: string,
+  questionId: string,
+): Promise<void> => {
+  const api = await createAdminApi();
+  await api.delete(`/api/daily-challenges/${challengeId}/questions/${questionId}`);
+};
+
+export const adminDeleteChallenge = async (challengeId: string): Promise<void> => {
+  const api = await createAdminApi();
+  await api.delete(`/api/daily-challenges/${challengeId}`);
+};
+
+export const adminGetQuestionCount = async (challengeId: string): Promise<number> => {
+  const api = await createAdminApi();
+  const res = await api.get(`/api/daily-challenges/${challengeId}/questions/count`);
+  return res.data.count;
 };
 
 export const adminGetQuestions = async (
