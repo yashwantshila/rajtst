@@ -892,7 +892,7 @@ const Home = () => {
             </Link>
             <span className="hidden sm:inline text-sm">•</span>
             <a
-              href="/blog/"
+              href={import.meta.env.DEV ? 'http://localhost:3000/' : '/blog/'}
               className="text-sm hover:text-foreground transition-colors"
               target="_blank"
               rel="noopener noreferrer"
