@@ -90,12 +90,18 @@ const DailyChallengePlay = () => {
               </div>
             )}
             <RadioGroup value={selected} onValueChange={setSelected} className="space-y-2">
-              {question.options.map(opt => (
-                <div key={opt} className="flex items-center space-x-2">
-                  <RadioGroupItem value={opt} id={opt} />
-                  <Label htmlFor={opt}>{opt}</Label>
-                </div>
-              ))}
+              {question.options
+                .filter(opt => opt && opt.trim())
+                .slice(0, 4)
+                .map((opt, idx) => {
+                  const optionId = `${question.id}-${idx}`;
+                  return (
+                    <div key={optionId} className="flex items-center space-x-2">
+                      <RadioGroupItem value={opt} id={optionId} />
+                      <Label htmlFor={optionId}>{opt}</Label>
+                    </div>
+                  );
+                })}
             </RadioGroup>
             <Button className="mt-4" disabled={!selected || submitMutation.isPending || timeLeft === 0} onClick={() => submitMutation.mutate(selected)}>
               Submit
