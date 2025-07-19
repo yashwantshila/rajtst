@@ -10,6 +10,7 @@
     },
     "dependencies": {
         "@types/dompurify": "^3.0.5",
+        "browserslist": "^4.25.1",
         "classnames": "^2.5.1",
         "dompurify": "^3.2.6",
         "firebase": "^12.0.0",
