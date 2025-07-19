@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getQuizCategories } from '../services/api/quiz';
 import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/api/megaTest';
+import { getDailyChallenges, DailyChallenge } from '../services/api/dailyChallenge';
 import { parseTimestamp } from '@/utils/parseTimestamp';
 import { AuthContext } from '../App';
 import { Card } from "@/components/ui/card";
@@ -63,6 +64,11 @@ const Home = () => {
   const { data: megaTests, isLoading: isLoadingMegaTests, error: megaTestsError } = useQuery({
     queryKey: ['mega-tests'],
     queryFn: getMegaTests,
+  });
+
+  const { data: dailyChallenges, isLoading: isLoadingDailyChallenges, error: dailyChallengesError } = useQuery<DailyChallenge[]>({
+    queryKey: ['daily-challenges-home'],
+    queryFn: getDailyChallenges,
   });
 
   const { data: registrationStatus, isLoading: isLoadingRegistrations } = useQuery({
@@ -306,12 +312,12 @@ const Home = () => {
     }
   }, [ipCaptureMutation.isPending]);
 
-  if (isLoadingCategories || isLoadingMegaTests || isLoadingRegistrations || isLoadingSubmissions || isLoadingPaidContents) {
+  if (isLoadingCategories || isLoadingMegaTests || isLoadingRegistrations || isLoadingSubmissions || isLoadingPaidContents || isLoadingDailyChallenges) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
   
-  if (categoriesError || megaTestsError) {
-    return <div className="flex items-center justify-center min-h-screen">Error: {categoriesError?.message || megaTestsError?.message}</div>;
+  if (categoriesError || megaTestsError || dailyChallengesError) {
+    return <div className="flex items-center justify-center min-h-screen">Error: {categoriesError?.message || megaTestsError?.message || dailyChallengesError?.message}</div>;
   }
 
   return (
@@ -629,16 +635,55 @@ const Home = () => {
                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                   <span className="animate-bounce">←</span>
                   <span>Swipe for more tests</span>
-                  <span className="animate-bounce">→</span>
-                </div>
+                <span className="animate-bounce">→</span>
               </div>
             </div>
           </div>
+        </div>
 
-          <div>
-            <h2 className="text-2xl font-bold mb-6 flex items-center justify-center">
-              <div className="relative group">
-                <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-extrabold text-2xl tracking-wide uppercase">
+        <div>
+          <h2 className="text-2xl font-bold mb-6 flex items-center justify-center">
+            <div className="relative group">
+              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-extrabold text-2xl tracking-wide uppercase">
+                Daily Challenges
+              </span>
+              <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
+              <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 rounded-full"></div>
+            </div>
+          </h2>
+          <div className="grid gap-4">
+            {dailyChallenges && dailyChallenges.length > 0 ? (
+              dailyChallenges.slice(0, 3).map(ch => (
+                <Card key={ch.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle>{ch.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Reward: ₹{ch.reward}</p>
+                      <p className="text-sm text-muted-foreground">Required Correct: {ch.requiredCorrect}</p>
+                    </div>
+                    <Button onClick={() => !isAuthenticated ? navigate('/auth') : navigate(`/daily-challenges/${ch.id}`)}>
+                      {!isAuthenticated ? 'Sign in' : 'Start'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-muted-foreground">No challenges available.</p>
+            )}
+            {dailyChallenges && dailyChallenges.length > 3 && (
+              <Button onClick={() => navigate('/daily-challenges')} variant="outline">
+                View All Challenges
+              </Button>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-bold mb-6 flex items-center justify-center">
+            <div className="relative group">
+              <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-extrabold text-2xl tracking-wide uppercase">
                   Paid Content
                 </span>
                 <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
