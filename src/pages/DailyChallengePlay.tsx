@@ -12,7 +12,7 @@ const DailyChallengePlay = () => {
   const { challengeId } = useParams<{ challengeId: string }>();
   const [status, setStatus] = useState<any>(null);
   const [question, setQuestion] = useState<ChallengeQuestion | null>(null);
-  const [selected, setSelected] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const fetchNext = async () => {
@@ -20,7 +20,7 @@ const DailyChallengePlay = () => {
     try {
       const q = await getNextQuestion(challengeId);
       setQuestion(q);
-      setSelected('');
+      setSelectedIndex(null);
     } catch (e: any) {
       toast.error(e.response?.data?.error || 'Failed to get question');
     }
@@ -44,6 +44,14 @@ const DailyChallengePlay = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [status]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && status && !status.completed && challengeId) {
+      getChallengeStatus(challengeId)
+        .then(d => setStatus(d))
+        .catch(() => {});
+    }
+  }, [timeLeft, status, challengeId]);
 
   const submitMutation = useMutation({
     mutationFn: (answer: string) => submitAnswer(challengeId!, question!.id, answer),
@@ -89,7 +97,11 @@ const DailyChallengePlay = () => {
                 />
               </div>
             )}
-            <RadioGroup value={selected} onValueChange={setSelected} className="space-y-2">
+            <RadioGroup
+              value={selectedIndex !== null ? String(selectedIndex) : ''}
+              onValueChange={(val) => setSelectedIndex(Number(val))}
+              className="space-y-2"
+            >
               {question.options
                 .filter(opt => opt && opt.trim())
                 .slice(0, 4)
@@ -97,13 +109,20 @@ const DailyChallengePlay = () => {
                   const optionId = `${question.id}-${idx}`;
                   return (
                     <div key={optionId} className="flex items-center space-x-2">
-                      <RadioGroupItem value={opt} id={optionId} />
+                      <RadioGroupItem value={String(idx)} id={optionId} />
                       <Label htmlFor={optionId}>{opt}</Label>
                     </div>
                   );
                 })}
             </RadioGroup>
-            <Button className="mt-4" disabled={!selected || submitMutation.isPending || timeLeft === 0} onClick={() => submitMutation.mutate(selected)}>
+            <Button
+              className="mt-4"
+              disabled={selectedIndex === null || submitMutation.isPending || timeLeft === 0}
+              onClick={() =>
+                selectedIndex !== null &&
+                submitMutation.mutate(question.options[selectedIndex])
+              }
+            >
               Submit
             </Button>
           </CardContent>

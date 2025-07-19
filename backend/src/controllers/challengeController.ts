@@ -13,6 +13,25 @@ interface ChallengeEntry {
   completedAt?: string;
 }
 
+const checkTimeLimitAndUpdate = async (
+  entryRef: FirebaseFirestore.DocumentReference<FirebaseFirestore.DocumentData>,
+  entry: ChallengeEntry,
+  challenge: any,
+) => {
+  if (entry.completed) return entry
+  const limit = challenge.timeLimit || 0
+  if (limit) {
+    const start = new Date(entry.startedAt).getTime()
+    if (Date.now() - start >= limit * 1000) {
+      const won = entry.correctCount >= (challenge.requiredCorrect || 0)
+      const updated = { completed: true, won, completedAt: new Date().toISOString() }
+      await entryRef.set(updated, { merge: true })
+      return { ...entry, ...updated }
+    }
+  }
+  return entry
+}
+
 export const createChallenge = async (req: Request, res: Response) => {
   try {
     const { title, reward, requiredCorrect, timeLimit } = req.body as {
@@ -227,8 +246,11 @@ export const getChallengeStatus = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Challenge not started' });
     }
     const challengeDoc = await db.collection('daily-challenges').doc(challengeId).get();
-    const timeLimit = challengeDoc.exists ? (challengeDoc.data() as any).timeLimit : 0;
-    res.json({ ...(entryDoc.data() as any), timeLimit });
+    const challenge = challengeDoc.data() as any;
+    const timeLimit = challengeDoc.exists ? challenge.timeLimit : 0;
+    const entryRef = db.collection('daily-challenge-entries').doc(entryId);
+    const updatedEntry = await checkTimeLimitAndUpdate(entryRef, entryDoc.data() as ChallengeEntry, challenge);
+    res.json({ ...updatedEntry, timeLimit });
   } catch (error) {
     console.error('Error getting status:', error);
     res.status(500).json({ error: 'Failed to get status' });
@@ -249,7 +271,13 @@ export const getNextQuestion = async (req: Request, res: Response) => {
     if (!entryDoc.exists) {
       return res.status(400).json({ error: 'Challenge not started' });
     }
-    const entry = entryDoc.data() as ChallengeEntry;
+    let entry = entryDoc.data() as ChallengeEntry;
+    const challengeDoc = await db.collection('daily-challenges').doc(challengeId).get();
+    if (!challengeDoc.exists) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+    const challenge = challengeDoc.data() as any;
+    entry = await checkTimeLimitAndUpdate(entryRef, entry, challenge);
     if (entry.completed) {
       return res.status(400).json({ error: 'Challenge already completed' });
     }
@@ -261,7 +289,10 @@ export const getNextQuestion = async (req: Request, res: Response) => {
       .get();
     const available = questionsSnap.docs.filter(q => !attempted.includes(q.id));
     if (available.length === 0) {
-      return res.status(400).json({ error: 'No more questions' });
+      const won = entry.correctCount >= (challenge.requiredCorrect || 0);
+      const finished = { completed: true, won, completedAt: new Date().toISOString() };
+      await entryRef.set(finished, { merge: true });
+      return res.status(200).json({ ...entry, ...finished, timeLimit: challenge.timeLimit });
     }
     const randomDoc =
       available[Math.floor(Math.random() * available.length)];
@@ -292,15 +323,16 @@ export const submitAnswer = async (req: Request, res: Response) => {
     if (!entryDoc.exists) {
       return res.status(400).json({ error: 'Challenge not started' });
     }
-    const entry = entryDoc.data() as ChallengeEntry;
-    if (entry.completed) {
-      return res.status(400).json({ error: 'Challenge already completed' });
-    }
+    let entry = entryDoc.data() as ChallengeEntry;
     const challengeDoc = await db.collection('daily-challenges').doc(challengeId).get();
     if (!challengeDoc.exists) {
       return res.status(404).json({ error: 'Challenge not found' });
     }
     const challenge = challengeDoc.data() as any;
+    entry = await checkTimeLimitAndUpdate(entryRef, entry, challenge);
+    if (entry.completed) {
+      return res.status(400).json({ error: 'Challenge already completed' });
+    }
     const required = challenge.requiredCorrect;
     const reward = challenge.reward || 0;
     const timeLimit = challenge.timeLimit || 0;
@@ -333,6 +365,21 @@ export const submitAnswer = async (req: Request, res: Response) => {
       won = true;
       updated.completed = true;
       updated.won = true;
+      updated.completedAt = new Date().toISOString();
+    }
+
+    const questionsSnap = await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .get();
+    const totalQuestions = questionsSnap.size;
+    const attemptedAfter = (entry.attemptedQuestions?.length || 0) + 1;
+    if (attemptedAfter >= totalQuestions && !completed) {
+      completed = true;
+      won = correctCount >= required;
+      updated.completed = true;
+      updated.won = won;
       updated.completedAt = new Date().toISOString();
     }
 
