@@ -62,6 +62,45 @@ export const addQuestion = async (req: Request, res: Response) => {
   }
 };
 
+export const addBulkQuestions = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const { questions } = req.body as {
+      questions: { text: string; options: string[]; correctAnswer: string }[];
+    };
+    if (!questions || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: 'Missing questions' });
+    }
+    const batch = db.batch();
+    const colRef = db.collection('daily-challenges').doc(challengeId).collection('questions');
+    questions.forEach(q => {
+      const docRef = colRef.doc();
+      batch.set(docRef, { text: q.text, options: q.options, correctAnswer: q.correctAnswer });
+    });
+    await batch.commit();
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error adding bulk questions:', error);
+    res.status(500).json({ error: 'Failed to add questions' });
+  }
+};
+
+export const getQuestions = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const snap = await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .get();
+    const questions = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+    res.json(questions);
+  } catch (error) {
+    console.error('Error fetching questions:', error);
+    res.status(500).json({ error: 'Failed to fetch questions' });
+  }
+};
+
 export const getDailyChallenges = async (_req: Request, res: Response) => {
   try {
     const snap = await db

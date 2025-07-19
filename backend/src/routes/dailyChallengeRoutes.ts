@@ -4,6 +4,8 @@ import { verifyFirebaseAdmin } from '../middleware/firebaseAdminAuth.js';
 import {
   createChallenge,
   addQuestion,
+  addBulkQuestions,
+  getQuestions,
   getDailyChallenges,
   startChallenge,
   getChallengeStatus,
@@ -27,5 +29,7 @@ router.post('/:challengeId/answer', submitAnswer);
 router.use(verifyFirebaseAdmin);
 router.post('/', createChallenge);
 router.post('/:challengeId/questions', addQuestion);
+router.post('/:challengeId/questions/bulk', addBulkQuestions);
+router.get('/:challengeId/questions', getQuestions);
 
 export default router;

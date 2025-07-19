@@ -121,3 +121,18 @@ export const adminAddQuestion = async (
     correctAnswer,
   });
 };
+export const adminAddBulkQuestions = async (
+  challengeId: string,
+  questions: { text: string; options: string[]; correctAnswer: string }[],
+): Promise<void> => {
+  const api = await createAdminApi();
+  await api.post(`/api/daily-challenges/${challengeId}/questions/bulk`, { questions });
+};
+
+export const adminGetQuestions = async (
+  challengeId: string,
+): Promise<{ id: string; text: string; options: string[]; correctAnswer: string }[]> => {
+  const api = await createAdminApi();
+  const res = await api.get(`/api/daily-challenges/${challengeId}/questions`);
+  return res.data;
+};
