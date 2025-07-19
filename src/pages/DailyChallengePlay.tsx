@@ -28,10 +28,18 @@ const DailyChallengePlay = () => {
 
   useEffect(() => {
     if (!challengeId) return;
-    getChallengeStatus(challengeId)
-      .then(setStatus)
-      .then(() => fetchNext())
-      .catch(err => toast.error(err.response?.data?.error || 'Failed to load'));
+    const loadStatusAndQuestion = async () => {
+      try {
+        const statusData = await getChallengeStatus(challengeId);
+        setStatus(statusData);
+        if (!statusData.completed) {
+          await fetchNext();
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.error || 'Failed to load');
+      }
+    };
+    loadStatusAndQuestion();
   }, [challengeId]);
 
   useEffect(() => {
