@@ -39,6 +39,13 @@ const AllMegaTests = React.lazy(() => import('./pages/AllMegaTests'));
 const DailyChallenges = React.lazy(() => import('./pages/DailyChallenges'));
 const DailyChallengePlay = React.lazy(() => import('./pages/DailyChallengePlay'));
 
+const BlogRedirect: React.FC = () => {
+  useEffect(() => {
+    window.location.href = '/blog/';
+  }, []);
+  return <div>Redirecting to blog...</div>;
+};
+
 interface AuthContextProps {
   user: User | null;
   loading: boolean;
@@ -165,6 +172,7 @@ const AppContent: React.FC = () => {
           <PaidContentManager />
         </ProtectedRoute>
       } />
+      <Route path="/blog/*" element={<BlogRedirect />} />
     </Routes>
     </Suspense>
   );

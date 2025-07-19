@@ -891,9 +891,12 @@ const Home = () => {
               About Us
             </Link>
             <span className="hidden sm:inline text-sm">•</span>
-            <a href="/blog" className="text-sm hover:text-foreground transition-colors">
+            <Link
+              to="/blog"
+              className="text-sm hover:text-foreground transition-colors"
+            >
               Blog
-            </a>
+            </Link>
           </div>
         </div>
       </footer>
