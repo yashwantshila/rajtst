@@ -36,6 +36,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 const QuizCategories = React.lazy(() => import('./pages/QuizCategories'));
 const SubCategories = React.lazy(() => import('./pages/SubCategories'));
 const AllMegaTests = React.lazy(() => import('./pages/AllMegaTests'));
+const DailyChallenges = React.lazy(() => import('./pages/DailyChallenges'));
+const DailyChallengePlay = React.lazy(() => import('./pages/DailyChallengePlay'));
 
 interface AuthContextProps {
   user: User | null;
@@ -84,6 +86,8 @@ const AppContent: React.FC = () => {
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Home />} />
       <Route path="/all-mega-tests" element={<AllMegaTests />} />
+      <Route path="/daily-challenges" element={<DailyChallenges />} />
+      <Route path="/daily-challenges/:challengeId" element={<DailyChallengePlay />} />
       <Route path="/profile" element={
         <ProtectedRoute>
           <Profile />
