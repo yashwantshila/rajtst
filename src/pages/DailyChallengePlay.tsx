@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { getChallengeStatus, getNextQuestion, submitAnswer, ChallengeQuestion } from '@/services/api/dailyChallenge';
+import { getChallengeStatus, getNextQuestion, submitAnswer, startChallenge, ChallengeQuestion } from '@/services/api/dailyChallenge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -22,7 +22,19 @@ const DailyChallengePlay = () => {
       setQuestion(q);
       setSelectedIndex(null);
     } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Failed to get question');
+      // If the challenge hasn't been started yet, try starting it automatically
+      if (e.response?.status === 404 && e.response?.data?.error === 'Challenge not started') {
+        try {
+          await startChallenge(challengeId);
+          const q = await getNextQuestion(challengeId);
+          setQuestion(q);
+          setSelectedIndex(null);
+        } catch (err: any) {
+          toast.error(err.response?.data?.error || 'Failed to start challenge');
+        }
+      } else {
+        toast.error(e.response?.data?.error || 'Failed to get question');
+      }
     }
   };
 
@@ -31,7 +43,20 @@ const DailyChallengePlay = () => {
     getChallengeStatus(challengeId)
       .then(setStatus)
       .then(() => fetchNext())
-      .catch(err => toast.error(err.response?.data?.error || 'Failed to load'));
+      .catch(async err => {
+        if (err.response?.status === 404 && err.response?.data?.error === 'Challenge not started') {
+          try {
+            await startChallenge(challengeId);
+            const status = await getChallengeStatus(challengeId);
+            setStatus(status);
+            fetchNext();
+          } catch (e: any) {
+            toast.error(e.response?.data?.error || 'Failed to start challenge');
+          }
+        } else {
+          toast.error(err.response?.data?.error || 'Failed to load');
+        }
+      });
   }, [challengeId]);
 
   useEffect(() => {
@@ -56,7 +81,8 @@ const DailyChallengePlay = () => {
   const submitMutation = useMutation({
     mutationFn: (answer: string) => submitAnswer(challengeId!, question!.id, answer),
     onSuccess: data => {
-      setStatus(data);
+      // Merge the new status with the existing one to retain fields like startedAt
+      setStatus((prev: any) => ({ ...prev, ...data }));
       if (data.completed) {
         toast.success(data.won ? 'You won!' : 'Challenge over');
       } else {

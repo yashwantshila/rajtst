@@ -216,6 +216,9 @@ export const UserManagement = ({
                             <DialogContent>
                               <DialogHeader>
                                 <DialogTitle>Update Balance for {selectedUser?.username}</DialogTitle>
+                                <DialogDescription>
+                                  Modify the user's wallet balance by adding, subtracting or setting a specific amount.
+                                </DialogDescription>
                               </DialogHeader>
                               <div className="grid gap-4 py-4">
                                 <div className="grid grid-cols-4 items-center gap-4">
