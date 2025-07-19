@@ -10,8 +10,16 @@
       {
         "source": "**",
         "destination": "/index.html"
+      },
+      {
+        "source": "/blog/**",
+        "destination": "/blog/index.html"
       }
-    ]
+    ],
+    "headers": [],
+    "redirects": [],
+    "cleanUrls": true
+
   },
   "storage": {
     "rules": "storage.rules"
