@@ -347,7 +347,8 @@ export const submitAnswer = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Question not found' });
     }
     const qData = questionDoc.data() as any;
-    const isCorrect = qData.correctAnswer === answer;
+    const normalize = (val: string) => val.trim().toLowerCase();
+    const isCorrect = normalize(qData.correctAnswer) === normalize(answer);
 
     const updated: Partial<ChallengeEntry> = {
       attemptedQuestions: [...entry.attemptedQuestions, questionId],

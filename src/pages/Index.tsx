@@ -708,12 +708,11 @@ const Home = () => {
                       onClick={() =>
                         !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)
                       }
-                      disabled={!!playedChallenges[ch.id] && isAuthenticated}
                     >
                       {!isAuthenticated
                         ? 'Sign in'
                         : playedChallenges[ch.id]
-                        ? 'Already Played'
+                        ? 'View Result'
                         : 'Start'}
                     </Button>
                   </CardContent>

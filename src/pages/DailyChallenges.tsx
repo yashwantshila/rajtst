@@ -85,11 +85,8 @@ const DailyChallenges = () => {
                 <p className="text-sm text-muted-foreground">Required Correct: {ch.requiredCorrect}</p>
                 <p className="text-sm text-muted-foreground">Time Limit: {ch.timeLimit}s</p>
               </div>
-              <Button
-                onClick={() => handleStart(ch)}
-                disabled={!!played[ch.id]}
-              >
-                {played[ch.id] ? 'Already Played' : 'Start'}
+              <Button onClick={() => handleStart(ch)}>
+                {played[ch.id] ? 'View Result' : 'Start'}
               </Button>
             </CardContent>
           </Card>
