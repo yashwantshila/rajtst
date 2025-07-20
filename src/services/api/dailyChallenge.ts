@@ -10,6 +10,7 @@ export interface DailyChallenge {
   reward: number;
   requiredCorrect: number;
   timeLimit: number;
+  description?: string;
   active: boolean;
 }
 
@@ -99,6 +100,7 @@ export const adminCreateChallenge = async (
   reward: number,
   requiredCorrect: number,
   timeLimit: number,
+  description?: string,
 ): Promise<string> => {
   const api = await createAdminApi();
   const res = await api.post('/api/daily-challenges', {
@@ -106,6 +108,7 @@ export const adminCreateChallenge = async (
     reward,
     requiredCorrect,
     timeLimit,
+    description,
   });
   return res.data.id;
 };
