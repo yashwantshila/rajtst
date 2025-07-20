@@ -703,6 +703,9 @@ const Home = () => {
                     <CardTitle className="text-lg font-semibold text-purple-700 dark:text-purple-400">
                       {ch.title}
                     </CardTitle>
+                    {ch.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{ch.description}</p>
+                    )}
                   </CardHeader>
                   <CardContent className="flex items-center justify-between">
                     <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">

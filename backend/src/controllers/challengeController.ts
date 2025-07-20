@@ -34,11 +34,12 @@ const checkTimeLimitAndUpdate = async (
 
 export const createChallenge = async (req: Request, res: Response) => {
   try {
-    const { title, reward, requiredCorrect, timeLimit } = req.body as {
+    const { title, reward, requiredCorrect, timeLimit, description } = req.body as {
       title: string;
       reward: number;
       requiredCorrect: number;
       timeLimit: number;
+      description?: string;
     };
     if (!title || !reward || !requiredCorrect || !timeLimit) {
       return res.status(400).json({ error: 'Missing fields' });
@@ -48,6 +49,7 @@ export const createChallenge = async (req: Request, res: Response) => {
       reward,
       requiredCorrect,
       timeLimit,
+      description: description || '',
       active: true,
       createdAt: new Date().toISOString(),
     });

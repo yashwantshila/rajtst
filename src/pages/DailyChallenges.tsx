@@ -82,11 +82,14 @@ const DailyChallenges = () => {
             key={ch.id}
             className="relative overflow-hidden border-2 border-purple-200 hover:border-purple-400 bg-gradient-to-br from-white via-purple-50 to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-700 transition-all duration-300 hover:shadow-xl"
           >
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold text-purple-700 dark:text-purple-400">
-                {ch.title}
-              </CardTitle>
-            </CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold text-purple-700 dark:text-purple-400">
+              {ch.title}
+            </CardTitle>
+            {ch.description && (
+              <p className="text-sm text-muted-foreground mt-1">{ch.description}</p>
+            )}
+          </CardHeader>
             <CardContent className="flex items-center justify-between">
               <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
                 <p className="flex items-center">
