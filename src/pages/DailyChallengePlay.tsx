@@ -72,7 +72,8 @@ const DailyChallengePlay = () => {
   }, [timeLeft, status, challengeId]);
 
   const submitMutation = useMutation({
-    mutationFn: (index: number) => submitAnswer(challengeId!, question!.id, index),
+    mutationFn: (index: number) =>
+      submitAnswer(challengeId!, question!.id, index),
     onSuccess: data => {
       // merge with existing status so startedAt is preserved for timer
       setStatus(prev => ({
@@ -81,6 +82,9 @@ const DailyChallengePlay = () => {
       }));
       if (data.completed) {
         toast.success(data.won ? 'You won!' : 'Challenge over');
+      } else if (data.nextQuestion) {
+        setQuestion(data.nextQuestion);
+        setSelectedIndex(null);
       } else {
         fetchNext();
       }
