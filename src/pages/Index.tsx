@@ -718,18 +718,28 @@ const Home = () => {
                         Required Correct: {ch.requiredCorrect}
                       </p>
                     </div>
-                    <Button
-                      className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
-                      onClick={() =>
-                        !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)
-                      }
-                    >
-                      {!isAuthenticated
-                        ? 'Sign in'
-                        : playedChallenges[ch.id]
-                        ? 'View Result'
-                        : 'Start'}
-                    </Button>
+                    <div className="flex flex-col items-end gap-2">
+                      {ch.practiceUrl && (
+                        <Button
+                          asChild
+                          className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
+                        >
+                          <a href={ch.practiceUrl} target="_blank" rel="noopener noreferrer">Practice</a>
+                        </Button>
+                      )}
+                      <Button
+                        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
+                        onClick={() =>
+                          !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)
+                        }
+                      >
+                        {!isAuthenticated
+                          ? 'Sign in'
+                          : playedChallenges[ch.id]
+                          ? 'View Result'
+                          : 'Start'}
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))

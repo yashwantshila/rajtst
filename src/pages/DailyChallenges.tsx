@@ -107,7 +107,10 @@ const DailyChallenges = () => {
               </div>
               <div className="flex flex-col items-end gap-2">
                 {ch.practiceUrl && (
-                  <Button variant="secondary" asChild>
+                  <Button
+                    asChild
+                    className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
+                  >
                     <a href={ch.practiceUrl} target="_blank" rel="noopener noreferrer">Practice</a>
                   </Button>
                 )}
