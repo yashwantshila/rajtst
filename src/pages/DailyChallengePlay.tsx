@@ -72,7 +72,7 @@ const DailyChallengePlay = () => {
   }, [timeLeft, status, challengeId]);
 
   const submitMutation = useMutation({
-    mutationFn: (answer: string) => submitAnswer(challengeId!, question!.id, answer),
+    mutationFn: (index: number) => submitAnswer(challengeId!, question!.id, index),
     onSuccess: data => {
       // merge with existing status so startedAt is preserved for timer
       setStatus(prev => ({
@@ -173,7 +173,7 @@ const DailyChallengePlay = () => {
                   disabled={selectedIndex === null || submitMutation.isPending || timeLeft === 0}
                   onClick={() =>
                     selectedIndex !== null &&
-                    submitMutation.mutate(question.options[selectedIndex])
+                    submitMutation.mutate(selectedIndex)
                   }
                 >
                   Submit

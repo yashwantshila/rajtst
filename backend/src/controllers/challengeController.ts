@@ -334,9 +334,10 @@ export const getNextQuestion = async (req: Request, res: Response) => {
 export const submitAnswer = async (req: Request, res: Response) => {
   try {
     const { challengeId } = req.params;
-    const { questionId, answer } = req.body as {
+    const { questionId, answer, answerIndex } = req.body as {
       questionId: string;
-      answer: string;
+      answer?: string;
+      answerIndex?: number;
     };
     const userId = req.user?.uid;
     if (!userId) {
@@ -373,15 +374,25 @@ export const submitAnswer = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Question not found' });
     }
     const qData = questionDoc.data() as any;
-    const normalize = (val: string) => val.trim().toLowerCase();
-    let isCorrect: boolean;
+    const normalize = (val: string) => (val ?? '').trim().toLowerCase();
+    let isCorrect = false;
     const letter = normalize(qData.correctAnswer);
-    if (["a", "b", "c", "d"].includes(letter)) {
-      const idx = ["a", "b", "c", "d"].indexOf(letter);
-      const correctText = qData.options?.[idx] || "";
-      isCorrect = normalize(correctText) === normalize(answer);
+
+    if (typeof answerIndex === 'number') {
+      if (["a", "b", "c", "d"].includes(letter)) {
+        isCorrect = answerIndex === ["a", "b", "c", "d"].indexOf(letter);
+      } else {
+        const chosen = qData.options?.[answerIndex] || '';
+        isCorrect = normalize(qData.correctAnswer) === normalize(chosen);
+      }
     } else {
-      isCorrect = normalize(qData.correctAnswer) === normalize(answer);
+      if (["a", "b", "c", "d"].includes(letter)) {
+        const idx = ["a", "b", "c", "d"].indexOf(letter);
+        const correctText = qData.options?.[idx] || '';
+        isCorrect = normalize(correctText) === normalize(answer || '');
+      } else {
+        isCorrect = normalize(qData.correctAnswer) === normalize(answer || '');
+      }
     }
 
     const updated: Partial<ChallengeEntry> = {
