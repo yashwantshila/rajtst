@@ -448,12 +448,28 @@ export const submitAnswer = async (req: Request, res: Response) => {
       });
     }
 
+    let nextQuestion: any = null;
+    if (!completed) {
+      const attemptedQuestions = [...entry.attemptedQuestions, questionId];
+      const available = questionsSnap.docs.filter(
+        q => !attemptedQuestions.includes(q.id),
+      );
+      if (available.length > 0) {
+        const randomDoc =
+          available[Math.floor(Math.random() * available.length)];
+        const data = randomDoc.data() as any;
+        const { correctAnswer, ...question } = data;
+        nextQuestion = { id: randomDoc.id, ...question };
+      }
+    }
+
     res.json({
       correct: isCorrect,
       correctCount,
       completed,
       won,
       timeLimit,
+      nextQuestion,
     });
   } catch (error) {
     console.error('Error submitting answer:', error);

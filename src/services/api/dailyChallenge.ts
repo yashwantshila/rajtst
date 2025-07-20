@@ -77,7 +77,9 @@ export const submitAnswer = async (
   challengeId: string,
   questionId: string,
   answerIndex: number,
-): Promise<ChallengeStatus & { correct: boolean }> => {
+): Promise<
+  ChallengeStatus & { correct: boolean; nextQuestion?: ChallengeQuestion }
+> => {
   const token = await getAuthToken();
   const res = await axios.post(
     `${API_URL}/api/daily-challenges/${challengeId}/answer`,
