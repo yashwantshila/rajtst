@@ -76,12 +76,12 @@ export const getNextQuestion = async (
 export const submitAnswer = async (
   challengeId: string,
   questionId: string,
-  answer: string,
+  answerIndex: number,
 ): Promise<ChallengeStatus & { correct: boolean }> => {
   const token = await getAuthToken();
   const res = await axios.post(
     `${API_URL}/api/daily-challenges/${challengeId}/answer`,
-    { questionId, answer },
+    { questionId, answerIndex },
     { headers: { Authorization: `Bearer ${token}` } },
   );
   return res.data;
