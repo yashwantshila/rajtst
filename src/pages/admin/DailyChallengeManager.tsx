@@ -27,8 +27,8 @@ const DailyChallengeManager = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: ({ title, reward, requiredCorrect, timeLimit, description }: { title: string; reward: number; requiredCorrect: number; timeLimit: number; description?: string }) =>
-      adminCreateChallenge(title, reward, requiredCorrect, timeLimit, description),
+    mutationFn: ({ title, reward, requiredCorrect, timeLimit, description, practiceUrl }: { title: string; reward: number; requiredCorrect: number; timeLimit: number; description?: string; practiceUrl?: string }) =>
+      adminCreateChallenge(title, reward, requiredCorrect, timeLimit, description, practiceUrl),
     onSuccess: () => {
       toast.success('Challenge created');
       queryClient.invalidateQueries({ queryKey: ['daily-challenges-admin'] });
@@ -36,7 +36,7 @@ const DailyChallengeManager = () => {
     onError: (err: any) => toast.error(err.response?.data?.error || 'Failed'),
   });
 
-  const [createForm, setCreateForm] = useState({ title: '', description: '', reward: '', requiredCorrect: '', timeLimit: '' });
+  const [createForm, setCreateForm] = useState({ title: '', description: '', reward: '', requiredCorrect: '', timeLimit: '', practiceUrl: '' });
   const [questionForm, setQuestionForm] = useState({ text: '', a: '', b: '', c: '', d: '', correct: 'a' });
   const [activeChallenge, setActiveChallenge] = useState<string | null>(null);
   const [bulkChallenge, setBulkChallenge] = useState<string | null>(null);
@@ -86,6 +86,11 @@ const DailyChallengeManager = () => {
         </CardHeader>
         <CardContent className="space-y-2">
           {ch.description && <p className="text-sm text-muted-foreground">{ch.description}</p>}
+          {ch.practiceUrl && (
+            <p className="text-sm text-blue-600 underline">
+              <a href={ch.practiceUrl} target="_blank" rel="noopener noreferrer">Practice Link</a>
+            </p>
+          )}
           <p className="text-sm">Reward: ₹{ch.reward}</p>
           <p className="text-sm">Questions: {count ?? '...'}/{ch.requiredCorrect}</p>
           <div className="flex gap-2 flex-wrap">
@@ -119,6 +124,10 @@ const DailyChallengeManager = () => {
               <SanitizedTextarea value={createForm.description} onChange={v => setCreateForm(f => ({ ...f, description: v }))} />
             </div>
             <div>
+              <Label>Practice URL</Label>
+              <SanitizedInput value={createForm.practiceUrl} onChange={v => setCreateForm(f => ({ ...f, practiceUrl: v }))} />
+            </div>
+            <div>
               <Label>Reward</Label>
               <SanitizedInput value={createForm.reward} onChange={v => setCreateForm(f => ({ ...f, reward: v }))} type="number" />
             </div>
@@ -130,7 +139,7 @@ const DailyChallengeManager = () => {
               <Label>Time Limit (seconds)</Label>
               <SanitizedInput value={createForm.timeLimit} onChange={v => setCreateForm(f => ({ ...f, timeLimit: v }))} type="number" />
             </div>
-            <Button onClick={() => createMutation.mutate({ title: createForm.title, reward: Number(createForm.reward), requiredCorrect: Number(createForm.requiredCorrect), timeLimit: Number(createForm.timeLimit), description: createForm.description })}>Create</Button>
+            <Button onClick={() => createMutation.mutate({ title: createForm.title, reward: Number(createForm.reward), requiredCorrect: Number(createForm.requiredCorrect), timeLimit: Number(createForm.timeLimit), description: createForm.description, practiceUrl: createForm.practiceUrl })}>Create</Button>
           </div>
         </DialogContent>
       </Dialog>

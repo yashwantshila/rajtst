@@ -11,6 +11,7 @@ export interface DailyChallenge {
   requiredCorrect: number;
   timeLimit: number;
   description?: string;
+  practiceUrl?: string;
   active: boolean;
 }
 
@@ -101,6 +102,7 @@ export const adminCreateChallenge = async (
   requiredCorrect: number,
   timeLimit: number,
   description?: string,
+  practiceUrl?: string,
 ): Promise<string> => {
   const api = await createAdminApi();
   const res = await api.post('/api/daily-challenges', {
@@ -109,6 +111,7 @@ export const adminCreateChallenge = async (
     requiredCorrect,
     timeLimit,
     description,
+    practiceUrl,
   });
   return res.data.id;
 };
