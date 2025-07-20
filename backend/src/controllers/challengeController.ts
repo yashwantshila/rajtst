@@ -34,22 +34,46 @@ const checkTimeLimitAndUpdate = async (
 
 export const createChallenge = async (req: Request, res: Response) => {
   try {
-    const { title, reward, requiredCorrect, timeLimit, description } = req.body as {
+    const {
+      title,
+      reward,
+      requiredCorrect,
+      timeLimit,
+      description,
+      practiceUrl,
+    } = req.body as {
       title: string;
       reward: number;
       requiredCorrect: number;
       timeLimit: number;
       description?: string;
+      practiceUrl?: string;
     };
+
     if (!title || !reward || !requiredCorrect || !timeLimit) {
       return res.status(400).json({ error: 'Missing fields' });
     }
+
+    let validatedUrl = '';
+    if (practiceUrl) {
+      try {
+        const url = new URL(practiceUrl);
+        if (!['http:', 'https:'].includes(url.protocol)) {
+          throw new Error('Invalid protocol');
+        }
+        validatedUrl = url.toString();
+      } catch {
+        return res.status(400).json({ error: 'Invalid practice URL' });
+      }
+    }
+
     const challengeRef = await db.collection('daily-challenges').add({
       title,
       reward,
       requiredCorrect,
       timeLimit,
       description: description || '',
+      practiceUrl: validatedUrl,
       active: true,
       createdAt: new Date().toISOString(),
     });

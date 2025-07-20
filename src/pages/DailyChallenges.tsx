@@ -105,12 +105,19 @@ const DailyChallenges = () => {
                   Time Limit: {ch.timeLimit}s
                 </p>
               </div>
-              <Button
-                className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
-                onClick={() => handleStart(ch)}
-              >
-                {played[ch.id] ? 'View Result' : 'Start'}
-              </Button>
+              <div className="flex flex-col items-end gap-2">
+                {ch.practiceUrl && (
+                  <Button variant="secondary" asChild>
+                    <a href={ch.practiceUrl} target="_blank" rel="noopener noreferrer">Practice</a>
+                  </Button>
+                )}
+                <Button
+                  className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
+                  onClick={() => handleStart(ch)}
+                >
+                  {played[ch.id] ? 'View Result' : 'Start'}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
