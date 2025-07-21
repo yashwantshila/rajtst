@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../App';
 import MegaTestLeaderboard from '../components/MegaTestLeaderboard';
 import MegaTestPrizes from '../components/MegaTestPrizes';
+import MegaTestParticipantProgress from '../components/MegaTestParticipantProgress';
 import { useState } from 'react';
 import RegistrationCountdown from '../components/RegistrationCountdown';
 
@@ -186,6 +187,12 @@ const AllMegaTests = () => {
                   </div>
                   <div className="mt-2">
                     <MegaTestPrizes megaTestId={megaTest.id} />
+                  </div>
+                  <div className="mt-2">
+                    <MegaTestParticipantProgress
+                      megaTestId={megaTest.id}
+                      maxParticipants={megaTest.maxParticipants || 0}
+                    />
                   </div>
                   <div className="flex justify-end gap-2 mt-4">
                     {!user ? (

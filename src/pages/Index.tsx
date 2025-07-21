@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import MegaTestLeaderboard from "../components/MegaTestLeaderboard";
 import { getCookie } from '@/utils/cookies';
 import MegaTestPrizes from "../components/MegaTestPrizes";
+import MegaTestParticipantProgress from "../components/MegaTestParticipantProgress";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -599,6 +600,12 @@ const Home = () => {
                               </div>
                               <div className="mt-2">
                                 <MegaTestPrizes megaTestId={megaTest.id} />
+                              </div>
+                              <div className="mt-2">
+                                <MegaTestParticipantProgress
+                                  megaTestId={megaTest.id}
+                                  maxParticipants={megaTest.maxParticipants || 0}
+                                />
                               </div>
                               <div className="flex justify-end gap-2 mt-4">
                                 {!isAuthenticated ? (
