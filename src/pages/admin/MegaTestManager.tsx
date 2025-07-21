@@ -75,6 +75,7 @@ const MegaTestManager = () => {
     entryFee: 0,
     prizes: [] as { rank: number; prize: number }[],
     timeLimit: 60, // Default 60 minutes
+    maxParticipants: 0,
   });
 
   const [questionForm, setQuestionForm] = useState({
@@ -156,6 +157,7 @@ const MegaTestManager = () => {
         entryFee: 0,
         prizes: [],
         timeLimit: 60,
+        maxParticipants: 0,
       });
       toast.success('Mega test created successfully');
     },
@@ -184,6 +186,7 @@ const MegaTestManager = () => {
         entryFee: 0,
         prizes: [],
         timeLimit: 60,
+        maxParticipants: 0,
       });
       toast.success('Mega test updated successfully');
     },
@@ -256,6 +259,7 @@ const MegaTestManager = () => {
         entryFee: megaTest.entryFee,
         prizes: prizes || [],
         timeLimit: megaTest.timeLimit || 60,
+        maxParticipants: megaTest.maxParticipants || 0,
       });
       setIsEditDialogOpen(true);
     } finally {
@@ -678,6 +682,18 @@ const MegaTestManager = () => {
                   step="1"
                   value={formData.timeLimit}
                   onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 60 })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="maxParticipants">Max Participants (0 for unlimited)</Label>
+                <Input
+                  id="maxParticipants"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={formData.maxParticipants}
+                  onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) || 0 })}
                   required
                 />
               </div>
@@ -1158,6 +1174,18 @@ const MegaTestManager = () => {
                 step="1"
                 value={formData.timeLimit}
                 onChange={(e) => setFormData({ ...formData, timeLimit: parseInt(e.target.value) || 60 })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-maxParticipants">Max Participants (0 for unlimited)</Label>
+              <Input
+                id="edit-maxParticipants"
+                type="number"
+                min="0"
+                step="1"
+                value={formData.maxParticipants}
+                onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) || 0 })}
                 required
               />
             </div>

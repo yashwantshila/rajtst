@@ -434,6 +434,7 @@ export interface MegaTest {
   status: 'upcoming' | 'registration' | 'ongoing' | 'completed';
   entryFee: number;
   timeLimit: number; // Time limit in minutes
+  maxParticipants?: number;
   questions?: QuizQuestion[];
 }
 
@@ -534,7 +535,7 @@ export const getMegaTestPrizes = async (megaTestId: string): Promise<MegaTestPri
   }
 };
 
-export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'totalQuestions'> & { 
+export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'totalQuestions'> & {
   questions: MegaTestQuestion[]; // Original type
   prizes: MegaTestPrize[];
 }): Promise<MegaTest | null> => {
@@ -551,7 +552,8 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
       status: 'upcoming',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      timeLimit: data.timeLimit || 60 
+      timeLimit: data.timeLimit || 60,
+      maxParticipants: data.maxParticipants ?? null
     });
     
     // Create questions in subcollection

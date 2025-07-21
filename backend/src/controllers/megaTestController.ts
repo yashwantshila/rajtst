@@ -146,6 +146,12 @@ export const registerForMegaTest = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Mega test not found' });
     }
     const megaTest = megaTestDoc.data() as any;
+    if (megaTest.maxParticipants) {
+      const participantsSnap = await megaTestRef.collection('participants').get();
+      if (participantsSnap.size >= megaTest.maxParticipants) {
+        return res.status(400).json({ error: 'Mega test participant limit reached' });
+      }
+    }
     const entryFee = megaTest.entryFee || 0;
 
     const balanceRef = db.collection('balance').doc(userId);
