@@ -42,6 +42,7 @@ export interface MegaTest {
   status: 'upcoming' | 'registration' | 'ongoing' | 'completed';
   entryFee: number;
   timeLimit: number;
+  maxParticipants?: number;
 }
 
 export interface MegaTestQuestion {
