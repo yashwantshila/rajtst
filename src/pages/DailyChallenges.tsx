@@ -39,9 +39,7 @@ const DailyChallenges = () => {
       if (!user || !challenges) return;
       const results = await Promise.all(
         challenges.map(ch =>
-          getChallengeStatus(ch.id)
-            .then(() => true)
-            .catch(() => false),
+          getChallengeStatus(ch.id).then(status => status.started),
         ),
       );
       const map: Record<string, boolean> = {};
@@ -59,8 +57,8 @@ const DailyChallenges = () => {
       return;
     }
     try {
-      const status = await getChallengeStatus(challenge.id).catch(() => null);
-      if (!status) {
+      const status = await getChallengeStatus(challenge.id);
+      if (!status.started) {
         await startMutation.mutateAsync(challenge.id);
         setPlayed(prev => ({ ...prev, [challenge.id]: true }));
       } else {

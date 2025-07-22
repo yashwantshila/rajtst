@@ -143,9 +143,7 @@ const Home = () => {
       if (!user || !dailyChallenges) return;
       const results = await Promise.all(
         dailyChallenges.map(ch =>
-          getChallengeStatus(ch.id)
-            .then(() => true)
-            .catch(() => false),
+          getChallengeStatus(ch.id).then(status => status.started),
         ),
       );
       const map: Record<string, boolean> = {};
@@ -159,8 +157,8 @@ const Home = () => {
 
   const handleStartChallenge = async (ch: DailyChallenge) => {
     if (!user) { toast.error('Please login first'); navigate('/auth'); return; }
-    const status = await getChallengeStatus(ch.id).catch(() => null);
-    if (!status) {
+    const status = await getChallengeStatus(ch.id);
+    if (!status.started) {
       await startMutation.mutateAsync(ch.id);
       setPlayedChallenges(prev => ({ ...prev, [ch.id]: true }));
     } else {
