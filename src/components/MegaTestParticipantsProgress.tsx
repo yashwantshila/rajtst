@@ -17,11 +17,15 @@ const MegaTestParticipantsProgress = ({ megaTestId, maxParticipants }: MegaTestP
   if (!maxParticipants || maxParticipants <= 0) return null;
 
   const percentage = count ? Math.min(100, (count / maxParticipants) * 100) : 0;
+  const remaining = maxParticipants - (count ?? 0);
 
   return (
     <div className="space-y-1">
       <div className="text-sm text-muted-foreground font-medium">
         {count ?? 0}/{maxParticipants} participants
+      </div>
+      <div className="text-xs text-muted-foreground">
+        {remaining > 0 ? `${remaining} spots left` : 'Seats full'}
       </div>
       <Progress value={percentage} className="h-2" />
     </div>

@@ -98,9 +98,12 @@ const AllMegaTests = () => {
       await queryClient.invalidateQueries({ queryKey: ['registrations', user.uid] });
       await queryClient.invalidateQueries({ queryKey: ['participant-count', megaTestId] });
     } catch (error: any) {
+      const msg: string | undefined = error?.response?.data?.error || error.message;
       if (error.message?.includes('Insufficient balance')) {
         toast.error(error.message);
         navigate('/profile');
+      } else if (msg?.includes('participant limit')) {
+        toast.error('Seats are full');
       } else {
         toast.error('Failed to register for the mega test');
       }
@@ -140,6 +143,8 @@ const AllMegaTests = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {megaTests?.map((megaTest) => {
+          const participantCount = queryClient.getQueryData<number>(['participant-count', megaTest.id]);
+          const seatsFull = megaTest.maxParticipants > 0 && (participantCount ?? 0) >= megaTest.maxParticipants;
           const status = getMegaTestStatus(megaTest);
           const isRegistered = registrationStatus?.[megaTest.id];
 
@@ -211,10 +216,12 @@ const AllMegaTests = () => {
                           <Button
                             className="w-full bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 hover:from-pink-600 hover:to-green-500 text-white font-bold py-2 rounded-lg shadow-md transition-all duration-300"
                             onClick={() => handleRegister(megaTest.id)}
-                            disabled={registeringId === megaTest.id}
+                            disabled={registeringId === megaTest.id || seatsFull}
                           >
                             {registeringId === megaTest.id ? (
                               <><Loader2 className="animate-spin h-4 w-4 mr-2 inline" /> Registering...</>
+                            ) : seatsFull ? (
+                              'Seats Full'
                             ) : (
                               'Register Now'
                             )}
