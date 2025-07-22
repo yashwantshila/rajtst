@@ -16,14 +16,15 @@ export interface DailyChallenge {
 }
 
 export interface ChallengeStatus {
-  userId: string;
-  challengeId: string;
-  date: string;
-  correctCount: number;
-  attemptedQuestions: string[];
-  completed: boolean;
-  won: boolean;
-  startedAt: string;
+  started: boolean;
+  userId?: string;
+  challengeId?: string;
+  date?: string;
+  correctCount?: number;
+  attemptedQuestions?: string[];
+  completed?: boolean;
+  won?: boolean;
+  startedAt?: string;
   completedAt?: string;
   timeLimit: number;
 }

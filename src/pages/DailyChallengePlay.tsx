@@ -41,6 +41,10 @@ const DailyChallengePlay = () => {
     const loadStatusAndQuestion = async () => {
       try {
         const statusData = await getChallengeStatus(challengeId);
+        if (!statusData.started) {
+          toast.error('Challenge not started');
+          return;
+        }
         setStatus(statusData);
         if (!statusData.completed) {
           await fetchNext();
@@ -66,7 +70,9 @@ const DailyChallengePlay = () => {
   useEffect(() => {
     if (timeLeft === 0 && status && !status.completed && challengeId) {
       getChallengeStatus(challengeId)
-        .then(d => setStatus(d))
+        .then(d => {
+          if (d.started) setStatus(d);
+        })
         .catch(() => {});
     }
   }, [timeLeft, status, challengeId]);

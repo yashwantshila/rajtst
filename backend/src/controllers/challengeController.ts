@@ -268,15 +268,22 @@ export const getChallengeStatus = async (req: Request, res: Response) => {
       .collection('daily-challenge-entries')
       .doc(entryId)
       .get();
-    if (!entryDoc.exists) {
-      return res.status(404).json({ error: 'Challenge not started' });
-    }
+
     const challengeDoc = await db.collection('daily-challenges').doc(challengeId).get();
     const challenge = challengeDoc.data() as any;
     const timeLimit = challengeDoc.exists ? challenge.timeLimit : 0;
+
+    if (!entryDoc.exists) {
+      return res.json({ started: false, timeLimit });
+    }
+
     const entryRef = db.collection('daily-challenge-entries').doc(entryId);
-    const updatedEntry = await checkTimeLimitAndUpdate(entryRef, entryDoc.data() as ChallengeEntry, challenge);
-    res.json({ ...updatedEntry, timeLimit });
+    const updatedEntry = await checkTimeLimitAndUpdate(
+      entryRef,
+      entryDoc.data() as ChallengeEntry,
+      challenge,
+    );
+    res.json({ started: true, ...updatedEntry, timeLimit });
   } catch (error) {
     console.error('Error getting status:', error);
     res.status(500).json({ error: 'Failed to get status' });
