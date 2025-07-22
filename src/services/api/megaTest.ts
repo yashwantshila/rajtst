@@ -143,6 +143,17 @@ export const getMegaTestPrizes = async (
   return res.data;
 };
 
+export const getMegaTestParticipantCount = async (
+  megaTestId: string
+): Promise<number> => {
+  const token = await getOptionalAuthToken();
+  const res = await axios.get(
+    `${API_URL}/api/mega-tests/${megaTestId}/participant-count`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+  );
+  return res.data.count;
+};
+
 export interface MegaTestAnswers {
   [questionId: string]: string;
 }

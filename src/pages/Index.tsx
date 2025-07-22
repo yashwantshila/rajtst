@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import MegaTestLeaderboard from "../components/MegaTestLeaderboard";
 import { getCookie } from '@/utils/cookies';
 import MegaTestPrizes from "../components/MegaTestPrizes";
+import MegaTestParticipantsProgress from "../components/MegaTestParticipantsProgress";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -115,8 +116,9 @@ const Home = () => {
   const registerMutation = useMutation({
     mutationFn: ({ megaTestId, userId, username, email }: { megaTestId: string; userId: string; username: string; email: string }) =>
       registerForMegaTest(megaTestId, userId, username, email),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['registrations'] });
+      queryClient.invalidateQueries({ queryKey: ['participant-count', variables.megaTestId] });
       toast.success('Successfully registered for the mega test!');
     },
     onError: () => {
@@ -600,6 +602,14 @@ const Home = () => {
                               <div className="mt-2">
                                 <MegaTestPrizes megaTestId={megaTest.id} />
                               </div>
+                              {megaTest.maxParticipants > 0 && (
+                                <div className="mt-2">
+                                  <MegaTestParticipantsProgress
+                                    megaTestId={megaTest.id}
+                                    maxParticipants={megaTest.maxParticipants}
+                                  />
+                                </div>
+                              )}
                               <div className="flex justify-end gap-2 mt-4">
                                 {!isAuthenticated ? (
                                   <Button
