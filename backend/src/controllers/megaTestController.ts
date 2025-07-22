@@ -301,6 +301,24 @@ export const getMegaTestPrizes = async (req: Request, res: Response) => {
   }
 };
 
+export const getMegaTestParticipantCount = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { megaTestId } = req.params;
+    const snap = await db
+      .collection('mega-tests')
+      .doc(megaTestId)
+      .collection('participants')
+      .get();
+    res.json({ count: snap.size });
+  } catch (error) {
+    console.error('Error getting participant count:', error);
+    res.status(500).json({ error: 'Failed to get participant count' });
+  }
+};
+
 export const submitMegaTestResult = async (req: Request, res: Response) => {
   try {
     const { megaTestId } = req.params;

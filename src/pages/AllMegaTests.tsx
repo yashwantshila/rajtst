@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useAuth } from '../App';
 import MegaTestLeaderboard from '../components/MegaTestLeaderboard';
 import MegaTestPrizes from '../components/MegaTestPrizes';
+import MegaTestParticipantsProgress from '../components/MegaTestParticipantsProgress';
 import { useState } from 'react';
 import RegistrationCountdown from '../components/RegistrationCountdown';
 
@@ -95,6 +96,7 @@ const AllMegaTests = () => {
       await registerForMegaTest(megaTestId, user.uid, user.displayName || '', user.email || '');
       toast.success('Successfully registered for the mega test!');
       await queryClient.invalidateQueries({ queryKey: ['registrations', user.uid] });
+      await queryClient.invalidateQueries({ queryKey: ['participant-count', megaTestId] });
     } catch (error: any) {
       if (error.message?.includes('Insufficient balance')) {
         toast.error(error.message);
@@ -187,6 +189,14 @@ const AllMegaTests = () => {
                   <div className="mt-2">
                     <MegaTestPrizes megaTestId={megaTest.id} />
                   </div>
+                  {megaTest.maxParticipants > 0 && (
+                    <div className="mt-2">
+                      <MegaTestParticipantsProgress
+                        megaTestId={megaTest.id}
+                        maxParticipants={megaTest.maxParticipants}
+                      />
+                    </div>
+                  )}
                   <div className="flex justify-end gap-2 mt-4">
                     {!user ? (
                       <Button

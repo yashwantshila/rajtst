@@ -8,6 +8,7 @@ import {
   hasUserSubmittedMegaTest,
   getMegaTestById,
   getMegaTestPrizes,
+  getMegaTestParticipantCount,
   submitMegaTestResult,
   startMegaTest
 } from '../controllers/megaTestController.js';
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.get('/', getMegaTests);
 router.get('/:megaTestId/leaderboard', getMegaTestLeaderboard);
+router.get('/:megaTestId/participant-count', getMegaTestParticipantCount);
 router.get('/:megaTestId', authenticateUser, getMegaTestById);
 router.get('/:megaTestId/prizes', getMegaTestPrizes);
 
