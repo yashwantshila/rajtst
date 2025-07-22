@@ -266,14 +266,24 @@ export const getMegaTestById = async (req: Request, res: Response) => {
     }
 
     const megaTest = { id: megaTestDoc.id, ...megaTestDoc.data() };
+
+    // Only include correct answers for admins or after results are published
+    const now = Date.now();
+    const resultTimeRaw: any = (megaTest as any).resultTime;
+    const resultTime = resultTimeRaw?.toMillis?.() ?? new Date(resultTimeRaw).getTime();
+    const includeAnswers = req.user?.role === 'admin' || (resultTime && now >= resultTime);
+
     const questions = questionsSnap.docs.map(q => {
       const data = q.data() as any;
-      return {
+      const question: any = {
         id: q.id,
         text: data.text,
         options: data.options,
-        correctAnswer: data.correctAnswer, // Include correctAnswer
       };
+      if (includeAnswers) {
+        question.correctAnswer = data.correctAnswer;
+      }
+      return question;
     });
 
     res.json({ megaTest, questions });
@@ -323,9 +333,9 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
   try {
     const { megaTestId } = req.params;
     const userId = req.user?.uid;
-    const { answers, completionTime } = req.body as {
+    const { answers } = req.body as {
       answers: Record<string, string>;
-      completionTime: number;
+      completionTime?: number;
     };
 
     if (!userId) {
@@ -336,6 +346,10 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
     const leaderboardRef = megaTestRef.collection('leaderboard');
     const participantRef = megaTestRef.collection('participants').doc(userId);
     const participantDoc = await participantRef.get();
+
+    if (!participantDoc.exists || !(participantDoc.data() as any).startTime) {
+      return res.status(400).json({ error: 'Mega test not started' });
+    }
 
     const questionsSnap = await megaTestRef.collection('questions').get();
     const questions = questionsSnap.docs.map(q => ({
@@ -354,14 +368,9 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
     const leaderboardSnap = await leaderboardRef.get();
     const leaderboard = leaderboardSnap.docs.map(doc => doc.data() as any);
 
-    let computedCompletionTime = completionTime;
-    if (participantDoc.exists) {
-      const start = (participantDoc.data() as any).startTime;
-      if (start) {
-        const startMs = new Date(start).getTime();
-        computedCompletionTime = Math.floor((Date.now() - startMs) / 1000);
-      }
-    }
+    const start = (participantDoc.data() as any).startTime;
+    const startMs = new Date(start).getTime();
+    const computedCompletionTime = Math.floor((Date.now() - startMs) / 1000);
 
     const newEntry = {
       userId,
