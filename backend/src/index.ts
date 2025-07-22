@@ -18,6 +18,7 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'https://raj-test-75qulz.web.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-rtb-fingerprint-id'],
+  exposedHeaders: ['x-rtb-fingerprint-id'],
   credentials: true,
   maxAge: 86400 // 24 hours
 }));
