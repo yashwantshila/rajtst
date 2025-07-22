@@ -21,13 +21,21 @@ const MegaTestParticipantsProgress = ({ megaTestId, maxParticipants }: MegaTestP
 
   return (
     <div className="space-y-1">
-      <div className="text-sm text-muted-foreground font-medium">
-        {count ?? 0}/{maxParticipants} participants
+      <div className="flex justify-between items-center text-xs sm:text-sm font-medium">
+        <span className="text-muted-foreground">
+          {count ?? 0}/{maxParticipants} participants
+        </span>
+        <span
+          className={
+            remaining > 0
+              ? 'text-green-600 dark:text-green-400'
+              : 'text-red-500 dark:text-red-400'
+          }
+        >
+          {remaining > 0 ? `${remaining} seats left` : 'Seats full'}
+        </span>
       </div>
-      <div className="text-xs text-muted-foreground">
-        {remaining > 0 ? `${remaining} spots left` : 'Seats full'}
-      </div>
-      <Progress value={percentage} className="h-2" />
+      <Progress value={percentage} className="h-2 rounded-full bg-muted" />
     </div>
   );
 };
