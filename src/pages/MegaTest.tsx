@@ -96,10 +96,8 @@ const MegaTest = () => {
     checkSubmissionStatus();
   }, [megaTestId, user, navigate]);
 
-  if (import.meta.env.DEV) {
-    console.log('MegaTest data:', data);
-    console.log('MegaTest questions:', data?.questions);
-  }
+  // Remove verbose console logging of quiz data
+  // to avoid exposing MegaTest details in the browser console.
 
   const { megaTest, questions } = data || { megaTest: null, questions: [] };
 
