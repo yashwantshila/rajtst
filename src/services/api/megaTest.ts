@@ -166,7 +166,7 @@ export interface SubmitMegaTestResultResponse {
 export const submitMegaTestResult = async (
   megaTestId: string,
   answers: MegaTestAnswers,
-  completionTime: number
+  completionTime?: number
 ): Promise<SubmitMegaTestResultResponse> => {
   const token = await getAuthToken();
   const res = await axios.post(
