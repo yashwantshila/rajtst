@@ -94,7 +94,7 @@ export const getMegaTestLeaderboard = async (req: Request, res: Response) => {
 
 export const getMegaTests = async (_req: Request, res: Response) => {
   try {
-    const snap = await db.collection('mega-tests').get();
+    const snap = await db.collection('mega-tests').where('enabled', '==', true).get();
     const tests = snap.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
       .sort((a, b) => {
