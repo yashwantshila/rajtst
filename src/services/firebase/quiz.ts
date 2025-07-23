@@ -732,8 +732,11 @@ export const updateMegaTest = async (
   const updateData: any = {
     ...data,
     updatedAt: serverTimestamp(),
-    practiceUrl: data.practiceUrl ?? ''
   };
+
+  if (data.practiceUrl !== undefined) {
+    updateData.practiceUrl = data.practiceUrl;
+  }
 
     if (data.questions) {
       updateData.totalQuestions = data.questions.length;
