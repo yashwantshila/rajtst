@@ -265,26 +265,32 @@ const MegaTestManager = () => {
   const handleEdit = async (megaTest: MegaTest) => {
     setIsLoadingEditQuestions(true);
     try {
-      const [{ questions }, prizes] = await Promise.all([
+      const [{ megaTest: fullMegaTest, questions }, prizes] = await Promise.all([
         getMegaTestById(megaTest.id),
         getMegaTestPrizes(megaTest.id)
       ]);
-      setSelectedMegaTest(megaTest);
+
+      if (!fullMegaTest) {
+        toast.error('Failed to fetch mega test details');
+        return;
+      }
+
+      setSelectedMegaTest(fullMegaTest);
       setFormData({
-        title: megaTest.title,
-        description: megaTest.description,
-        practiceUrl: megaTest.practiceUrl || '',
+        title: fullMegaTest.title,
+        description: fullMegaTest.description,
+        practiceUrl: fullMegaTest.practiceUrl || '',
         questions: questions || [],
-        registrationStartTime: format(megaTest.registrationStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-        registrationEndTime: format(megaTest.registrationEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-        testStartTime: format(megaTest.testStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-        testEndTime: format(megaTest.testEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-        resultTime: format(megaTest.resultTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
-        entryFee: megaTest.entryFee,
+        registrationStartTime: format(fullMegaTest.registrationStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        registrationEndTime: format(fullMegaTest.registrationEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        testStartTime: format(fullMegaTest.testStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        testEndTime: format(fullMegaTest.testEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        resultTime: format(fullMegaTest.resultTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
+        entryFee: fullMegaTest.entryFee,
         prizes: prizes || [],
-        timeLimit: megaTest.timeLimit || 60,
-        maxParticipants: megaTest.maxParticipants || 0,
-        enabled: megaTest.enabled ?? false,
+        timeLimit: fullMegaTest.timeLimit || 60,
+        maxParticipants: fullMegaTest.maxParticipants || 0,
+        enabled: fullMegaTest.enabled ?? false,
       });
       setIsEditDialogOpen(true);
     } finally {
