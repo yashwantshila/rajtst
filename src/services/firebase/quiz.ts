@@ -821,6 +821,54 @@ export const deleteMegaTest = async (megaTestId: string): Promise<boolean> => {
   }
 };
 
+export const copyMegaTest = async (megaTestId: string): Promise<MegaTest | null> => {
+  try {
+    const originalRef = doc(db, 'mega-tests', megaTestId);
+    const originalDoc = await getDoc(originalRef);
+    if (!originalDoc.exists()) {
+      return null;
+    }
+
+    const originalData = originalDoc.data() as any;
+
+    const batch = writeBatch(db);
+    const newRef = doc(collection(db, 'mega-tests'));
+
+    batch.set(newRef, {
+      title: originalData.title,
+      description: originalData.description,
+      practiceUrl: originalData.practiceUrl || '',
+      registrationStartTime: originalData.registrationStartTime,
+      registrationEndTime: originalData.registrationEndTime,
+      testStartTime: originalData.testStartTime,
+      testEndTime: originalData.testEndTime,
+      resultTime: originalData.resultTime,
+      entryFee: originalData.entryFee,
+      timeLimit: originalData.timeLimit || 60,
+      maxParticipants: originalData.maxParticipants ?? null,
+      enabled: false,
+      totalQuestions: 0,
+      status: 'upcoming',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    const prizesSnap = await getDocs(collection(originalRef, 'prizes'));
+    prizesSnap.docs.forEach(prizeDoc => {
+      const prizeRef = doc(collection(newRef, 'prizes'));
+      batch.set(prizeRef, prizeDoc.data());
+    });
+
+    await batch.commit();
+
+    const newDoc = await getDoc(newRef);
+    return { id: newDoc.id, ...(newDoc.data() as any) } as MegaTest;
+  } catch (error) {
+    console.error('Error copying mega test:', error);
+    return null;
+  }
+};
+
 
 export const getMegaTestPrizePool = async (megaTestId: string): Promise<number> => {
   try {

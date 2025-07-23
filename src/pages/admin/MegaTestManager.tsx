@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   getMegaTests, 
   createMegaTest, 
-  updateMegaTest, 
+  updateMegaTest,
   deleteMegaTest,
+  copyMegaTest,
   getMegaTestParticipantCount,
   MegaTest,
   QuizQuestion,
@@ -27,7 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Trash2, Clock, Trophy, ListChecks, CreditCard, Users, Upload } from 'lucide-react';
+import { Plus, Pencil, Trash2, Copy, Clock, Trophy, ListChecks, CreditCard, Users, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -216,6 +217,18 @@ const MegaTestManager = () => {
     },
   });
 
+  const copyMutation = useMutation({
+    mutationFn: copyMegaTest,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['mega-tests'] });
+      toast.success('Mega test copied successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to copy mega test');
+      console.error('Error copying mega test:', error);
+    },
+  });
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate({
@@ -282,6 +295,12 @@ const MegaTestManager = () => {
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this mega test?')) {
       deleteMutation.mutate(id);
+    }
+  };
+
+  const handleCopy = (id: string) => {
+    if (window.confirm('Create a copy of this mega test without user data or questions?')) {
+      copyMutation.mutate(id);
     }
   };
 
@@ -790,6 +809,14 @@ const MegaTestManager = () => {
                   >
                     <Pencil className="h-4 w-4 mr-2" />
                     Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(megaTest.id)}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
                   </Button>
                   <Button
                     variant="destructive"
