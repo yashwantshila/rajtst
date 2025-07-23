@@ -5,6 +5,7 @@ import { app } from './services/firebase/config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
+import { useSingleTabEnforcer } from './hooks/useSingleTabEnforcer';
 import { initializeGTM } from './services/gtm';
 const Auth = React.lazy(() => import('./pages/Auth'));
 const Home = React.lazy(() => import('./pages/Index'));
@@ -75,6 +76,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 const AppContent: React.FC = () => {
   const { user } = useAuth();
   const { resetTimeout } = useSessionTimeout(!!user);
+  useSingleTabEnforcer(!!user);
 
   const handleLogout = () => {
     // Implement the logout logic here
