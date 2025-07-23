@@ -684,11 +684,22 @@ export const submitMegaTestResult = async (
     };
     leaderboard.push(newEntry);
     
+    const getTime = (val: any) => {
+      if (!val) return 0;
+      if (typeof val === 'string') return new Date(val).getTime();
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (val.seconds) return val.seconds * 1000;
+      return new Date(val).getTime();
+    };
+
     leaderboard.sort((a, b) => {
       if (a.score !== b.score) {
         return b.score - a.score;
       }
-      return a.completionTime - b.completionTime;
+      if (a.completionTime !== b.completionTime) {
+        return a.completionTime - b.completionTime;
+      }
+      return getTime(a.submittedAt) - getTime(b.submittedAt);
     });
     
     const batch = writeBatch(db);
@@ -929,11 +940,22 @@ export const adminAddOrUpdateLeaderboardEntry = async (
     leaderboard.push(newEntry);
 
     // Sort and assign ranks
+    const getTime = (val: any) => {
+      if (!val) return 0;
+      if (typeof val === 'string') return new Date(val).getTime();
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (val.seconds) return val.seconds * 1000;
+      return new Date(val).getTime();
+    };
+
     leaderboard.sort((a, b) => {
       if (a.score !== b.score) {
         return b.score - a.score;
       }
-      return a.completionTime - b.completionTime;
+      if (a.completionTime !== b.completionTime) {
+        return a.completionTime - b.completionTime;
+      }
+      return getTime(a.submittedAt) - getTime(b.submittedAt);
     });
 
     const batch = writeBatch(db);

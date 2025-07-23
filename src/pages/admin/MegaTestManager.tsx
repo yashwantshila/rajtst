@@ -555,9 +555,18 @@ const MegaTestManager = () => {
     const filtered = leaderboardEntries.filter(entry => entry.userId !== userId);
     // Recalculate ranks and update Firestore
     const batch = writeBatch(db);
+    const getTime = (val: any) => {
+      if (!val) return 0;
+      if (typeof val === 'string') return new Date(val).getTime();
+      if (typeof val.toMillis === 'function') return val.toMillis();
+      if (val.seconds) return val.seconds * 1000;
+      return new Date(val).getTime();
+    };
+
     filtered.sort((a, b) => {
       if (a.score !== b.score) return b.score - a.score;
-      return a.completionTime - b.completionTime;
+      if (a.completionTime !== b.completionTime) return a.completionTime - b.completionTime;
+      return getTime(a.submittedAt) - getTime(b.submittedAt);
     });
     filtered.forEach((entry, idx) => {
       const entryRef = doc(collection(db, 'mega-tests', leaderboardMegaTest.id, 'leaderboard'), entry.userId);
