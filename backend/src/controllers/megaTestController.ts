@@ -81,7 +81,7 @@ export const getMegaTestLeaderboard = async (req: Request, res: Response) => {
       .collection('mega-tests')
       .doc(megaTestId)
       .collection('leaderboard')
-      .orderBy('score', 'desc')
+      .orderBy('rank', 'asc')
       .get();
 
     const entries = leaderboardSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -383,7 +383,12 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
     leaderboard.push(newEntry);
     leaderboard.sort((a, b) => {
       if (a.score !== b.score) return b.score - a.score;
-      return a.completionTime - b.completionTime;
+      if (a.completionTime !== b.completionTime) {
+        return a.completionTime - b.completionTime;
+      }
+      const aTime = new Date(a.submittedAt).getTime();
+      const bTime = new Date(b.submittedAt).getTime();
+      return aTime - bTime;
     });
 
     const batch = db.batch();
