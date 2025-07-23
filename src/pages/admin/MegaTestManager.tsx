@@ -21,6 +21,7 @@ import { CardContent } from "@/components/ui/card";
 import { CardHeader } from "@/components/ui/card";
 import { CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { SanitizedInput } from "@/components/ui/sanitized-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -66,6 +67,7 @@ const MegaTestManager = () => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    practiceUrl: '',
     questions: [] as QuizQuestion[],
     registrationStartTime: '',
     registrationEndTime: '',
@@ -148,6 +150,7 @@ const MegaTestManager = () => {
       setFormData({
         title: '',
         description: '',
+        practiceUrl: '',
         questions: [],
         registrationStartTime: '',
         registrationEndTime: '',
@@ -177,6 +180,7 @@ const MegaTestManager = () => {
       setFormData({
         title: '',
         description: '',
+        practiceUrl: '',
         questions: [],
         registrationStartTime: '',
         registrationEndTime: '',
@@ -213,6 +217,7 @@ const MegaTestManager = () => {
     createMutation.mutate({
       ...formData,
       questions: formData.questions,
+      practiceUrl: formData.practiceUrl,
       registrationStartTime: Timestamp.fromDate(new Date(formData.registrationStartTime)),
       registrationEndTime: Timestamp.fromDate(new Date(formData.registrationEndTime)),
       testStartTime: Timestamp.fromDate(new Date(formData.testStartTime)),
@@ -230,6 +235,7 @@ const MegaTestManager = () => {
       data: {
         ...formData,
         questions: formData.questions,
+        practiceUrl: formData.practiceUrl,
         registrationStartTime: Timestamp.fromDate(new Date(formData.registrationStartTime)),
         registrationEndTime: Timestamp.fromDate(new Date(formData.registrationEndTime)),
         testStartTime: Timestamp.fromDate(new Date(formData.testStartTime)),
@@ -250,6 +256,7 @@ const MegaTestManager = () => {
       setFormData({
         title: megaTest.title,
         description: megaTest.description,
+        practiceUrl: megaTest.practiceUrl || '',
         questions: questions || [],
         registrationStartTime: format(megaTest.registrationStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
         registrationEndTime: format(megaTest.registrationEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
@@ -603,14 +610,22 @@ const MegaTestManager = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  required
-                />
-              </div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="practiceUrl">Practice URL</Label>
+              <SanitizedInput
+                id="practiceUrl"
+                value={formData.practiceUrl}
+                onChange={(v) => setFormData({ ...formData, practiceUrl: v })}
+              />
+            </div>
               <div>
                 <Label htmlFor="registrationStartTime">Registration Start Time</Label>
                 <Input
@@ -1101,6 +1116,14 @@ const MegaTestManager = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-practiceUrl">Practice URL</Label>
+              <SanitizedInput
+                id="edit-practiceUrl"
+                value={formData.practiceUrl}
+                onChange={(v) => setFormData({ ...formData, practiceUrl: v })}
               />
             </div>
             <div>
