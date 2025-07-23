@@ -44,6 +44,7 @@ export interface MegaTest {
   entryFee: number;
   timeLimit: number;
   maxParticipants?: number;
+  enabled?: boolean;
 }
 
 export interface MegaTestQuestion {

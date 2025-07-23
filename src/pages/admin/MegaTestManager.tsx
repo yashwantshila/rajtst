@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Trash2, Clock, Trophy, ListChecks, CreditCard, Users, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -78,6 +79,7 @@ const MegaTestManager = () => {
     prizes: [] as { rank: number; prize: number }[],
     timeLimit: 60, // Default 60 minutes
     maxParticipants: 0,
+    enabled: false,
   });
 
   const [questionForm, setQuestionForm] = useState({
@@ -161,6 +163,7 @@ const MegaTestManager = () => {
         prizes: [],
         timeLimit: 60,
         maxParticipants: 0,
+        enabled: false,
       });
       toast.success('Mega test created successfully');
     },
@@ -191,6 +194,7 @@ const MegaTestManager = () => {
         prizes: [],
         timeLimit: 60,
         maxParticipants: 0,
+        enabled: false,
       });
       toast.success('Mega test updated successfully');
     },
@@ -267,6 +271,7 @@ const MegaTestManager = () => {
         prizes: prizes || [],
         timeLimit: megaTest.timeLimit || 60,
         maxParticipants: megaTest.maxParticipants || 0,
+        enabled: megaTest.enabled ?? false,
       });
       setIsEditDialogOpen(true);
     } finally {
@@ -762,7 +767,13 @@ const MegaTestManager = () => {
           <Card key={megaTest.id}>
             <CardHeader>
               <div className="flex justify-between items-center">
-                <CardTitle>{megaTest.title}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle>{megaTest.title}</CardTitle>
+                  <Switch
+                    checked={!!megaTest.enabled}
+                    onCheckedChange={(checked) => updateMutation.mutate({ id: megaTest.id, data: { enabled: checked } })}
+                  />
+                </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"

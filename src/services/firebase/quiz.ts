@@ -436,6 +436,7 @@ export interface MegaTest {
   entryFee: number;
   timeLimit: number; // Time limit in minutes
   maxParticipants?: number;
+  enabled?: boolean;
   questions?: QuizQuestion[];
 }
 
@@ -555,7 +556,8 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
       updatedAt: serverTimestamp(),
       timeLimit: data.timeLimit || 60,
       maxParticipants: data.maxParticipants ?? null,
-      practiceUrl: data.practiceUrl || ''
+      practiceUrl: data.practiceUrl || '',
+      enabled: false
     });
     
     // Create questions in subcollection
