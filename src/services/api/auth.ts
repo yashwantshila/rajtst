@@ -1,6 +1,11 @@
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut, updateProfile, onIdTokenChanged } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
-import { app, db } from '../firebase/config';
+import {
+  getAuth,
+  signInWithCustomToken,
+  signOut,
+  onIdTokenChanged,
+} from 'firebase/auth';
+import axios from 'axios';
+import { app } from '../firebase/config';
 import { setCookie, getCookie, removeCookie } from '@/utils/cookies';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -55,112 +60,94 @@ onIdTokenChanged(auth, (user) => {
   }
 });
 
-export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
+export const loginUser = async (
+  email: string,
+  password: string
+): Promise<LoginResponse> => {
   try {
+    const response = await axios.post(`${API_URL}/auth/login`, {
+      email,
+      password,
+    });
+
+    const { token, user } = response.data as LoginResponse;
+
     const auth = getAuth(app);
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    // Get fresh token
-    const token = await user.getIdToken(true);
-    
-    // Store user data in cookie
-    setCookie('user', JSON.stringify({
-      id: user.uid,
-      email: user.email,
-      username: user.displayName || '',
-    }));
-    
-    // Start token refresh interval
-    startTokenRefresh();
-    
-    return {
-      token,
-      user: {
-        id: user.uid,
+    const userCredential = await signInWithCustomToken(auth, token);
+    const idToken = await userCredential.user.getIdToken(true);
+
+    setCookie(
+      'user',
+      JSON.stringify({
+        id: userCredential.user.uid,
         email: user.email,
-        username: user.displayName || '',
-      }
+        username: user.username,
+      })
+    );
+
+    startTokenRefresh();
+
+    return {
+      token: idToken,
+      user: {
+        id: userCredential.user.uid,
+        email: user.email,
+        username: user.username,
+      },
     };
   } catch (error: any) {
     console.error('Login error:', error);
-    
-    // Handle specific Firebase auth errors
-    if (error.code === 'auth/invalid-credential') {
-      throw new Error('Invalid email or password');
-    } else if (error.code === 'auth/user-not-found') {
-      throw new Error('No account found with this email address');
-    } else if (error.code === 'auth/wrong-password') {
-      throw new Error('Incorrect password');
-    } else if (error.code === 'auth/too-many-requests') {
-      throw new Error('Too many failed login attempts. Please try again later');
-    } else if (error.code === 'auth/user-disabled') {
-      throw new Error('This account has been disabled');
-    } else {
-      throw new Error('Failed to login: ' + (error.message || 'Unknown error'));
-    }
+    const msg =
+      error.response?.data?.error || error.message || 'Failed to login';
+    throw new Error(msg);
   }
 };
 
-export const registerUser = async (email: string, password: string, username: string) => {
+export const registerUser = async (
+  email: string,
+  password: string,
+  username: string
+) => {
   try {
-    const auth = getAuth(app);
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    // Update profile with username using the imported updateProfile function
-    await updateProfile(user, { displayName: username });
-    
-    // Create user document in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
+    const response = await axios.post(`${API_URL}/auth/register`, {
       email,
+      password,
       username,
-      createdAt: new Date().toISOString(),
     });
-    
-    // Create balance document
-    await setDoc(doc(db, 'balance', user.uid), {
-      amount: 0,
-      currency: 'INR',
-      lastUpdated: new Date().toISOString(),
-    });
-    
-    // Store user data in cookie
-    setCookie('user', JSON.stringify({
-      id: user.uid,
-      email: user.email,
-      username: username,
-    }));
-    
-    return {
-      token: await user.getIdToken(),
-      user: {
-        id: user.uid,
+
+    const { token, user } = response.data as RegisterResponse;
+
+    const auth = getAuth(app);
+    const userCredential = await signInWithCustomToken(auth, token);
+    const idToken = await userCredential.user.getIdToken(true);
+
+    setCookie(
+      'user',
+      JSON.stringify({
+        id: userCredential.user.uid,
         email: user.email,
-        username: username,
-      }
+        username: user.username,
+      })
+    );
+
+    return {
+      token: idToken,
+      user: {
+        id: userCredential.user.uid,
+        email: user.email,
+        username: user.username,
+      },
     };
   } catch (error: any) {
     console.error('Registration error:', error);
-    
-    // Handle specific Firebase auth errors
-    if (error.code === 'auth/email-already-in-use') {
-      throw new Error('This email is already registered. Please use a different email or try logging in.');
-    } else if (error.code === 'auth/invalid-email') {
-      throw new Error('The email address is not valid.');
-    } else if (error.code === 'auth/operation-not-allowed') {
-      throw new Error('Email/password accounts are not enabled. Please contact support.');
-    } else if (error.code === 'auth/weak-password') {
-      throw new Error('The password is too weak. Please use a stronger password.');
-    } else {
-      throw new Error('Failed to register: ' + (error.message || 'Unknown error'));
-    }
+    const msg =
+      error.response?.data?.error || error.message || 'Failed to register';
+    throw new Error(msg);
   }
 };
 
 export const resetPassword = async (email: string): Promise<void> => {
-  const auth = getAuth(app);
-  await sendPasswordResetEmail(auth, email);
+  await axios.post(`${API_URL}/auth/reset-password`, { email });
 };
 
 export const logoutUser = async () => {

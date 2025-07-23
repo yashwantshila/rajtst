@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import axios from 'axios';
 import { auth, db } from '../config/firebase.js';
 
 export const register = async (req: Request, res: Response) => {
@@ -61,28 +62,45 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Only Gmail addresses (gmail.com) are allowed to login' });
     }
 
-    // Sign in with Firebase Admin SDK
-    const userRecord = await auth.getUserByEmail(email);
-    
-    // Generate custom token
-    const token = await auth.createCustomToken(userRecord.uid);
+    // Verify credentials with Firebase using the REST API
+    if (!process.env.FIREBASE_API_KEY) {
+      throw new Error('FIREBASE_API_KEY is not configured');
+    }
+
+    const signInEndpoint =
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`;
+
+    const signInResponse = await axios.post(signInEndpoint, {
+      email,
+      password,
+      returnSecureToken: true,
+    });
+
+    const uid = signInResponse.data.localId as string;
+
+    // Generate custom token after successful sign in
+    const token = await auth.createCustomToken(uid);
 
     // Get user data from Firestore
-    const userDoc = await db.collection('users').doc(userRecord.uid).get();
+    const userDoc = await db.collection('users').doc(uid).get();
     const userData = userDoc.data();
 
     res.json({
       token,
       user: {
-        id: userRecord.uid,
-        email: userRecord.email,
+        id: uid,
+        email,
         username: userData?.username,
       },
     });
   } catch (error: any) {
     console.error('Login error:', error);
-    if (error.code === 'auth/user-not-found') {
+    const message =
+      error?.response?.data?.error?.message || error.code || error.message;
+    if (message === 'EMAIL_NOT_FOUND' || message === 'INVALID_PASSWORD') {
       res.status(401).json({ error: 'Invalid credentials' });
+    } else if (message === 'USER_DISABLED') {
+      res.status(403).json({ error: 'User account disabled' });
     } else {
       res.status(500).json({ error: 'Failed to login' });
     }
