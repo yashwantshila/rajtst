@@ -623,6 +623,14 @@ const Home = () => {
                                   </Button>
                                 ) : (
                                   <>
+                                    {megaTest.practiceUrl && (
+                                      <Button
+                                        asChild
+                                        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
+                                      >
+                                        <a href={megaTest.practiceUrl} target="_blank" rel="noopener noreferrer">Practice</a>
+                                      </Button>
+                                    )}
                                     {status === 'registration' && !isRegistered && (
                                       <Button
                                         className="w-full bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 hover:from-pink-600 hover:to-green-500 text-white font-bold py-2 rounded-lg shadow-md transition-all duration-300"
