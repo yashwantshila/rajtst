@@ -423,6 +423,7 @@ export interface MegaTest {
   id: string;
   title: string;
   description: string;
+  practiceUrl?: string;
   registrationStartTime: Timestamp;
   registrationEndTime: Timestamp;
   testStartTime: Timestamp;
@@ -553,7 +554,8 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       timeLimit: data.timeLimit || 60,
-      maxParticipants: data.maxParticipants ?? null
+      maxParticipants: data.maxParticipants ?? null,
+      practiceUrl: data.practiceUrl || ''
     });
     
     // Create questions in subcollection
@@ -725,10 +727,11 @@ export const updateMegaTest = async (
     const batch = writeBatch(db);
     const megaTestRef = doc(db, 'mega-tests', id);
 
-    const updateData: any = {
-      ...data,
-      updatedAt: serverTimestamp()
-    };
+  const updateData: any = {
+    ...data,
+    updatedAt: serverTimestamp(),
+    practiceUrl: data.practiceUrl ?? ''
+  };
 
     if (data.questions) {
       updateData.totalQuestions = data.questions.length;
