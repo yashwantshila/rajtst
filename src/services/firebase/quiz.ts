@@ -1,4 +1,5 @@
 import { collection, doc, getDocs, query, setDoc, where, addDoc, getDoc, serverTimestamp, Timestamp, updateDoc, deleteDoc, arrayUnion, writeBatch } from 'firebase/firestore';
+import { parseTimestamp } from '@/utils/parseTimestamp';
 import { db } from './config';
 import { getMegaTestLeaderboard as fetchLeaderboard, MegaTestLeaderboardEntry } from '../api/megaTest';
 import { updateUserBalance } from './balance';
@@ -688,7 +689,12 @@ export const submitMegaTestResult = async (
       if (a.score !== b.score) {
         return b.score - a.score;
       }
-      return a.completionTime - b.completionTime;
+      if (a.completionTime !== b.completionTime) {
+        return a.completionTime - b.completionTime;
+      }
+      const aTime = parseTimestamp(a.submittedAt).getTime();
+      const bTime = parseTimestamp(b.submittedAt).getTime();
+      return aTime - bTime;
     });
     
     const batch = writeBatch(db);
@@ -933,7 +939,12 @@ export const adminAddOrUpdateLeaderboardEntry = async (
       if (a.score !== b.score) {
         return b.score - a.score;
       }
-      return a.completionTime - b.completionTime;
+      if (a.completionTime !== b.completionTime) {
+        return a.completionTime - b.completionTime;
+      }
+      const aTime = parseTimestamp(a.submittedAt).getTime();
+      const bTime = parseTimestamp(b.submittedAt).getTime();
+      return aTime - bTime;
     });
 
     const batch = writeBatch(db);

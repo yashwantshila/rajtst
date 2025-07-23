@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { parseTimestamp } from '@/utils/parseTimestamp';
 import { Plus, Pencil, Trash2, Copy, Clock, Trophy, ListChecks, CreditCard, Users, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -557,7 +558,12 @@ const MegaTestManager = () => {
     const batch = writeBatch(db);
     filtered.sort((a, b) => {
       if (a.score !== b.score) return b.score - a.score;
-      return a.completionTime - b.completionTime;
+      if (a.completionTime !== b.completionTime) {
+        return a.completionTime - b.completionTime;
+      }
+      const aTime = parseTimestamp(a.submittedAt).getTime();
+      const bTime = parseTimestamp(b.submittedAt).getTime();
+      return aTime - bTime;
     });
     filtered.forEach((entry, idx) => {
       const entryRef = doc(collection(db, 'mega-tests', leaderboardMegaTest.id, 'leaderboard'), entry.userId);

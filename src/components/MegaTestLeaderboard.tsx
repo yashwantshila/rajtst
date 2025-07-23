@@ -37,7 +37,7 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
         })
       );
 
-      return entriesWithUserDetails;
+      return entriesWithUserDetails.sort((a, b) => a.rank - b.rank);
     },
     refetchInterval: 5000, // Refetch every 5 seconds for polling
   });
@@ -78,7 +78,7 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
   const currentEntries = filteredData.slice(startIndex, endIndex);
 
   const currentUserEntry = leaderboardData?.find(entry => entry.userId === user?.uid);
-  const currentUserRank = currentUserEntry ? leaderboardData?.indexOf(currentUserEntry) + 1 : null;
+  const currentUserRank = currentUserEntry ? currentUserEntry.rank : null;
 
   const jumpToUserRank = () => {
     if (currentUserRank) {
@@ -126,8 +126,8 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
             >
               <div className="flex items-center gap-3">
                 <div className="flex items-center justify-center w-8">
-                  {getRankIcon(startIndex + index + 1) || (
-                    <span className="text-muted-foreground">{startIndex + index + 1}</span>
+                  {getRankIcon(entry.rank) || (
+                    <span className="text-muted-foreground">{entry.rank}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
