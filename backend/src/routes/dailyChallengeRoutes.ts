@@ -15,6 +15,7 @@ import {
   getChallengeStatus,
   getNextQuestion,
   submitAnswer,
+  forfeitChallenge,
 } from '../controllers/challengeController.js';
 
 const router = express.Router();
@@ -28,6 +29,7 @@ router.post('/:challengeId/start', startChallenge);
 router.get('/:challengeId/status', getChallengeStatus);
 router.get('/:challengeId/question', getNextQuestion);
 router.post('/:challengeId/answer', submitAnswer);
+router.post('/:challengeId/forfeit', forfeitChallenge);
 
 // Admin actions
 router.use(verifyFirebaseAdmin);
