@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, ListChecks, CreditCard, Trophy, Loader2 } from 'lucide-react';
 import { getMegaTests, isUserRegistered, hasUserSubmittedMegaTest, registerForMegaTest } from '@/services/api/megaTest';
+import { getMegaTestQuestionCount } from '@/services/firebase/quiz';
 import { parseTimestamp } from '@/utils/parseTimestamp';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -59,6 +60,24 @@ const AllMegaTests = () => {
       }), {});
     },
     enabled: !!user && !!megaTests
+  });
+
+  const { data: questionCounts } = useQuery({
+    queryKey: ['mega-tests-question-counts'],
+    queryFn: async () => {
+      if (!megaTests) return {};
+      const counts = await Promise.all(
+        megaTests.map(async (test) => ({
+          megaTestId: test.id,
+          count: await getMegaTestQuestionCount(test.id)
+        }))
+      );
+      return counts.reduce((acc, { megaTestId, count }) => ({
+        ...acc,
+        [megaTestId]: count
+      }), {} as Record<string, number>);
+    },
+    enabled: !!megaTests
   });
 
   const getMegaTestStatus = (megaTest: any) => {
@@ -180,7 +199,7 @@ const AllMegaTests = () => {
                       </div>
                       <div className="flex items-center">
                         <ListChecks className="h-4 w-4 mr-1 text-yellow-500" />
-                        <span>{megaTest.totalQuestions} Questions</span>
+                        <span>{questionCounts?.[megaTest.id] ?? megaTest.totalQuestions} Questions</span>
                       </div>
                       <div className="flex items-center">
                         <CreditCard className="h-4 w-4 mr-1 text-indigo-500" />
