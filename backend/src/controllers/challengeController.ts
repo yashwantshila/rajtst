@@ -483,3 +483,67 @@ export const submitAnswer = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to submit answer' });
   }
 };
+
+export const forfeitChallenge = async (req: Request, res: Response) => {
+  try {
+    const { challengeId } = req.params;
+    const userId = req.user?.uid;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const date = new Date().toISOString().split('T')[0];
+    const entryId = `${challengeId}_${userId}_${date}`;
+    const entryRef = db.collection('daily-challenge-entries').doc(entryId);
+    const entryDoc = await entryRef.get();
+
+    if (!entryDoc.exists) {
+      return res.status(400).json({ error: 'Challenge not started' });
+    }
+
+    const entry = entryDoc.data() as ChallengeEntry;
+
+    if (entry.completed) {
+      return res.json(entry);
+    }
+
+    const challengeDoc = await db.collection('daily-challenges').doc(challengeId).get();
+    if (!challengeDoc.exists) {
+      return res.status(404).json({ error: 'Challenge not found' });
+    }
+    const challenge = challengeDoc.data() as any;
+
+    const reward = challenge.reward || 0;
+    const won = entry.correctCount >= (challenge.requiredCorrect || 0);
+
+    const updated: Partial<ChallengeEntry> = {
+      completed: true,
+      won,
+      completedAt: new Date().toISOString(),
+    };
+
+    await entryRef.set(updated, { merge: true });
+
+    if (won && !entry.won) {
+      const balanceRef = db.collection('balance').doc(userId);
+      await db.runTransaction(async tx => {
+        const balDoc = await tx.get(balanceRef);
+        const current = balDoc.exists ? balDoc.data()?.amount || 0 : 0;
+        tx.set(
+          balanceRef,
+          {
+            amount: current + reward,
+            currency: 'INR',
+            lastUpdated: new Date().toISOString(),
+          },
+          { merge: true },
+        );
+      });
+    }
+
+    res.json({ ...entry, ...updated, timeLimit: challenge.timeLimit });
+  } catch (error) {
+    console.error('Error forfeiting challenge:', error);
+    res.status(500).json({ error: 'Failed to complete challenge' });
+  }
+};

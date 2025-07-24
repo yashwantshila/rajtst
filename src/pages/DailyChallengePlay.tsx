@@ -5,6 +5,7 @@ import {
   getChallengeStatus,
   getNextQuestion,
   submitAnswer,
+  forfeitChallenge,
   getDailyChallenges,
   ChallengeQuestion,
   DailyChallenge,
@@ -19,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useExitPrompt } from '@/hooks/useExitPrompt';
 
 const DailyChallengePlay = () => {
   const { challengeId } = useParams<{ challengeId: string }>();
@@ -119,6 +121,25 @@ const DailyChallengePlay = () => {
       toast.error(err.response?.data?.error || 'Failed');
     },
   });
+
+  const forfeitMutation = useMutation({
+    mutationFn: () => forfeitChallenge(challengeId!),
+    onSuccess: data => {
+      setStatus(prev => ({ ...(prev || {}), ...data }));
+      toast.success(data.won ? 'Challenge over' : 'Challenge over');
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to exit');
+    },
+  });
+
+  const handleExit = async () => {
+    if (!status?.completed) {
+      await forfeitMutation.mutateAsync();
+    }
+  };
+
+  useExitPrompt(!!status && !status.completed, handleExit);
 
   if (!challengeId) return <p>Invalid challenge</p>;
 

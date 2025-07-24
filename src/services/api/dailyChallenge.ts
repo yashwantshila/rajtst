@@ -90,6 +90,18 @@ export const submitAnswer = async (
   return res.data;
 };
 
+export const forfeitChallenge = async (
+  challengeId: string,
+): Promise<ChallengeStatus> => {
+  const token = await getAuthToken();
+  const res = await axios.post(
+    `${API_URL}/api/daily-challenges/${challengeId}/forfeit`,
+    {},
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  return res.data;
+};
+
 // --- Admin APIs ---
 const createAdminApi = async () => {
   const token = await refreshAdminToken();
