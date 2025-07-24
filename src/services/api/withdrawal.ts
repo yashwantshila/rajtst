@@ -9,6 +9,8 @@ export interface WithdrawalRequest {
   userId: string;
   userName?: string;
   amount: number;
+  fee?: number;
+  netAmount?: number;
   upiId: string;
   status: 'pending' | 'completed' | 'rejected';
   requestDate: string;
@@ -19,6 +21,7 @@ export interface WithdrawalRequest {
 }
 
 export const MINIMUM_WITHDRAWAL_AMOUNT = 50;
+export const WITHDRAWAL_FEE_PERCENTAGE = 0.1;
 
 export const createWithdrawalRequest = async (
   userId: string,
