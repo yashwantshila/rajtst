@@ -788,38 +788,59 @@ export const updateMegaTest = async (
 
 export const deleteMegaTest = async (megaTestId: string): Promise<boolean> => {
   try {
-    const batch = writeBatch(db);
     const megaTestRef = doc(db, 'mega-tests', megaTestId);
+    const megaTestDoc = await getDoc(megaTestRef);
+    const megaTestTitle = megaTestDoc.exists() ? (megaTestDoc.data() as any).title : '';
 
-    // Delete questions subcollection
+    const prizesSnap = await getDocs(collection(megaTestRef, 'prizes'));
+    const prizeMap = new Map<number, any>();
+    prizesSnap.docs.forEach(p => {
+      const data = p.data() as any;
+      prizeMap.set(data.rank, data.prize);
+    });
+
+    const leaderboardSnap = await getDocs(collection(megaTestRef, 'leaderboard'));
+    for (const docSnap of leaderboardSnap.docs) {
+      const entry = docSnap.data() as any;
+      const prizeVal = prizeMap.get(entry.rank);
+      if (!prizeVal) continue;
+      const amount = parseFloat(String(prizeVal).replace(/[^0-9.]/g, ''));
+      if (isNaN(amount) || amount <= 0) continue;
+
+      const expiresAt = Timestamp.fromMillis(Date.now() + 3 * 24 * 60 * 60 * 1000);
+      await addDoc(collection(db, 'user-prizes'), {
+        userId: entry.userId,
+        megaTestId,
+        megaTestTitle,
+        prize: `₹${amount}`,
+        rank: entry.rank,
+        createdAt: serverTimestamp(),
+        expiresAt,
+      });
+
+      if (!entry.prizeCredited) {
+        try {
+          await updateUserBalance(entry.userId, amount);
+        } catch (err) {
+          console.error('Failed to credit prize during mega test deletion', err);
+        }
+      }
+    }
+
+    const batch = writeBatch(db);
+
     const questionsRef = collection(megaTestRef, 'questions');
     const questionsSnapshot = await getDocs(questionsRef);
-    questionsSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
+    questionsSnapshot.docs.forEach(d => batch.delete(d.ref));
 
-    // Delete participants subcollection
     const participantsRef = collection(megaTestRef, 'participants');
     const participantsSnapshot = await getDocs(participantsRef);
-    participantsSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
+    participantsSnapshot.docs.forEach(d => batch.delete(d.ref));
 
-    // Delete leaderboard subcollection
-    const leaderboardRef = collection(megaTestRef, 'leaderboard');
-    const leaderboardSnapshot = await getDocs(leaderboardRef);
-    leaderboardSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
+    leaderboardSnap.docs.forEach(d => batch.delete(d.ref));
 
-    // Delete prizes subcollection
-    const prizesRef = collection(megaTestRef, 'prizes');
-    const prizesSnapshot = await getDocs(prizesRef);
-    prizesSnapshot.docs.forEach(doc => {
-      batch.delete(doc.ref);
-    });
+    prizesSnap.docs.forEach(d => batch.delete(d.ref));
 
-    // Delete the main mega test document
     batch.delete(megaTestRef);
 
     await batch.commit();
