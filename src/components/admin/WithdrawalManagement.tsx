@@ -207,7 +207,7 @@ export const WithdrawalManagement = () => {
                 <TableRow>
                   <TableHead>Date</TableHead>
                   <TableHead>User</TableHead>
-                  <TableHead>Amount</TableHead>
+                  <TableHead>Net Amount</TableHead>
                   <TableHead>UPI ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Completed On</TableHead>
@@ -220,7 +220,7 @@ export const WithdrawalManagement = () => {
                   <TableRow key={request.id}>
                     <TableCell className="font-medium">{formatDate(request.requestDate)}</TableCell>
                     <TableCell>{request.userName || request.userId}</TableCell>
-                    <TableCell>₹{request.amount.toFixed(2)}</TableCell>
+                    <TableCell>₹{(request.netAmount ?? request.amount).toFixed(2)}</TableCell>
                     <TableCell>{request.upiId}</TableCell>
                     <TableCell>{getStatusBadge(request.status)}</TableCell>
                     <TableCell>{request.completionDate ? formatDate(request.completionDate) : '-'}</TableCell>
@@ -240,7 +240,7 @@ export const WithdrawalManagement = () => {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Mark Withdrawal as Completed</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This will mark the withdrawal request as complete. Ensure that you have transferred ₹{request.amount.toFixed(2)} to {request.upiId}.
+                                    This will mark the withdrawal request as complete. Ensure that you have transferred ₹{(request.netAmount ?? request.amount).toFixed(2)} to {request.upiId}.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <div className="mt-2">

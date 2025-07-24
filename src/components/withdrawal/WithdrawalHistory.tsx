@@ -105,7 +105,7 @@ export function WithdrawalHistory({
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Amount</TableHead>
+                  <TableHead>Net Amount</TableHead>
                   <TableHead>UPI ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Notes</TableHead>
@@ -115,7 +115,7 @@ export function WithdrawalHistory({
                 {safeWithdrawalRequests.map((request: WithdrawalRequest) => (
                   <TableRow key={request.id}>
                     <TableCell className="font-medium">{formatDate(request.requestDate)}</TableCell>
-                    <TableCell>₹{request.amount.toFixed(2)}</TableCell>
+                    <TableCell>₹{(request.netAmount ?? request.amount).toFixed(2)}</TableCell>
                     <TableCell>{request.upiId}</TableCell>
                     <TableCell><StatusBadge status={request.status} /></TableCell>
                     <TableCell>{request.notes || '-'}</TableCell>
