@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   adminCreateChallenge,
@@ -18,6 +18,7 @@ import { SanitizedInput } from '@/components/ui/sanitized-input';
 import { SanitizedTextarea } from '@/components/ui/sanitized-textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { runWordpressAutomator, getAutomatorStatus } from '@/services/api/admin';
 
 const DailyChallengeManager = () => {
   const queryClient = useQueryClient();
@@ -43,6 +44,7 @@ const DailyChallengeManager = () => {
   const [bulkText, setBulkText] = useState('');
   const [viewChallenge, setViewChallenge] = useState<string | null>(null);
   const [editQuestion, setEditQuestion] = useState<{ id: string; text: string; options: string[]; correctAnswer: string } | null>(null);
+  const [automatorStatus, setAutomatorStatus] = useState<string>('idle');
 
   const questionMutation = useMutation({
     mutationFn: ({ cid, text, options, correct }: { cid: string; text: string; options: string[]; correct: string }) =>
@@ -62,6 +64,37 @@ const DailyChallengeManager = () => {
     },
     onError: (err: any) => toast.error(err.response?.data?.error || 'Failed'),
   });
+
+  const runAutomatorMutation = useMutation({
+    mutationFn: runWordpressAutomator,
+    onSuccess: () => {
+      toast.success('Automation started');
+      setAutomatorStatus('running');
+    },
+    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed'),
+  });
+
+  const fetchStatus = async () => {
+    try {
+      const status = await getAutomatorStatus();
+      setAutomatorStatus(status.status);
+      if (status.status === 'error') {
+        toast.error(status.error || 'Automation failed');
+      }
+      if (status.status === 'completed') {
+        toast.success('Automation completed');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (automatorStatus === 'running') {
+      const id = setInterval(fetchStatus, 3000);
+      return () => clearInterval(id);
+    }
+  }, [automatorStatus]);
 
   const { data: questionList, refetch: refetchQuestions } = useQuery({
     queryKey: ['challenge-questions', viewChallenge],
@@ -101,6 +134,12 @@ const DailyChallengeManager = () => {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Button onClick={() => runAutomatorMutation.mutate()} disabled={runAutomatorMutation.isPending || automatorStatus === 'running'}>
+          Run WordPress Automator
+        </Button>
+        <span className="text-sm">Status: {automatorStatus}</span>
+      </div>
       <Dialog>
         <DialogTrigger asChild>
           <Button>Create Challenge</Button>

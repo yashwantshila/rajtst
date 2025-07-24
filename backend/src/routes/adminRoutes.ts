@@ -1,6 +1,12 @@
 import express from 'express';
 import { verifyFirebaseAdmin } from '../middleware/firebaseAdminAuth.js';
-import { getAllUsers, getAllBalances, updateUserRole } from '../controllers/adminController.js';
+import {
+  getAllUsers,
+  getAllBalances,
+  updateUserRole,
+  runWordpressAutomator,
+  getAutomatorStatus,
+} from '../controllers/adminController.js';
 
 const router = express.Router();
 
@@ -15,5 +21,11 @@ router.get('/balances', getAllBalances);
 
 // Update user role
 router.put('/users/:userId/role', updateUserRole);
+
+// Run WordPress automation script
+router.post('/automation/run', runWordpressAutomator);
+
+// Get automation status
+router.get('/automation/status', getAutomatorStatus);
 
 export default router; 

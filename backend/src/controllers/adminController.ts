@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
 import { auth } from '../config/firebase.js';
+import { spawn } from 'child_process';
+import path from 'path';
 
 // Get all users
 export const getAllUsers = async (req: Request, res: Response) => {
@@ -58,4 +60,40 @@ export const updateUserRole = async (req: Request, res: Response) => {
     console.error('Error updating user role:', error);
     res.status(500).json({ error: 'Failed to update user role' });
   }
-}; 
+};
+
+// --- WordPress Automator Script Handling ---
+let automatorStatus: 'idle' | 'running' | 'completed' | 'error' = 'idle';
+let automatorError = '';
+let currentProcess: ReturnType<typeof spawn> | null = null;
+
+export const runWordpressAutomator = (req: Request, res: Response) => {
+  if (automatorStatus === 'running') {
+    return res.status(400).json({ error: 'Automator already running' });
+  }
+
+  const scriptPath = path.join(process.cwd(), 'backend', 'scripts', 'wordpress_automator.py');
+
+  automatorStatus = 'running';
+  automatorError = '';
+
+  currentProcess = spawn('python3', [scriptPath], { env: process.env });
+
+  currentProcess.on('close', code => {
+    automatorStatus = code === 0 ? 'completed' : 'error';
+    if (code !== 0) {
+      automatorError = `Process exited with code ${code}`;
+    }
+    currentProcess = null;
+  });
+
+  currentProcess.stderr?.on('data', data => {
+    automatorError = data.toString();
+  });
+
+  res.json({ message: 'Automator started' });
+};
+
+export const getAutomatorStatus = (_req: Request, res: Response) => {
+  res.json({ status: automatorStatus, error: automatorError });
+};

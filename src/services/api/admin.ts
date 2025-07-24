@@ -114,4 +114,16 @@ export const updateUserRole = async (userId: string, role: 'user' | 'admin'): Pr
     }
     throw error;
   }
-}; 
+};
+
+// --- WordPress Automator ---
+export const runWordpressAutomator = async (): Promise<void> => {
+  const api = await createApiInstance();
+  await api.post('/api/admin/automation/run');
+};
+
+export const getAutomatorStatus = async (): Promise<{ status: string; error?: string }> => {
+  const api = await createApiInstance();
+  const res = await api.get('/api/admin/automation/status');
+  return res.data;
+};
