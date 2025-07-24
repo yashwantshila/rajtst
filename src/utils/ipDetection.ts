@@ -1,39 +1,25 @@
 // Client-side IP detection utilities
 export const getClientIP = async (): Promise<string | null> => {
   try {
-    const ipServices = [
-      'https://api.ipify.org?format=json',
-      'https://api.myip.com',
-      'https://ipapi.co/json/',
-      'https://httpbin.org/ip'
-    ];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
 
-    for (const service of ipServices) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000);
+    const response = await fetch('https://api.ipify.org?format=json', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      signal: controller.signal
+    });
 
-        const response = await fetch(service, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          },
-          signal: controller.signal
-        });
+    clearTimeout(timeout);
 
-        clearTimeout(timeout);
+    if (response.ok) {
+      const data = await response.json();
+      const ip = data.ip;
 
-        if (response.ok) {
-          const data = await response.json();
-          const ip = data.ip || data.query || data.origin;
-
-          if (ip && isValidIP(ip) && ip !== '127.0.0.1' && ip !== 'localhost') {
-            return ip;
-          }
-        }
-      } catch (error) {
-        console.log(`Failed to get IP from ${service}:`, error);
-        continue;
+      if (ip && isValidIP(ip)) {
+        return ip;
       }
     }
 

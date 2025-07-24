@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "../components/mode-toggle";
 import { logoutUser } from '../services/firebase/auth';
-import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User, Menu, DollarSign, FileText, Loader2, ArrowUpRight, Globe } from 'lucide-react';
+import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User, Menu, DollarSign, FileText, Loader2, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import MegaTestLeaderboard from "../components/MegaTestLeaderboard";
@@ -33,7 +33,6 @@ import { useSessionTimeout } from '../hooks/useSessionTimeout';
 import { getPaidContents, purchaseContent, downloadContent } from '../services/api/paidContent';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import RegistrationCountdown from '../components/RegistrationCountdown';
-import { captureUserIP } from '../services/api/user';
 import { getDeviceId } from '../utils/deviceId';
 
 interface PaidContent {
@@ -280,80 +279,6 @@ const Home = () => {
     }
   };
 
-  // IP address state
-  const [userIP, setUserIP] = useState<string | null>(null);
-  const [isCapturingIP, setIsCapturingIP] = useState(false);
-  const [ipCaptureAttempts, setIpCaptureAttempts] = useState(0);
-  const [lastCaptureTime, setLastCaptureTime] = useState<number | null>(null);
-
-  // IP capture mutation
-  const ipCaptureMutation = useMutation({
-    mutationFn: captureUserIP,
-    onSuccess: (data) => {
-      setUserIP(data.ipAddress);
-      setIpCaptureAttempts(0);
-      setLastCaptureTime(Date.now());
-      // Removed success toast
-    },
-    onError: (error: any) => {
-      console.error('Failed to capture IP address:', error);
-      setIpCaptureAttempts(prev => prev + 1);
-      
-      // Only show error toast for non-authentication errors and after first attempt
-      if (!error.message?.includes('Authentication required') && 
-          !error.message?.includes('Authentication failed') &&
-          ipCaptureAttempts > 0) {
-        toast.error('Failed to capture IP address');
-      }
-    }
-  });
-
-  // Helper function to check if user is ready for API calls
-  const isUserReadyForAPI = () => {
-    return isAuthenticated && user && !isAdmin && !isCustomAdmin && !loading && user.uid;
-  };
-
-  // Check if it's time to capture IP (every 3 minutes)
-  const shouldCaptureIP = () => {
-    if (!lastCaptureTime) return true;
-    const threeMinutes = 3 * 60 * 1000; // 3 minutes in milliseconds
-    return Date.now() - lastCaptureTime >= threeMinutes;
-  };
-
-  // Capture IP address at intervals
-  useEffect(() => {
-    if (isUserReadyForAPI() && shouldCaptureIP() && ipCaptureAttempts < 3) {
-      // Add a small delay to ensure user is fully authenticated
-      const timer = setTimeout(() => {
-        setIsCapturingIP(true);
-        ipCaptureMutation.mutate();
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, user, isAdmin, isCustomAdmin, lastCaptureTime, loading, ipCaptureAttempts]);
-
-  // Set up interval for periodic IP capture
-  useEffect(() => {
-    if (!isUserReadyForAPI()) return;
-
-    const interval = setInterval(() => {
-      if (shouldCaptureIP() && !isCapturingIP) {
-        setIpCaptureAttempts(0);
-        setIsCapturingIP(true);
-        ipCaptureMutation.mutate();
-      }
-    }, 3 * 60 * 1000); // Check every 3 minutes
-
-    return () => clearInterval(interval);
-  }, [isAuthenticated, user, isAdmin, isCustomAdmin, lastCaptureTime, isCapturingIP]);
-
-  // Reset capturing state when mutation completes
-  useEffect(() => {
-    if (!ipCaptureMutation.isPending) {
-      setIsCapturingIP(false);
-    }
-  }, [ipCaptureMutation.isPending]);
 
   if (isLoadingCategories || isLoadingMegaTests || isLoadingRegistrations || isLoadingSubmissions || isLoadingPaidContents || isLoadingDailyChallenges) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;

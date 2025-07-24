@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { getAuthToken } from './auth';
 import { getAuth } from 'firebase/auth';
-import { getClientIP } from '../../utils/ipDetection';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://rajtst-1074455492364.asia-south1.run.app';
 
@@ -123,23 +122,7 @@ export const captureUserIP = async (): Promise<IPCaptureResponse> => {
       throw new Error('Authentication required');
     }
     
-    // If backend fails, try client-side IP detection as fallback
-    if (error.response?.status >= 500 || !error.response) {
-      console.log('Backend IP capture failed, trying client-side detection...');
-      try {
-        const clientIP = await getClientIP();
-        if (clientIP) {
-          return {
-            success: true,
-            ipAddress: clientIP,
-            originalIP: 'client-detected',
-            timestamp: new Date().toISOString()
-          };
-        }
-      } catch (clientError) {
-        console.error('Client-side IP detection also failed:', clientError);
-      }
-    }
+    // If backend fails, propagate the error without attempting additional client-side detection
     
     throw error;
   }

@@ -3,7 +3,6 @@ import { parseTimestamp } from '@/utils/parseTimestamp';
 import { db } from './config';
 import { getMegaTestLeaderboard as fetchLeaderboard, MegaTestLeaderboardEntry } from '../api/megaTest';
 import { updateUserBalance } from './balance';
-import { getClientIP } from '@/utils/ipDetection';
 import { getDeviceId } from '@/utils/deviceId';
 
 export interface QuizCategory {
@@ -622,7 +621,9 @@ export const registerForMegaTest = async (megaTestId: string, userId: string, us
       });
     }
     
-    const ipAddress = await getClientIP();
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    const ipAddress = userDoc.exists() ? (userDoc.data().lastSeenIP || userDoc.data().ipAddress) : undefined;
     const deviceId = getDeviceId();
     
     const participantRef = doc(collection(db, 'mega-tests', megaTestId, 'participants'), userId);
