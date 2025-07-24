@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import routes from './routes/index.js';
 import './config/firebase.js';
 
+import { scheduleDailyChallengeCleanup } from './jobs/clearDailyChallengeEntries.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -42,6 +44,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 // Start server
 app.listen(port, '0.0.0.0', () => {
+  scheduleDailyChallengeCleanup();
   console.log(`Server is running on port ${port}`);
   console.log('Environment:', process.env.NODE_ENV);
   console.log('Health check endpoint: /health');
