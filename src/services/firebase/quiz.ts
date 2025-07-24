@@ -424,6 +424,7 @@ export interface MegaTest {
   id: string;
   title: string;
   description: string;
+  keyword?: string;
   practiceUrl?: string;
   registrationStartTime: Timestamp;
   registrationEndTime: Timestamp;
@@ -550,6 +551,7 @@ export const createMegaTest = async (data: Omit<MegaTest, 'id' | 'createdAt' | '
     // Create main mega test document
     const { prizes, ...megaTestData } = data; // Original destructuring
     batch.set(newMegaTestRef, {
+      keyword: data.keyword || '',
       ...megaTestData, // This will include data.questions as it's part of megaTestData
       totalQuestions: data.questions.length,
       status: 'upcoming',
@@ -867,6 +869,7 @@ export const copyMegaTest = async (megaTestId: string): Promise<MegaTest | null>
     batch.set(newRef, {
       title: originalData.title,
       description: originalData.description,
+      keyword: originalData.keyword || '',
       practiceUrl: originalData.practiceUrl || '',
       registrationStartTime: originalData.registrationStartTime,
       registrationEndTime: originalData.registrationEndTime,

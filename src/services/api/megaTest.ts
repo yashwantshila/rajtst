@@ -31,6 +31,7 @@ export interface MegaTest {
   id: string;
   title: string;
   description: string;
+  keyword?: string;
   practiceUrl?: string;
   registrationStartTime: any;
   registrationEndTime: any;
