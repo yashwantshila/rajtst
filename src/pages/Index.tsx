@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getQuizCategories } from '../services/api/quiz';
 import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMegaTest, MegaTest } from '../services/api/megaTest';
+import { getMegaTestQuestionCount } from '@/services/firebase/quiz';
 import { getDailyChallenges, DailyChallenge, startChallenge, getChallengeStatus } from '../services/api/dailyChallenge';
 import { parseTimestamp } from '@/utils/parseTimestamp';
 import { AuthContext } from '../App';
@@ -105,6 +106,24 @@ const Home = () => {
       }), {});
     },
     enabled: !!user && !!megaTests
+  });
+
+  const { data: questionCounts } = useQuery({
+    queryKey: ['mega-tests-question-counts'],
+    queryFn: async () => {
+      if (!megaTests) return {};
+      const counts = await Promise.all(
+        megaTests.map(async (test) => ({
+          megaTestId: test.id,
+          count: await getMegaTestQuestionCount(test.id)
+        }))
+      );
+      return counts.reduce((acc, { megaTestId, count }) => ({
+        ...acc,
+        [megaTestId]: count
+      }), {} as Record<string, number>);
+    },
+    enabled: !!megaTests
   });
 
   const { data: paidContents, isLoading: isLoadingPaidContents } = useQuery<PaidContent[]>({
@@ -516,7 +535,7 @@ const Home = () => {
                                   </div>
                                   <div className="flex items-center">
                                     <ListChecks className="h-4 w-4 mr-1 text-yellow-500" />
-                                    <span>{megaTest.totalQuestions} Questions</span>
+                                    <span>{questionCounts?.[megaTest.id] ?? megaTest.totalQuestions} Questions</span>
                                   </div>
                                   <div className="flex items-center">
                                     <CreditCard className="h-4 w-4 mr-1 text-indigo-500" />

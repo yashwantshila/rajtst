@@ -931,6 +931,28 @@ export const getMegaTestParticipantCount = async (megaTestId: string): Promise<n
   }
 };
 
+export const getMegaTestQuestions = async (megaTestId: string): Promise<MegaTestQuestion[]> => {
+  try {
+    const questionsRef = collection(db, 'mega-tests', megaTestId, 'questions');
+    const snapshot = await getDocs(questionsRef);
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as MegaTestQuestion[];
+  } catch (error) {
+    console.error(`Error fetching questions for mega test ${megaTestId}:`, error);
+    return [];
+  }
+};
+
+export const getMegaTestQuestionCount = async (megaTestId: string): Promise<number> => {
+  try {
+    const questionsRef = collection(db, 'mega-tests', megaTestId, 'questions');
+    const snapshot = await getDocs(questionsRef);
+    return snapshot.size;
+  } catch (error) {
+    console.error('Error getting question count:', error);
+    return 0;
+  }
+};
+
 /**
  * Admin function to add or update a leaderboard entry for a MegaTest.
  * Allows specifying any userId, score, and completionTime. Recalculates ranks for all entries.
