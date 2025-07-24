@@ -5,7 +5,9 @@ import {
   getChallengeStatus,
   getNextQuestion,
   submitAnswer,
+  getDailyChallenges,
   ChallengeQuestion,
+  DailyChallenge,
 } from '@/services/api/dailyChallenge';
 import {
   Card,
@@ -24,6 +26,8 @@ const DailyChallengePlay = () => {
   const [question, setQuestion] = useState<ChallengeQuestion | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [challengeInfo, setChallengeInfo] = useState<DailyChallenge | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number>(1);
 
   const fetchNext = async () => {
     if (!challengeId) return;
@@ -38,6 +42,16 @@ const DailyChallengePlay = () => {
 
   useEffect(() => {
     if (!challengeId) return;
+    getDailyChallenges()
+      .then(list => {
+        const info = list.find(c => c.id === challengeId);
+        if (info) setChallengeInfo(info);
+      })
+      .catch(() => {});
+  }, [challengeId]);
+
+  useEffect(() => {
+    if (!challengeId) return;
     const loadStatusAndQuestion = async () => {
       try {
         const statusData = await getChallengeStatus(challengeId);
@@ -46,6 +60,7 @@ const DailyChallengePlay = () => {
           return;
         }
         setStatus(statusData);
+        setCurrentIndex((statusData.attemptedQuestions?.length || 0) + 1);
         if (!statusData.completed) {
           await fetchNext();
         }
@@ -71,7 +86,10 @@ const DailyChallengePlay = () => {
     if (timeLeft === 0 && status && !status.completed && challengeId) {
       getChallengeStatus(challengeId)
         .then(d => {
-          if (d.started) setStatus(d);
+          if (d.started) {
+            setStatus(d);
+            setCurrentIndex((d.attemptedQuestions?.length || 0) + 1);
+          }
         })
         .catch(() => {});
     }
@@ -91,8 +109,10 @@ const DailyChallengePlay = () => {
       } else if (data.nextQuestion) {
         setQuestion(data.nextQuestion);
         setSelectedIndex(null);
+        setCurrentIndex(i => i + 1);
       } else {
         fetchNext();
+        setCurrentIndex(i => i + 1);
       }
     },
     onError: (err: any) => {
@@ -141,6 +161,16 @@ const DailyChallengePlay = () => {
                 <div className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
                   {timeLeft ?? ''}s
                 </div>
+                {challengeInfo && (
+                  <>
+                    <div className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
+                      MCQ {currentIndex}
+                    </div>
+                    <div className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
+                      Left: {Math.max(0, challengeInfo.requiredCorrect - currentIndex)}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             {timeLeft !== null && (
