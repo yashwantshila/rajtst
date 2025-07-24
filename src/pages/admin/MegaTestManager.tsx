@@ -71,6 +71,7 @@ const MegaTestManager = () => {
     title: '',
     description: '',
     practiceUrl: '',
+    keyword: '',
     questions: [] as QuizQuestion[],
     registrationStartTime: '',
     registrationEndTime: '',
@@ -155,6 +156,7 @@ const MegaTestManager = () => {
         title: '',
         description: '',
         practiceUrl: '',
+        keyword: '',
         questions: [],
         registrationStartTime: '',
         registrationEndTime: '',
@@ -186,6 +188,7 @@ const MegaTestManager = () => {
         title: '',
         description: '',
         practiceUrl: '',
+        keyword: '',
         questions: [],
         registrationStartTime: '',
         registrationEndTime: '',
@@ -281,6 +284,7 @@ const MegaTestManager = () => {
         title: fullMegaTest.title,
         description: fullMegaTest.description,
         practiceUrl: fullMegaTest.practiceUrl || '',
+        keyword: fullMegaTest.keyword || '',
         questions: questions || [],
         registrationStartTime: format(fullMegaTest.registrationStartTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
         registrationEndTime: format(fullMegaTest.registrationEndTime.toDate(), "yyyy-MM-dd'T'HH:mm"),
@@ -645,13 +649,21 @@ const MegaTestManager = () => {
                   required
                 />
               </div>
-              <div>
+            <div>
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="keyword">Keyword</Label>
+              <Input
+                id="keyword"
+                value={formData.keyword}
+                onChange={(e) => setFormData({ ...formData, keyword: e.target.value })}
               />
             </div>
             <div>
@@ -1166,6 +1178,14 @@ const MegaTestManager = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 required
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-keyword">Keyword</Label>
+              <Input
+                id="edit-keyword"
+                value={formData.keyword}
+                onChange={(e) => setFormData({ ...formData, keyword: e.target.value })}
               />
             </div>
             <div>
