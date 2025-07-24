@@ -13,6 +13,7 @@ export interface DailyChallenge {
   description?: string;
   active: boolean;
   practiceUrl?: string;
+  keyword?: string;
 }
 
 export interface ChallengeStatus {
@@ -106,6 +107,7 @@ export const adminCreateChallenge = async (
   timeLimit: number,
   description?: string,
   practiceUrl?: string,
+  keyword?: string,
 ): Promise<string> => {
   const api = await createAdminApi();
   const res = await api.post('/api/daily-challenges', {
@@ -115,6 +117,7 @@ export const adminCreateChallenge = async (
     timeLimit,
     description,
     practiceUrl,
+    keyword,
   });
   return res.data.id;
 };

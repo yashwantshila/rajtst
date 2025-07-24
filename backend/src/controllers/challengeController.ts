@@ -41,6 +41,7 @@ export const createChallenge = async (req: Request, res: Response) => {
       timeLimit,
       description,
       practiceUrl,
+      keyword,
     } = req.body as {
       title: string;
       reward: number;
@@ -48,6 +49,7 @@ export const createChallenge = async (req: Request, res: Response) => {
       timeLimit: number;
       description?: string;
       practiceUrl?: string;
+      keyword?: string;
     };
 
     if (!title || !reward || !requiredCorrect || !timeLimit) {
@@ -74,6 +76,7 @@ export const createChallenge = async (req: Request, res: Response) => {
       timeLimit,
       description: description || '',
       practiceUrl: validatedUrl,
+      keyword: keyword || '',
       active: true,
       createdAt: new Date().toISOString(),
     });
@@ -215,7 +218,11 @@ export const getDailyChallenges = async (_req: Request, res: Response) => {
       .collection('daily-challenges')
       .where('active', '==', true)
       .get();
-    const challenges = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const challenges = snap.docs.map(doc => {
+      const data = doc.data() as any;
+      const { keyword, ...rest } = data;
+      return { id: doc.id, ...rest };
+    });
     res.json(challenges);
   } catch (error) {
     console.error('Error fetching challenges:', error);

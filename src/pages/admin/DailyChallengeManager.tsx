@@ -27,8 +27,8 @@ const DailyChallengeManager = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: ({ title, reward, requiredCorrect, timeLimit, description, practiceUrl }: { title: string; reward: number; requiredCorrect: number; timeLimit: number; description?: string; practiceUrl?: string }) =>
-      adminCreateChallenge(title, reward, requiredCorrect, timeLimit, description, practiceUrl),
+    mutationFn: ({ title, reward, requiredCorrect, timeLimit, description, practiceUrl, keyword }: { title: string; reward: number; requiredCorrect: number; timeLimit: number; description?: string; practiceUrl?: string; keyword?: string }) =>
+      adminCreateChallenge(title, reward, requiredCorrect, timeLimit, description, practiceUrl, keyword),
     onSuccess: () => {
       toast.success('Challenge created');
       queryClient.invalidateQueries({ queryKey: ['daily-challenges-admin'] });
@@ -36,7 +36,7 @@ const DailyChallengeManager = () => {
     onError: (err: any) => toast.error(err.response?.data?.error || 'Failed'),
   });
 
-  const [createForm, setCreateForm] = useState({ title: '', description: '', practiceUrl: '', reward: '', requiredCorrect: '', timeLimit: '' });
+  const [createForm, setCreateForm] = useState({ title: '', description: '', practiceUrl: '', keyword: '', reward: '', requiredCorrect: '', timeLimit: '' });
   const [questionForm, setQuestionForm] = useState({ text: '', a: '', b: '', c: '', d: '', correct: 'a' });
   const [activeChallenge, setActiveChallenge] = useState<string | null>(null);
   const [bulkChallenge, setBulkChallenge] = useState<string | null>(null);
@@ -119,6 +119,10 @@ const DailyChallengeManager = () => {
               <SanitizedTextarea value={createForm.description} onChange={v => setCreateForm(f => ({ ...f, description: v }))} />
             </div>
             <div>
+              <Label>Keyword</Label>
+              <SanitizedInput value={createForm.keyword} onChange={v => setCreateForm(f => ({ ...f, keyword: v }))} />
+            </div>
+            <div>
               <Label>Practice URL</Label>
               <SanitizedInput value={createForm.practiceUrl} onChange={v => setCreateForm(f => ({ ...f, practiceUrl: v }))} />
             </div>
@@ -134,7 +138,7 @@ const DailyChallengeManager = () => {
               <Label>Time Limit (seconds)</Label>
               <SanitizedInput value={createForm.timeLimit} onChange={v => setCreateForm(f => ({ ...f, timeLimit: v }))} type="number" />
             </div>
-            <Button onClick={() => createMutation.mutate({ title: createForm.title, reward: Number(createForm.reward), requiredCorrect: Number(createForm.requiredCorrect), timeLimit: Number(createForm.timeLimit), description: createForm.description, practiceUrl: createForm.practiceUrl })}>Create</Button>
+            <Button onClick={() => createMutation.mutate({ title: createForm.title, reward: Number(createForm.reward), requiredCorrect: Number(createForm.requiredCorrect), timeLimit: Number(createForm.timeLimit), description: createForm.description, practiceUrl: createForm.practiceUrl, keyword: createForm.keyword })}>Create</Button>
           </div>
         </DialogContent>
       </Dialog>
