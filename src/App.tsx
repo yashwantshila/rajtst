@@ -1,5 +1,12 @@
 import React, { createContext, useState, useEffect, useContext, Suspense } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
+import {
+  createBrowserRouter,
+  RouterProvider,
+  createRoutesFromElements,
+  Route,
+  Navigate,
+  Outlet,
+} from 'react-router-dom';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from './services/firebase/config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -73,9 +80,9 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   );
 };
 
-const AppContent: React.FC = () => {
+const RootLayout: React.FC = () => {
   const { user } = useAuth();
-  const { resetTimeout } = useSessionTimeout(!!user);
+  useSessionTimeout(!!user);
   useSingleTabEnforcer(!!user);
 
   const handleLogout = () => {
@@ -84,93 +91,139 @@ const AppContent: React.FC = () => {
 
   return (
     <Suspense fallback={<div>Loading...</div>}>
-    <Routes>
+      <Toaster position="bottom-center" richColors />
+      <Outlet />
+    </Suspense>
+  );
+};
+
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Home />} />
       <Route path="/all-mega-tests" element={<AllMegaTests />} />
       <Route path="/daily-challenges" element={<DailyChallenges />} />
       <Route path="/daily-challenges/:challengeId" element={<DailyChallengePlay />} />
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <Profile />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin" element={
-        <ProtectedRoute>
-          <Admin />
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <Admin />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/admin-auth" element={<AdminAuth />} />
       <Route path="/admin/login" element={<Navigate to="/admin-auth" replace />} />
-      <Route path="/categories" element={
-        <ProtectedRoute>
-          <QuizCategories />
-        </ProtectedRoute>
-      } />
-      <Route path="/category/:categoryId/subcategories" element={
-        <ProtectedRoute>
-          <SubCategories />
-        </ProtectedRoute>
-      } />
-      <Route path="/category/:categoryId/subcategory/:subcategoryId/quizzes" element={
-        <ProtectedRoute>
-          <CategoryQuizzes />
-        </ProtectedRoute>
-      } />
-      <Route path="/quiz/:quizId" element={
-        <ProtectedRoute>
-          <Quiz />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/mega-tests" element={
-        <ProtectedRoute>
-          <MegaTestManager />
-        </ProtectedRoute>
-      } />
-      <Route path="/mega-test/:megaTestId" element={
-        <ProtectedRoute>
-          <MegaTest />
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/categories"
+        element={
+          <ProtectedRoute>
+            <QuizCategories />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/category/:categoryId/subcategories"
+        element={
+          <ProtectedRoute>
+            <SubCategories />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/category/:categoryId/subcategory/:subcategoryId/quizzes"
+        element={
+          <ProtectedRoute>
+            <CategoryQuizzes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/quiz/:quizId"
+        element={
+          <ProtectedRoute>
+            <Quiz />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/mega-tests"
+        element={
+          <ProtectedRoute>
+            <MegaTestManager />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/mega-test/:megaTestId"
+        element={
+          <ProtectedRoute>
+            <MegaTest />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/mega-test/:megaTestId/prizes" element={<MegaTestPrizesPage />} />
       <Route path="/leaderboard/:megaTestId" element={<LeaderboardPage />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
       <Route path="/about-us" element={<AboutUs />} />
-      <Route path="/guide" element={
-        <ProtectedRoute>
-          <Guide />
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/guide"
+        element={
+          <ProtectedRoute>
+            <Guide />
+          </ProtectedRoute>
+        }
+      />
       {/* Question Paper Routes */}
       <Route path="/question-papers" element={<QuestionPapers />} />
       <Route path="/question-papers/:categoryId" element={<QuestionPaperCategory />} />
-      <Route path="/admin/question-paper-categories" element={
-        <ProtectedRoute>
-          <AdminQuestionPaperCategories />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/question-papers/:categoryId" element={
-        <ProtectedRoute>
-          <AdminQuestionPapers />
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/admin/question-paper-categories"
+        element={
+          <ProtectedRoute>
+            <AdminQuestionPaperCategories />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/question-papers/:categoryId"
+        element={
+          <ProtectedRoute>
+            <AdminQuestionPapers />
+          </ProtectedRoute>
+        }
+      />
       {/* Paid Content Routes */}
       <Route path="/paid-content" element={<PaidContent />} />
-      <Route path="/purchased-content" element={
-        <ProtectedRoute>
-          <PurchasedContent />
-        </ProtectedRoute>
-      } />
-      <Route path="/admin/paid-content" element={
-        <ProtectedRoute>
-          <PaidContentManager />
-        </ProtectedRoute>
-      } />
-    </Routes>
-    </Suspense>
-  );
-};
+      <Route
+        path="/purchased-content"
+        element={
+          <ProtectedRoute>
+            <PurchasedContent />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/paid-content"
+        element={
+          <ProtectedRoute>
+            <PaidContentManager />
+          </ProtectedRoute>
+        }
+      />
+    </Route>
+  )
+);
 
 const queryClient = new QueryClient();
 
@@ -190,10 +243,7 @@ const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <Toaster position="bottom-center" richColors />
-          <AppContent />
-        </Router>
+        <RouterProvider router={router} />
       </AuthProvider>
     </QueryClientProvider>
   );
