@@ -1,7 +1,7 @@
 # IP Address Capturing System
 
 ## Overview
-This system captures and stores the IP addresses of users when they visit the Index.tsx page (logged-in page). The system is designed to work only for regular users and excludes admin users.
+This system captures and stores the IP addresses of users when they register or log in. The system is designed to work only for regular users and excludes admin users.
 
 ## Features
 
@@ -47,20 +47,14 @@ This system captures and stores the IP addresses of users when they visit the In
 - **Purpose**: Calls backend endpoint to capture IP
 - **Error Handling**: Includes token refresh logic
 - **Response Type**: `IPCaptureResponse`
-- **Client Fallback**: Uses multiple public services with a 3s timeout and validates the IP if the backend fails
+- **Client Fallback**: Removed to avoid repeated external requests
 
-#### 2. Index Page Integration (`src/pages/Index.tsx`)
-- **IP Display**: Shows captured IP at the top of the page
-- **User Filtering**: Only shows for authenticated non-admin users
-- **Real-time Updates**: Displays loading state and captured IP
-- **Visual Design**: Blue-themed banner with globe icon
+#### 2. Auth Integration
+- IP address is captured during user registration and login only.
+- The value is stored in Firestore and reused in features like mega tests.
 
 #### 3. State Management
-- **State Variables**:
-  - `userIP`: Stores captured IP address
-  - `isCapturingIP`: Loading state for IP capture
-- **Mutations**: Uses React Query for API calls
-- **Effects**: Automatically captures IP on page load
+No periodic IP capture is performed on the Index page anymore.
 
 ## Security Considerations
 
@@ -80,10 +74,8 @@ This system captures and stores the IP addresses of users when they visit the In
 ## Usage
 
 ### For Users
-1. Log in to the application
-2. Navigate to the Index page
-3. IP address is automatically captured and displayed
-4. IP is stored in Firestore for future reference
+1. Register or log in to the application
+2. Your IP address is captured once and stored in Firestore
 
 ### For Developers
 1. Backend automatically handles IP detection
@@ -100,10 +92,8 @@ This system captures and stores the IP addresses of users when they visit the In
 
 ### Manual Testing
 1. Start backend server
-2. Log in as a regular user
-3. Visit Index page
-4. Verify IP address is displayed
-5. Check Firestore for stored data
+2. Register or log in as a regular user
+3. Verify IP address is stored in Firestore
 
 ## Configuration
 
