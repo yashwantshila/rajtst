@@ -10,6 +10,7 @@ import contentRoutes from './contentRoutes.js';
 import paidContentRoutes from './paidContentRoutes.js';
 import dailyChallengeRoutes from './dailyChallengeRoutes.js';
 import withdrawalRoutes from './withdrawalRoutes.js';
+import automationRoutes from './automationRoutes.js';
 
 const router = express.Router();
 
@@ -40,6 +41,9 @@ router.use('/daily-challenges', dailyChallengeRoutes);
 
 // Withdrawal routes
 router.use('/withdrawals', withdrawalRoutes);
+
+// Automation routes
+router.use('/automation', automationRoutes);
 
 // Admin routes
 router.use('/admin', adminRoutes);

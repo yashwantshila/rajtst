@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Wallet, Trophy, FileText, ScrollText, Info, Book, FileArchive, DollarSign, Flame } from 'lucide-react';
+import { Users, BookOpen, Wallet, Trophy, FileText, ScrollText, Info, Book, FileArchive, DollarSign, Flame, Terminal } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -12,6 +12,7 @@ import { PrivacyPolicyManager } from '../components/admin/PrivacyPolicyManager';
 import { TermsAndConditionsManager } from '../components/admin/TermsAndConditionsManager';
 import { AboutUsManager } from '../components/admin/AboutUsManager';
 import GuideManager from '../components/admin/GuideManager';
+import AutomationRunner from '../components/admin/AutomationRunner';
 import MegaTestManager from './admin/MegaTestManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
@@ -135,6 +136,10 @@ const Admin = () => {
               <Book className="h-4 w-4" />
               <span>Guide</span>
             </TabsTrigger>
+            <TabsTrigger value="automation" className="flex items-center gap-2">
+              <Terminal className="h-4 w-4" />
+              <span>Automation</span>
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="users">
@@ -187,6 +192,9 @@ const Admin = () => {
 
           <TabsContent value="guide">
             <GuideManager />
+          </TabsContent>
+          <TabsContent value="automation">
+            <AutomationRunner />
           </TabsContent>
         </Tabs>
       </main>
