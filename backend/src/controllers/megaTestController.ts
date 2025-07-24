@@ -66,6 +66,34 @@ export const getUserPrizes = async (req: Request, res: Response) => {
       });
     }
 
+    // Include prizes from user-prizes collection and clean up expired ones
+    const userPrizeSnap = await db
+      .collection('user-prizes')
+      .where('userId', '==', userId)
+      .get();
+    const expired: FirebaseFirestore.DocumentReference[] = [];
+    userPrizeSnap.docs.forEach(doc => {
+      const data = doc.data() as any;
+      const expiresAt: any = data.expiresAt;
+      const expiryMs = expiresAt?.toMillis?.() ?? new Date(expiresAt).getTime();
+      if (expiryMs && expiryMs <= now) {
+        expired.push(doc.ref);
+        return;
+      }
+      result.push({
+        megaTestId: data.megaTestId,
+        megaTestTitle: data.megaTestTitle,
+        prize: data.prize,
+        rank: data.rank,
+        claimStatus: 'credited',
+      });
+    });
+    if (expired.length > 0) {
+      const batch = db.batch();
+      expired.forEach(ref => batch.delete(ref));
+      await batch.commit();
+    }
+
     res.json(result);
   } catch (error) {
     console.error('Error fetching prizes:', error);
