@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
 
 export const MINIMUM_WITHDRAWAL_AMOUNT = 50;
+export const WITHDRAWAL_FEE_PERCENTAGE = 0.1; // 10% fee
 
 export const createWithdrawalRequest = async (req: Request, res: Response) => {
   try {
@@ -19,6 +20,9 @@ export const createWithdrawalRequest = async (req: Request, res: Response) => {
         .status(400)
         .json({ error: `Minimum withdrawal amount is ₹${MINIMUM_WITHDRAWAL_AMOUNT}` });
     }
+
+    const fee = Math.round(numericAmount * WITHDRAWAL_FEE_PERCENTAGE * 100) / 100;
+    const netAmount = Math.round((numericAmount - fee) * 100) / 100;
 
     await db.runTransaction(async (transaction) => {
       const balanceRef = db.collection('balance').doc(userId);
@@ -44,6 +48,8 @@ export const createWithdrawalRequest = async (req: Request, res: Response) => {
       userId,
       userName: userName || '',
       amount: numericAmount,
+      fee,
+      netAmount,
       upiId,
       status: 'pending',
       requestDate: new Date().toISOString(),

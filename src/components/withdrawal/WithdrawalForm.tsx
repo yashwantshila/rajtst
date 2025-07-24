@@ -13,9 +13,10 @@ import { Input } from '@/components/ui/input';
 import { SanitizedInput } from '@/components/ui/sanitized-input';
 import { Button } from '@/components/ui/button';
 import { useMutation } from '@tanstack/react-query';
-import { 
+import {
   createWithdrawalRequest,
-  MINIMUM_WITHDRAWAL_AMOUNT
+  MINIMUM_WITHDRAWAL_AMOUNT,
+  WITHDRAWAL_FEE_PERCENTAGE
 } from '../../services/api/withdrawal';
 
 interface WithdrawalFormProps {
@@ -36,6 +37,10 @@ export function WithdrawalForm({
   const [amount, setAmount] = useState<string>('');
   const [upiId, setUpiId] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  const amountValue = parseFloat(amount);
+  const feeAmount = isNaN(amountValue) ? 0 : amountValue * WITHDRAWAL_FEE_PERCENTAGE;
+  const netAmount = isNaN(amountValue) ? 0 : amountValue - feeAmount;
   
   const createWithdrawalMutation = useMutation({
     mutationFn: async () => {
@@ -119,7 +124,7 @@ export function WithdrawalForm({
           Withdraw Funds
         </CardTitle>
         <CardDescription>
-          Withdraw money to your UPI account (minimum ₹{MINIMUM_WITHDRAWAL_AMOUNT})
+          Withdraw money to your UPI account (minimum ₹{MINIMUM_WITHDRAWAL_AMOUNT}). A {(WITHDRAWAL_FEE_PERCENTAGE * 100).toFixed(0)}% fee will be deducted.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -137,6 +142,11 @@ export function WithdrawalForm({
               min={MINIMUM_WITHDRAWAL_AMOUNT}
               max={currentBalance > 0 ? currentBalance.toString() : '0'}
             />
+            {amount && !isNaN(amountValue) && (
+              <p className="text-xs text-muted-foreground mt-1">
+                You will receive ₹{netAmount.toFixed(2)} after fees.
+              </p>
+            )}
           </div>
           <div>
             <label htmlFor="upiId" className="block text-sm font-medium text-muted-foreground mb-1">
