@@ -15,6 +15,7 @@ import { CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ModeToggle } from "../components/mode-toggle";
+import SEO from "../components/SEO";
 import { logoutUser } from '../services/firebase/auth';
 import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User, Menu, DollarSign, FileText, Loader2, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
@@ -313,6 +314,8 @@ const Home = () => {
   }
 
   return (
+    <>
+    <SEO title="RajTest - High Quality Test Series and Megatests" description="High Quality Test Series and Megatests to win daily Prizes. Join our platform for competitive exam preparation and win exciting rewards." canonical="https://rajtest.com/" />
     <div className="min-h-screen bg-background text-foreground p-4" onMouseMove={resetTimeout} onKeyDown={resetTimeout}>
       <header className="sticky top-0 z-10 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container flex h-16 items-center justify-between py-4">
@@ -940,6 +943,7 @@ const Home = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 };
 
