@@ -445,9 +445,9 @@ const Home = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-3">
+      <main className="container mx-auto px-4 py-3 max-w-screen-xl">
 
-        <div className="max-w-4xl mx-auto space-y-10">
+        <div className="mx-auto space-y-10">
           {!isAuthenticated && (
             <div className="mb-10 text-center">
               <h1 className="text-4xl font-bold mb-4 text-primary">🎓 Welcome to RajTest!</h1>
@@ -494,7 +494,7 @@ const Home = () => {
               </Button>
             </div>
             <div className="relative">
-              <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4">
+              <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:overflow-visible md:snap-none">
                 {megaTests && megaTests.length > 0 ? (
                   <>
                     {megaTests.slice(0, 4).map((megaTest) => {
@@ -504,9 +504,9 @@ const Home = () => {
                       const isRegistered = registrationStatus?.[megaTest.id];
 
                       return (
-                        <Card 
-                          key={megaTest.id} 
-                          className="relative overflow-hidden w-[calc(100vw-2rem)] md:w-[calc(50vw-2rem)] lg:w-[calc(50vw-2rem)] flex-none snap-center snap-always mr-4 last:mr-0 shadow-xl border-2 border-pink-200 hover:border-pink-400 bg-gradient-to-br from-white via-pink-50 to-yellow-50 dark:from-gray-900 dark:to-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                        <Card
+                          key={megaTest.id}
+                          className="relative overflow-hidden w-[calc(100vw-2rem)] md:w-auto flex-none md:flex-none md:mr-0 snap-center md:snap-none mr-4 last:mr-0 shadow-xl border-2 border-pink-200 hover:border-pink-400 bg-gradient-to-br from-white via-pink-50 to-yellow-50 dark:from-gray-900 dark:to-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
                         >
                           <CardHeader>
                             <div className="flex justify-between items-start">
@@ -621,7 +621,7 @@ const Home = () => {
                     })}
                     {megaTests.length > 4 && (
                       <>
-                        <div className="flex items-center justify-center min-w-[200px] snap-center">
+                        <div className="flex items-center justify-center min-w-[200px] snap-center md:min-w-0 md:col-span-2 lg:col-span-3">
                           <Button
                             onClick={() => navigate('/all-mega-tests')}
                             className="flex items-center gap-2 px-4 py-2 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
@@ -630,7 +630,7 @@ const Home = () => {
                             <ArrowUpRight className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div className="min-w-8" />
+                        <div className="min-w-8 md:hidden" />
                       </>
                     )}
                   </>
@@ -743,13 +743,13 @@ const Home = () => {
               </div>
             </h2>
             <div className="relative">
-              <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4">
+              <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4 md:overflow-visible md:snap-none">
                 {paidContents && paidContents.length > 0 ? (
                   <>
                     {paidContents.slice(0, 2).map((content) => (
-                      <Card 
-                        key={content.id} 
-                        className="relative overflow-hidden w-[calc(100vw-2rem)] md:w-[calc(50vw-2rem)] lg:w-[calc(33vw-2rem)] flex-none snap-center snap-always mr-4 last:mr-0 hover:shadow-lg transition-all duration-300 border-2 hover:border-indigo-400 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800"
+                      <Card
+                        key={content.id}
+                        className="relative overflow-hidden w-[calc(100vw-2rem)] md:w-auto flex-none md:flex-none md:mr-0 snap-center md:snap-none mr-4 last:mr-0 hover:shadow-lg transition-all duration-300 border-2 hover:border-indigo-400 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800"
                       >
                         <CardHeader className="pb-2 space-y-2">
                           <div className="flex justify-between items-start">
@@ -778,8 +778,8 @@ const Home = () => {
                       </Card>
                     ))}
                     {paidContents.length > 2 && (
-                      <Card 
-                        className="relative overflow-hidden w-[calc(100vw-2rem)] md:w-[calc(50vw-2rem)] lg:w-[calc(33vw-2rem)] flex-none snap-center snap-always mr-4 last:mr-0 hover:shadow-lg transition-all duration-300 border-2 hover:border-indigo-400 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800"
+                      <Card
+                        className="relative overflow-hidden w-[calc(100vw-2rem)] md:w-auto flex-none md:flex-none md:mr-0 snap-center md:snap-none mr-4 last:mr-0 hover:shadow-lg transition-all duration-300 border-2 hover:border-indigo-400 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800"
                       >
                         <CardContent className="flex flex-col items-center justify-center h-full min-h-[200px] p-6">
                           <div className="text-center space-y-4">
