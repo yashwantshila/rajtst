@@ -36,6 +36,11 @@ export interface ChallengeQuestion {
   options: string[];
 }
 
+export interface DailyRankEntry {
+  userId: string;
+  wins: number;
+}
+
 export const getDailyChallenges = async (): Promise<DailyChallenge[]> => {
   const token = await getOptionalAuthToken();
   const res = await axios.get(`${API_URL}/api/daily-challenges`, {
@@ -182,5 +187,10 @@ export const adminGetQuestions = async (
 ): Promise<{ id: string; text: string; options: string[]; correctAnswer: string }[]> => {
   const api = await createAdminApi();
   const res = await api.get(`/api/daily-challenges/${challengeId}/questions`);
+  return res.data;
+};
+
+export const getDailyTopRankers = async (): Promise<DailyRankEntry[]> => {
+  const res = await axios.get(`${API_URL}/api/daily-challenges/top-rankers`);
   return res.data;
 };
