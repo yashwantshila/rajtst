@@ -39,7 +39,6 @@ const Profile = () => {
     setIsProcessing(true);
     
     try {
-      console.log('Starting payment process for ₹' + amountValue);
       const result = await initiatePayment(
         user.uid,
         amountValue,

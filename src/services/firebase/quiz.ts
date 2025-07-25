@@ -413,7 +413,6 @@ export const getQuizQuestions = async (quizId: string): Promise<QuizQuestion[]> 
 export const seedQuizData = async () => {
   // Implementation here should now create quiz documents
   // and then populate their 'questions' subcollections.
-  console.log('Seeding quiz data - adapt to new subcollection structure for questions.');
 };
 
 

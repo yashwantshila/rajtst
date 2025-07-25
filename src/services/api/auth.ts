@@ -16,6 +16,9 @@ interface LoginResponse {
 
 interface RegisterResponse extends LoginResponse {}
 
+// Holds the ID of the token refresh interval so it can be cleared
+let tokenRefreshIntervalId: ReturnType<typeof setInterval> | null = null;
+
 // Token refresh interval (in milliseconds)
 const TOKEN_REFRESH_INTERVAL = 55 * 60 * 1000; // 55 minutes
 
@@ -23,16 +26,20 @@ const TOKEN_REFRESH_INTERVAL = 55 * 60 * 1000; // 55 minutes
 const startTokenRefresh = () => {
   const auth = getAuth(app);
   const user = auth.currentUser;
-  
+
   if (user) {
     // Refresh token immediately
     user.getIdToken(true);
-    
+
+    // Clear any existing interval to avoid duplicates
+    if (tokenRefreshIntervalId) {
+      clearInterval(tokenRefreshIntervalId);
+    }
+
     // Set up interval to refresh token
-    setInterval(async () => {
+    tokenRefreshIntervalId = setInterval(async () => {
       try {
         await user.getIdToken(true);
-        console.log('Token refreshed successfully');
       } catch (error) {
         console.error('Error refreshing token:', error);
       }
@@ -42,7 +49,10 @@ const startTokenRefresh = () => {
 
 // Function to stop token refresh interval
 export const stopTokenRefresh = () => {
-  // Implementation needed
+  if (tokenRefreshIntervalId) {
+    clearInterval(tokenRefreshIntervalId);
+    tokenRefreshIntervalId = null;
+  }
 };
 
 // Set up token refresh listener
