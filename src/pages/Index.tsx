@@ -446,22 +446,6 @@ const Home = () => {
       </header>
 
       <main className="container mx-auto px-4 py-3">
-        {/* Single-line Compact Note for MegaTest Participants */}
-        <div className="max-w-4xl mx-auto mb-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 flex flex-row items-center justify-between gap-2 text-xs md:text-sm whitespace-nowrap overflow-hidden">
-            <span className="text-blue-800 font-medium truncate">
-            मेगाटेस्ट में भाग लेने से पहले गाइड पेज पढ़ें।
-            </span>
-            <Button
-              className="h-7 px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded ml-2 flex-shrink-0"
-              onClick={() => navigate('/guide')}
-              variant="default"
-              type="button"
-            >
-              Guide
-            </Button>
-          </div>
-        </div>
 
         <div className="max-w-4xl mx-auto space-y-10">
           {!isAuthenticated && (
@@ -491,14 +475,23 @@ const Home = () => {
                 <Trophy className="h-6 w-6 mr-2 text-amber-500" />
                 MegaTests
               </h2>
-              <Button
-                onClick={() => navigate('/all-mega-tests')}
-                className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
-                aria-label="View All Mega Tests"
-              >
-                View All Mega Tests
-                <ArrowUpRight className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => navigate('/daily-top-rankers')}
+                  className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
+                  aria-label="Daily Top Rankers"
+                >
+                  Daily Top Rankers
+                </Button>
+                <Button
+                  onClick={() => navigate('/all-mega-tests')}
+                  className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
+                  aria-label="View All Mega Tests"
+                >
+                  View All Mega Tests
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
             <div className="relative">
               <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4">
@@ -664,8 +657,12 @@ const Home = () => {
               <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-extrabold text-2xl tracking-wide uppercase">
                 Daily Challenges
               </span>
-              <Button variant="outline" size="sm" className="ml-2" onClick={() => navigate('/daily-challenges')}>All</Button>
-              <Button variant="outline" size="sm" className="ml-2" onClick={() => navigate('/daily-top-rankers')}>Top Rankers</Button>
+              <Button
+                onClick={() => navigate('/daily-challenges')}
+                className="ml-2 flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
+              >
+                All
+              </Button>
               <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
               <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 rounded-full"></div>
             </div>
