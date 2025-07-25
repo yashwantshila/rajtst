@@ -10,6 +10,7 @@ import contentRoutes from './contentRoutes.js';
 import paidContentRoutes from './paidContentRoutes.js';
 import dailyChallengeRoutes from './dailyChallengeRoutes.js';
 import withdrawalRoutes from './withdrawalRoutes.js';
+import settingsRoutes from './settingsRoutes.js';
 
 const router = express.Router();
 
@@ -34,6 +35,9 @@ router.use('/mega-tests', megaTestRoutes);
 // Public content routes
 router.use('/content', contentRoutes);
 router.use('/paid-contents', paidContentRoutes);
+
+// Site settings
+router.use('/settings', settingsRoutes);
 
 // Daily challenge routes
 router.use('/daily-challenges', dailyChallengeRoutes);

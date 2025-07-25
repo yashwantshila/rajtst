@@ -1,8 +1,8 @@
 import React, { createContext, useState, useEffect, useContext, Suspense } from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, Link, useLocation } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from './services/firebase/config';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 import { useSingleTabEnforcer } from './hooks/useSingleTabEnforcer';
@@ -30,11 +30,13 @@ const AdminQuestionPapers = React.lazy(() => import('./pages/admin/QuestionPaper
 const PaidContent = React.lazy(() => import('./pages/PaidContent'));
 const PaidContentManager = React.lazy(() => import('./pages/admin/PaidContentManager'));
 const PurchasedContent = React.lazy(() => import('./pages/PurchasedContent'));
+const MaintenancePage = React.lazy(() => import('./pages/Maintenance'));
 import { SessionTimer } from './components/SessionTimer';
 import { Button } from './components/ui/button';
 import { User as UserIcon, Book, LogOut } from 'lucide-react';
 import { api } from './api/config';
 import ProtectedRoute from './components/ProtectedRoute';
+import { getSettings } from './services/api/settings';
 const QuizCategories = React.lazy(() => import('./pages/QuizCategories'));
 const SubCategories = React.lazy(() => import('./pages/SubCategories'));
 const AllMegaTests = React.lazy(() => import('./pages/AllMegaTests'));
@@ -79,10 +81,32 @@ const AppContent: React.FC = () => {
   const { user } = useAuth();
   const { resetTimeout } = useSessionTimeout(!!user);
   useSingleTabEnforcer(!!user);
+  const location = useLocation();
+  const { data: settings, isLoading: settingsLoading } = useQuery({
+    queryKey: ['settings'],
+    queryFn: getSettings,
+    refetchInterval: 60000
+  });
 
   const handleLogout = () => {
     // Implement the logout logic here
   };
+
+  if (settingsLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner className="h-8 w-8 text-primary" />
+      </div>
+    );
+  }
+
+  if (settings?.maintenanceMode && !location.pathname.startsWith('/admin')) {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner className="h-8 w-8 text-primary" /></div>}>
+        <MaintenancePage />
+      </Suspense>
+    );
+  }
 
   return (
     <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner className="h-8 w-8 text-primary" /></div>}>
