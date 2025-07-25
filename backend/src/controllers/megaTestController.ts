@@ -240,6 +240,11 @@ export const startMegaTest = async (req: Request, res: Response) => {
       .collection('participants')
       .doc(userId);
 
+    const existing = await participantRef.get();
+    if (existing.exists && (existing.data() as any).startTime) {
+      return res.status(400).json({ error: 'Mega test already started' });
+    }
+
     await participantRef.set(
       {
         startTime: new Date().toISOString(),
@@ -379,6 +384,10 @@ export const submitMegaTestResult = async (req: Request, res: Response) => {
     const megaTestRef = db.collection('mega-tests').doc(megaTestId);
     const leaderboardRef = megaTestRef.collection('leaderboard');
     const participantRef = megaTestRef.collection('participants').doc(userId);
+    const existingEntry = await leaderboardRef.doc(userId).get();
+    if (existingEntry.exists) {
+      return res.status(400).json({ error: 'Mega test already submitted' });
+    }
     const participantDoc = await participantRef.get();
 
     if (!participantDoc.exists || !(participantDoc.data() as any).startTime) {
