@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 import { updateUserRole } from '../../services/firebase/admin/users';
 import { updateUserBalanceByAdmin } from '../../services/firebase/admin/balances';
@@ -154,7 +155,9 @@ export const UserManagement = ({
         {!usersError && balancesError && <div key="balances-error">{renderErrorMessage(balancesError)}</div>}
         
         {isLoading ? (
-          <div key="loading" className="animate-pulse py-4">Loading users...</div>
+          <div key="loading" className="flex justify-center py-4">
+            <LoadingSpinner className="h-6 w-6 text-primary" />
+          </div>
         ) : !users || users.length === 0 ? (
           <div key="no-users" className="text-center text-muted-foreground py-8">No users found</div>
         ) : (

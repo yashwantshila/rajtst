@@ -10,6 +10,7 @@ import { ArrowLeft, CreditCard, UserCircle, AlertTriangle, ShieldAlert, RefreshC
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import UserPrizes from '../components/UserPrizes';
+import LoadingSpinner from '../components/ui/loading-spinner';
 import WithdrawalSection from '../components/WithdrawalSection';
 import { getUserProfile, UserProfile } from '../services/api/user';
 
@@ -64,7 +65,7 @@ const Profile = () => {
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse-subtle">Loading...</div>
+        <LoadingSpinner className="h-8 w-8 text-primary" />
       </div>
     );
   }

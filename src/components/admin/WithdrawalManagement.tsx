@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 import {
   Table,
   TableBody,
@@ -192,8 +193,8 @@ export const WithdrawalManagement = () => {
             </Button>
           </div>
         ) : isLoading ? (
-          <div className="text-center py-8 animate-pulse">
-            Loading withdrawal requests...
+          <div className="flex justify-center py-8">
+            <LoadingSpinner className="h-6 w-6 text-primary" />
           </div>
         ) : !filteredRequests.length ? (
           <div className="text-center py-8 text-muted-foreground">
