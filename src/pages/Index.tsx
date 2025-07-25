@@ -470,28 +470,29 @@ const Home = () => {
           )}
 
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <h2 className="text-1.5xl font-bold flex items-center">
                 <Trophy className="h-6 w-6 mr-2 text-amber-500" />
                 MegaTests
               </h2>
-              <Button
-                onClick={() => navigate('/all-mega-tests')}
-                className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
-                aria-label="View All Mega Tests"
-              >
-                View All Mega Tests
-                <ArrowUpRight className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex justify-center mb-4">
-              <Button
-                onClick={() => navigate('/daily-top-rankers')}
-                className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-purple-500 via-indigo-500 to-pink-500 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2"
-                aria-label="Daily Top Rankers"
-              >
-                Daily Top Rankers
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 sm:ml-auto">
+                <Button
+                  onClick={() => navigate('/all-mega-tests')}
+                  className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
+                  aria-label="View All Mega Tests"
+                >
+                  View All Mega Tests
+                  <ArrowUpRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  onClick={() => navigate('/daily-top-rankers')}
+                  className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-yellow-400 via-orange-500 to-amber-600 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
+                  aria-label="Daily Top Rankers"
+                >
+                  <Trophy className="h-4 w-4" />
+                  Daily Top Rankers
+                </Button>
+              </div>
             </div>
             <div className="relative">
               <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4">
