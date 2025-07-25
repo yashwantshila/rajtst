@@ -18,6 +18,7 @@ import { ModeToggle } from "../components/mode-toggle";
 import { logoutUser } from '../services/firebase/auth';
 import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User, Menu, DollarSign, FileText, Loader2, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
+import AdsenseAd from '../components/AdsenseAd';
 import LoadingSpinner from '../components/ui/loading-spinner';
 import { toast } from 'sonner';
 import MegaTestLeaderboard from "../components/MegaTestLeaderboard";
@@ -865,6 +866,10 @@ const Home = () => {
           </div>
         </div>
       </main>
+
+      <div className="my-4 flex justify-center">
+        <AdsenseAd />
+      </div>
 
       <footer className="py-6 border-t mt-auto">
         <div className="container mx-auto px-4 text-center text-muted-foreground">

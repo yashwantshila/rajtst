@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, BookOpen, Wallet, Trophy, FileText, ScrollText, Info, Book, FileArchive, DollarSign, Flame, Wrench } from 'lucide-react';
+import { Users, BookOpen, Wallet, Trophy, FileText, ScrollText, Info, Book, FileArchive, DollarSign, Flame, Wrench, BadgeDollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -13,6 +13,7 @@ import { TermsAndConditionsManager } from '../components/admin/TermsAndCondition
 import { AboutUsManager } from '../components/admin/AboutUsManager';
 import GuideManager from '../components/admin/GuideManager';
 import MaintenanceModeManager from '../components/admin/MaintenanceModeManager';
+import AdsenseManager from '../components/admin/AdsenseManager';
 import MegaTestManager from './admin/MegaTestManager';
 import QuestionPaperCategories from './admin/QuestionPaperCategories';
 import PaidContentManager from './admin/PaidContentManager';
@@ -135,6 +136,10 @@ const Admin = () => {
               <Wrench className="h-4 w-4" />
               <span>Maintenance</span>
             </TabsTrigger>
+            <TabsTrigger value="adsense" className="flex items-center gap-2">
+              <BadgeDollarSign className="h-4 w-4" />
+              <span>AdSense</span>
+            </TabsTrigger>
             <TabsTrigger value="guide" className="flex items-center gap-2">
               <Book className="h-4 w-4" />
               <span>Guide</span>
@@ -191,6 +196,10 @@ const Admin = () => {
 
           <TabsContent value="maintenance">
             <MaintenanceModeManager />
+          </TabsContent>
+
+          <TabsContent value="adsense">
+            <AdsenseManager />
           </TabsContent>
 
           <TabsContent value="guide">
