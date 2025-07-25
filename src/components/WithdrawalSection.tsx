@@ -29,7 +29,6 @@ export default function WithdrawalSection({
   } = useQuery({
     queryKey: ['withdrawal-requests', userId],
     queryFn: () => {
-      console.log(`Fetching withdrawal history for user: ${userId}`);
       if (!userId) {
         console.error('Attempted to fetch withdrawal history with empty userId');
         toast.error('Cannot fetch withdrawal history: User ID is missing');

@@ -28,7 +28,6 @@ const Admin = () => {
   
   useEffect(() => {
     if (!user) {
-      console.log('Admin page - No user found. Redirecting to admin login');
       toast.error('Access denied. Please login first.');
       navigate('/admin-auth');
       return;
@@ -39,13 +38,12 @@ const Admin = () => {
       try {
         const adminDoc = await getDoc(doc(db, 'admins', user.uid));
         if (!adminDoc.exists() || !adminDoc.data()?.isAdmin) {
-          console.log('Admin page - User is not an admin. Redirecting to admin login');
           toast.error('Access denied. Admin privileges required.');
           navigate('/admin-auth');
           return;
         }
-        
-        console.log('Admin page - Access granted');
+
+        setLoading(false);
         setLoading(false);
       } catch (error) {
         console.error('Error checking admin status:', error);

@@ -55,7 +55,6 @@ export function WithdrawalHistory({
   const safeWithdrawalRequests = Array.isArray(withdrawalRequests) ? withdrawalRequests : [];
 
   const handleRetry = () => {
-    console.log('Retrying withdrawal history fetch...');
     toast.info('Refreshing withdrawal history...');
     refetch();
   };
