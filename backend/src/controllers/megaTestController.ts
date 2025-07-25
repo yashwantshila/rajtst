@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
+import { recordDailyWinnings } from '../utils/dailyRanking.js';
 
 
 export const getUserPrizes = async (req: Request, res: Response) => {
@@ -48,13 +49,18 @@ export const getUserPrizes = async (req: Request, res: Response) => {
         await db.runTransaction(async tx => {
           const balDoc = await tx.get(balanceRef);
           const current = balDoc.exists ? balDoc.data()?.amount || 0 : 0;
-          tx.set(balanceRef, {
-            amount: current + amount,
-            currency: 'INR',
-            lastUpdated: new Date().toISOString(),
-          }, { merge: true });
+          tx.set(
+            balanceRef,
+            {
+              amount: current + amount,
+              currency: 'INR',
+              lastUpdated: new Date().toISOString(),
+            },
+            { merge: true },
+          );
           tx.update(leaderboardRef, { prizeCredited: true });
         });
+        await recordDailyWinnings(userId, amount);
       }
 
       result.push({
