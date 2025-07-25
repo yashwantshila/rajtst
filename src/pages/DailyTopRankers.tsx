@@ -59,7 +59,9 @@ const DailyTopRankers = () => {
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span>{entry.userName}</span>
                 </div>
-                <span className="font-medium">{entry.wins} wins</span>
+                <span className="font-medium">
+                  ₹{entry.totalPrize.toLocaleString('en-IN')}
+                </span>
               </div>
             ))}
             {entries.length === 0 && (

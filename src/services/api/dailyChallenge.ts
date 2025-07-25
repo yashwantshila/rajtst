@@ -38,7 +38,7 @@ export interface ChallengeQuestion {
 
 export interface DailyRankEntry {
   userId: string;
-  wins: number;
+  totalPrize: number;
 }
 
 export const getDailyChallenges = async (): Promise<DailyChallenge[]> => {
