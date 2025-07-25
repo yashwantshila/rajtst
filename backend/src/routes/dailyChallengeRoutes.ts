@@ -15,12 +15,14 @@ import {
   getChallengeStatus,
   getNextQuestion,
   submitAnswer,
+  getDailyRankings,
 } from '../controllers/challengeController.js';
 
 const router = express.Router();
 
 // Public list of active challenges
 router.get('/', getDailyChallenges);
+router.get('/top-rankers', getDailyRankings);
 
 // Authenticated user actions
 router.use(authenticateUser);

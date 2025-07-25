@@ -339,6 +339,10 @@ const Home = () => {
                     <FileText className="h-4 w-4 mr-1" />
                     My Purchased Content
                   </Link>
+                  <Link to="/daily-top-rankers" className="text-sm font-medium hover:underline flex items-center">
+                    <Trophy className="h-4 w-4 mr-1 text-amber-500" />
+                    Daily Top Rankers
+                  </Link>
                   
                   {(isAdmin || isCustomAdmin) && (
                     <Link to="/admin" className="text-sm font-medium hover:underline flex items-center">
@@ -403,6 +407,12 @@ const Home = () => {
                       <Link to="/purchased-content" className="flex items-center">
                         <FileText className="h-4 w-4 mr-2" />
                         My Purchased Content
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/daily-top-rankers" className="flex items-center">
+                        <Trophy className="h-4 w-4 mr-2 text-amber-500" />
+                        Daily Top Rankers
                       </Link>
                     </DropdownMenuItem>
                     
@@ -655,6 +665,7 @@ const Home = () => {
                 Daily Challenges
               </span>
               <Button variant="outline" size="sm" className="ml-2" onClick={() => navigate('/daily-challenges')}>All</Button>
+              <Button variant="outline" size="sm" className="ml-2" onClick={() => navigate('/daily-top-rankers')}>Top Rankers</Button>
               <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
               <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 rounded-full"></div>
             </div>

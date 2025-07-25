@@ -39,6 +39,7 @@ const SubCategories = React.lazy(() => import('./pages/SubCategories'));
 const AllMegaTests = React.lazy(() => import('./pages/AllMegaTests'));
 const DailyChallenges = React.lazy(() => import('./pages/DailyChallenges'));
 const DailyChallengePlay = React.lazy(() => import('./pages/DailyChallengePlay'));
+const DailyTopRankers = React.lazy(() => import('./pages/DailyTopRankers'));
 
 interface AuthContextProps {
   user: User | null;
@@ -90,6 +91,7 @@ const AppContent: React.FC = () => {
       <Route path="/all-mega-tests" element={<AllMegaTests />} />
       <Route path="/daily-challenges" element={<DailyChallenges />} />
       <Route path="/daily-challenges/:challengeId" element={<DailyChallengePlay />} />
+      <Route path="/daily-top-rankers" element={<DailyTopRankers />} />
       <Route path="/profile" element={
         <ProtectedRoute>
           <Profile />

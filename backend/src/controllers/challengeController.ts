@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
+import { FieldValue } from 'firebase-admin/firestore';
 
 interface ChallengeEntry {
   userId: string;
@@ -31,6 +32,18 @@ const checkTimeLimitAndUpdate = async (
   }
   return entry
 }
+
+const recordDailyWin = async (userId: string) => {
+  const date = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  const rankingRef = db.collection('daily-rankings').doc(date);
+  await rankingRef.set(
+    {
+      [userId]: FieldValue.increment(1),
+      lastUpdated: new Date().toISOString(),
+    },
+    { merge: true },
+  );
+};
 
 export const createChallenge = async (req: Request, res: Response) => {
   try {
@@ -460,6 +473,8 @@ export const submitAnswer = async (req: Request, res: Response) => {
           { merge: true },
         );
       });
+
+      await recordDailyWin(userId);
     }
 
     let nextQuestion: any = null;
@@ -488,5 +503,26 @@ export const submitAnswer = async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error submitting answer:', error);
     res.status(500).json({ error: 'Failed to submit answer' });
+  }
+};
+
+export const getDailyRankings = async (_req: Request, res: Response) => {
+  try {
+    const date = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Kolkata',
+    });
+    const doc = await db.collection('daily-rankings').doc(date).get();
+    if (!doc.exists) {
+      return res.json([]);
+    }
+    const data = doc.data() as Record<string, number>;
+    const entries = Object.entries(data)
+      .filter(([key]) => key !== 'lastUpdated')
+      .map(([userId, wins]) => ({ userId, wins: Number(wins) }))
+      .sort((a, b) => b.wins - a.wins);
+    res.json(entries);
+  } catch (error) {
+    console.error('Error fetching daily rankings:', error);
+    res.status(500).json({ error: 'Failed to fetch daily rankings' });
   }
 };
