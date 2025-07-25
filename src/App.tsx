@@ -7,6 +7,7 @@ import { Toaster } from 'sonner';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 import { useSingleTabEnforcer } from './hooks/useSingleTabEnforcer';
 import { initializeGTM } from './services/gtm';
+import LoadingSpinner from './components/ui/loading-spinner';
 const Auth = React.lazy(() => import('./pages/Auth'));
 const Home = React.lazy(() => import('./pages/Index'));
 const Profile = React.lazy(() => import('./pages/Profile'));
@@ -84,7 +85,7 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><LoadingSpinner className="h-8 w-8 text-primary" /></div>}>
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<Home />} />

@@ -8,6 +8,7 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 import { 
   Table, 
   TableBody, 
@@ -72,8 +73,8 @@ export function WithdrawalHistory({
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="text-center py-8 animate-pulse">
-            Loading withdrawal history...
+          <div className="flex justify-center py-8">
+            <LoadingSpinner className="h-6 w-6 text-primary" />
           </div>
         ) : error ? (
           <div className="text-center py-8">

@@ -37,6 +37,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { writeBatch } from 'firebase/firestore';
 import { doc, collection, Timestamp } from 'firebase/firestore';
 import { db } from '../../services/firebase/config';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 // Utility function to export array of objects to CSV and trigger download
 function exportToCSV(filename: string, rows: any[], headers: string[], keys: string[]) {
@@ -637,7 +638,11 @@ const MegaTestManager = () => {
   };
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner className="h-8 w-8 text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -1439,7 +1444,9 @@ const MegaTestManager = () => {
           <div className="flex-1 min-h-0">
             <h3 className="font-semibold mb-2">Current Leaderboard</h3>
             {isLoadingLeaderboard ? (
-              <div>Loading...</div>
+              <div className="flex justify-center py-4">
+                <LoadingSpinner className="h-6 w-6 text-primary" />
+              </div>
             ) : (
               <ScrollArea className="h-[400px] w-full border rounded-md p-4">
                 <div className="space-y-2">
@@ -1599,7 +1606,9 @@ const MegaTestManager = () => {
           </div>
           <div className="mt-4">
             {isLoadingParticipants ? (
-              <p>Loading participants...</p>
+              <div className="flex justify-center py-4">
+                <LoadingSpinner className="h-6 w-6 text-primary" />
+              </div>
             ) : (
               <ScrollArea className="h-[400px]">
                 <table className="min-w-full divide-y divide-gray-200">

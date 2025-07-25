@@ -20,6 +20,7 @@ import { WithdrawalManagement } from '../components/admin/WithdrawalManagement';
 import { getAllUsers, getAllBalances } from '@/services/api/admin';
 import { db } from '@/services/firebase/config';
 import { doc, getDoc } from 'firebase/firestore';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const Admin = () => {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ const Admin = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse">Loading...</div>
+        <LoadingSpinner className="h-8 w-8 text-primary" />
       </div>
     );
   }

@@ -18,6 +18,7 @@ import { ModeToggle } from "../components/mode-toggle";
 import { logoutUser } from '../services/firebase/auth';
 import { LogOut, ShieldAlert, Trophy, Clock, ListChecks, CreditCard, Book, User, Menu, DollarSign, FileText, Loader2, ArrowUpRight } from 'lucide-react';
 import { format } from 'date-fns';
+import LoadingSpinner from '../components/ui/loading-spinner';
 import { toast } from 'sonner';
 import MegaTestLeaderboard from "../components/MegaTestLeaderboard";
 import { getCookie } from '@/utils/cookies';
@@ -300,7 +301,11 @@ const Home = () => {
 
 
   if (isLoadingCategories || isLoadingMegaTests || isLoadingRegistrations || isLoadingSubmissions || isLoadingPaidContents || isLoadingDailyChallenges) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner className="h-8 w-8 text-primary" />
+      </div>
+    );
   }
   
   if (categoriesError || megaTestsError || dailyChallengesError) {

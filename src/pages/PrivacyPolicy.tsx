@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { sanitizeHtml } from '@/utils/sanitize';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const PrivacyPolicy = () => {
   const { data: privacyPolicy, isLoading, error } = useQuery({
@@ -15,7 +16,7 @@ const PrivacyPolicy = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Loading...</div>
+        <LoadingSpinner className="h-8 w-8 text-primary" />
       </div>
     );
   }
