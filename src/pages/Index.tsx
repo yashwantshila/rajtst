@@ -147,6 +147,7 @@ const Home = () => {
 
   const [registeringId, setRegisteringId] = useState<string | null>(null);
   const [playedChallenges, setPlayedChallenges] = useState<Record<string, boolean>>({});
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const startMutation = useMutation({
     mutationFn: (id: string) => startChallenge(id),
@@ -159,17 +160,25 @@ const Home = () => {
 
   useEffect(() => {
     const fetchStatuses = async () => {
-      if (!user || !dailyChallenges) return;
-      const results = await Promise.all(
-        dailyChallenges.map(ch =>
-          getChallengeStatus(ch.id).then(status => status.started),
-        ),
-      );
-      const map: Record<string, boolean> = {};
-      dailyChallenges.forEach((ch, idx) => {
-        map[ch.id] = results[idx];
-      });
-      setPlayedChallenges(map);
+      if (!user || !dailyChallenges) {
+        setStatusLoading(false);
+        return;
+      }
+      setStatusLoading(true);
+      try {
+        const results = await Promise.all(
+          dailyChallenges.map(ch =>
+            getChallengeStatus(ch.id).then(status => status.started),
+          ),
+        );
+        const map: Record<string, boolean> = {};
+        dailyChallenges.forEach((ch, idx) => {
+          map[ch.id] = results[idx];
+        });
+        setPlayedChallenges(map);
+      } finally {
+        setStatusLoading(false);
+      }
     };
     fetchStatuses();
   }, [user, dailyChallenges]);
@@ -708,18 +717,22 @@ const Home = () => {
                           <a href={ch.practiceUrl} target="_blank" rel="noopener noreferrer">Practice</a>
                         </Button>
                       )}
-                      <Button
-                        className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
-                        onClick={() =>
-                          !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)
-                        }
-                      >
-                        {!isAuthenticated
-                          ? 'Sign in'
-                          : playedChallenges[ch.id]
-                          ? 'View Result'
-                          : 'Start'}
-                      </Button>
+                      {statusLoading ? (
+                        <LoadingSpinner className="h-5 w-5 text-primary" />
+                      ) : (
+                        <Button
+                          className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white"
+                          onClick={() =>
+                            !isAuthenticated ? navigate('/auth') : handleStartChallenge(ch)
+                          }
+                        >
+                          {!isAuthenticated
+                            ? 'Sign in'
+                            : playedChallenges[ch.id]
+                            ? 'View Result'
+                            : 'Start'}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
