@@ -75,7 +75,7 @@ export default function QuestionPaperCategory() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate('/question-papers')}
+          onClick={() => navigate('/pyqs')}
           className="hover:bg-gray-100 dark:hover:bg-gray-800"
         >
           <ArrowLeft className="h-5 w-5" />

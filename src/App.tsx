@@ -171,14 +171,14 @@ const AppContent: React.FC = () => {
         </ProtectedRoute>
       } />
       {/* Question Paper Routes */}
-      <Route path="/question-papers" element={<QuestionPapers />} />
-      <Route path="/question-papers/:categorySlug" element={<QuestionPaperCategory />} />
+      <Route path="/pyqs" element={<QuestionPapers />} />
+      <Route path="/pyqs/:categorySlug" element={<QuestionPaperCategory />} />
       <Route path="/admin/question-paper-categories" element={
         <ProtectedRoute>
           <AdminQuestionPaperCategories />
         </ProtectedRoute>
       } />
-      <Route path="/admin/question-papers/:categoryId" element={
+      <Route path="/admin/pyqs/:categoryId" element={
         <ProtectedRoute>
           <AdminQuestionPapers />
         </ProtectedRoute>

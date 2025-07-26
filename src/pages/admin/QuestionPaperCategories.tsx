@@ -190,7 +190,7 @@ export default function QuestionPaperCategories() {
                 <p className="text-gray-600 mb-4">{category.description}</p>
                 <div className="flex justify-between items-center">
                   <Link
-                    to={`/admin/question-papers/${category.id}`}
+                    to={`/admin/pyqs/${category.id}`}
                     className="text-blue-500 hover:text-blue-700"
                   >
                     Manage Papers
