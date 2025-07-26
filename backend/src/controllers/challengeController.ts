@@ -11,6 +11,7 @@ interface ChallengeEntry {
   completed: boolean;
   won: boolean;
   startedAt: string;
+  expiresAt: string;
   completedAt?: string;
 }
 
@@ -255,6 +256,14 @@ export const startChallenge = async (req: Request, res: Response) => {
       completed: false,
       won: false,
       startedAt: new Date().toISOString(),
+      expiresAt: (() => {
+        const now = new Date();
+        const istString = now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+        const istDate = new Date(istString);
+        istDate.setHours(23, 59, 0, 0);
+        const expires = new Date(istDate.toLocaleString('en-US', { timeZone: 'UTC' }));
+        return expires.toISOString();
+      })(),
     };
     await entryRef.set(entry);
     res.json({ success: true });
