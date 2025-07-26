@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import axios from 'axios';
 import { auth, db } from '../config/firebase.js';
+import { env } from '../config/env.js';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -61,7 +63,13 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Only Gmail addresses (gmail.com) are allowed to login' });
     }
 
-    // Sign in with Firebase Admin SDK
+    // Verify credentials using Firebase Auth REST API
+    await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${env.FIREBASE_API_KEY}`,
+      { email, password, returnSecureToken: true }
+    );
+
+    // Fetch user record using Firebase Admin SDK
     const userRecord = await auth.getUserByEmail(email);
     
     // Generate custom token
@@ -81,6 +89,9 @@ export const login = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Login error:', error);
+    if (axios.isAxiosError(error) && error.response?.status === 400) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
     if (error.code === 'auth/user-not-found') {
       res.status(401).json({ error: 'Invalid credentials' });
     } else {
