@@ -2,6 +2,7 @@ import { initializeApp, cert, getApps, ServiceAccount } from 'firebase-admin/app
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import dotenv from 'dotenv';
+import { env } from './env.js';
 
 // Load environment variables
 dotenv.config();
@@ -13,9 +14,9 @@ const initializeFirebaseAdmin = () => {
     try {
       // Get credentials from environment variables
       const serviceAccount: ServiceAccount = {
-        projectId: process.env.FIREBASE_PROJECT_ID || '',
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL || ''
+        projectId: env.FIREBASE_PROJECT_ID,
+        privateKey: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        clientEmail: env.FIREBASE_CLIENT_EMAIL
       };
 
       // Validate required fields
@@ -34,7 +35,7 @@ const initializeFirebaseAdmin = () => {
         projectId: serviceAccount.projectId
       });
       
-      if (process.env.NODE_ENV !== 'production') {
+      if (env.NODE_ENV !== 'production') {
         console.log('Firebase Admin initialized successfully with project:', serviceAccount.projectId);
       }
     } catch (error) {
