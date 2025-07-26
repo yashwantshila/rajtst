@@ -26,13 +26,10 @@ const envSchema = z.object({
 
   // Security Configuration
   JWT_SECRET: z.string().min(32),
-  SESSION_SECRET: z.string().min(32),
 
-  // Database Configuration
-  MONGODB_URI: z.string().url(),
+  
 
-  // CORS Configuration
-  CORS_ORIGIN: z.string().url(),
+  
 
   // Logging Configuration
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
@@ -43,7 +40,6 @@ const envSchema = z.object({
 
   // Cookie Configuration
   COOKIE_SECRET: z.string().min(32),
-  COOKIE_DOMAIN: z.string().url(),
   FRONTEND_URL: z.string().url(),
 });
 
