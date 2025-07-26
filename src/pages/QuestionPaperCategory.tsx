@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { slugify } from '../utils/slugify';
 import { getQuestionPapersByCategory, getQuestionPaperCategories } from '../services/api/questionPapers';
 import type { QuestionPaper, QuestionPaperCategory } from '../services/api/questionPapers';
 import { ArrowLeft, Download, Calendar, FileText, Clock } from 'lucide-react';
@@ -9,7 +10,7 @@ import { Badge } from '../components/ui/badge';
 
 export default function QuestionPaperCategory() {
   const navigate = useNavigate();
-  const { categoryId } = useParams<{ categoryId: string }>();
+  const { categorySlug } = useParams<{ categorySlug: string }>();
   const [papers, setPapers] = useState<QuestionPaper[]>([]);
   const [category, setCategory] = useState<QuestionPaperCategory | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,17 +18,22 @@ export default function QuestionPaperCategory() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!categoryId) return;
+      if (!categorySlug) return;
 
       try {
-        const [papersData, categoriesData] = await Promise.all([
-          getQuestionPapersByCategory(categoryId),
-          getQuestionPaperCategories()
-        ]);
+        const categoriesData = await getQuestionPaperCategories();
+        const currentCategory = categoriesData.find(
+          cat => slugify(cat.title) === categorySlug
+        );
+        if (!currentCategory) {
+          setCategory(null);
+          setPapers([]);
+          return;
+        }
 
+        const papersData = await getQuestionPapersByCategory(currentCategory.id);
         setPapers(papersData);
-        const currentCategory = categoriesData.find(cat => cat.id === categoryId);
-        setCategory(currentCategory || null);
+        setCategory(currentCategory);
       } catch (err) {
         setError('Failed to load question papers');
         console.error(err);
@@ -37,7 +43,7 @@ export default function QuestionPaperCategory() {
     };
 
     fetchData();
-  }, [categoryId]);
+  }, [categorySlug]);
 
   if (loading) {
     return (
