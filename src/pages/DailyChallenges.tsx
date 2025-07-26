@@ -14,6 +14,10 @@ import { useAuth } from '@/App';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
+interface ApiError {
+  response?: { data?: { error?: string } };
+}
+
 const DailyChallenges = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -24,6 +28,7 @@ const DailyChallenges = () => {
   });
 
   const [played, setPlayed] = useState<Record<string, boolean>>({});
+  const [statusLoading, setStatusLoading] = useState(false);
 
   const startMutation = useMutation({
     mutationFn: (id: string) => startChallenge(id),
@@ -31,8 +36,9 @@ const DailyChallenges = () => {
       toast.success('Challenge started');
       navigate(`/daily-challenges/${id}`);
     },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Failed to start');
+    onError: (err: unknown) => {
+      const error = err as ApiError;
+      toast.error(error.response?.data?.error || 'Failed to start');
     },
   });
 
@@ -42,17 +48,25 @@ const DailyChallenges = () => {
 
   useEffect(() => {
     const fetchStatuses = async () => {
-      if (!user || !challenges) return;
-      const results = await Promise.all(
-        challenges.map(ch =>
-          getChallengeStatus(ch.id).then(status => status.started),
-        ),
-      );
-      const map: Record<string, boolean> = {};
-      challenges.forEach((ch, idx) => {
-        map[ch.id] = results[idx];
-      });
-      setPlayed(map);
+      if (!user || !challenges) {
+        setStatusLoading(false);
+        return;
+      }
+      setStatusLoading(true);
+      try {
+        const results = await Promise.all(
+          challenges.map(ch =>
+            getChallengeStatus(ch.id).then(status => status.started),
+          ),
+        );
+        const map: Record<string, boolean> = {};
+        challenges.forEach((ch, idx) => {
+          map[ch.id] = results[idx];
+        });
+        setPlayed(map);
+      } finally {
+        setStatusLoading(false);
+      }
     };
     fetchStatuses();
   }, [user, challenges]);
@@ -70,12 +84,13 @@ const DailyChallenges = () => {
       } else {
         navigate(`/daily-challenges/${challenge.id}`);
       }
-    } catch (error: any) {
+  } catch (err: unknown) {
+      const error = err as ApiError;
       toast.error(error.response?.data?.error || 'Error starting');
-    }
+  }
   };
 
-  if (isLoading) {
+  if (isLoading || statusLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner className="h-8 w-8 text-primary" />
