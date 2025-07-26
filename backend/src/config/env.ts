@@ -23,6 +23,7 @@ const envSchema = z.object({
   // Payment Gateway Configuration
   RAZORPAY_KEY_ID: z.string(),
   RAZORPAY_KEY_SECRET: z.string(),
+  RAZORPAY_WEBHOOK_SECRET: z.string(),
 
   // Security Configuration
   JWT_SECRET: z.string().min(32),
@@ -40,6 +41,7 @@ const envSchema = z.object({
 
   // Cookie Configuration
   COOKIE_SECRET: z.string().min(32),
+  COOKIE_DOMAIN: z.string().optional(),
   FRONTEND_URL: z.string().url(),
 });
 

@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import { env } from './config/env.js';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
 
@@ -20,7 +21,7 @@ import './config/firebase.js'; // Initialize Firebase
 dotenv.config();
 
 const app = express();
-const port = parseInt(process.env.PORT || '8080', 10);
+const port = env.PORT;
 
 // Enable gzip compression for better performance
 app.use(compression());
@@ -42,7 +43,7 @@ app.use(nonceInjection);
 
 // --- CORS Configuration ---
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://raj-test-75qulz.web.app',
+  origin: env.FRONTEND_URL || 'https://raj-test-75qulz.web.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-rtb-fingerprint-id'],
   credentials: true,
@@ -79,7 +80,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // --- Start Server ---
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
-  console.log('Environment:', process.env.NODE_ENV || 'development');
+  console.log('Environment:', env.NODE_ENV || 'development');
 });
 
 export default app;
