@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { slugify } from '../utils/slugify';
-import { getQuestionPapersByCategory, getQuestionPaperCategories, downloadQuestionPaper } from '../services/api/questionPapers';
+import { getQuestionPapersByCategory, getQuestionPaperCategories } from '../services/api/questionPapers';
 import type { QuestionPaper, QuestionPaperCategory } from '../services/api/questionPapers';
 import { ArrowLeft, Download, Calendar, FileText, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -45,17 +45,18 @@ export default function QuestionPaperCategory() {
     fetchData();
   }, [categorySlug]);
 
-  const handleDownload = async (paper: QuestionPaper) => {
+  const handleDownload = (paper: QuestionPaper) => {
     try {
-      const blob = await downloadQuestionPaper(paper.fileUrl);
-      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = url;
+      link.href = paper.fileUrl;
       link.download = `${paper.title}.pdf`;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
       link.click();
-      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
     } catch (err) {
-      console.error('Failed to download file:', err);
+      console.error('Failed to initiate download:', err);
     }
   };
 
