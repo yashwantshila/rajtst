@@ -1,16 +1,11 @@
-import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getDailyTopRankers, DailyRankEntry } from '@/services/api/dailyChallenge';
-import { getUserProfile } from '@/services/api/user';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { User } from 'lucide-react';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 
-interface RankEntry extends DailyRankEntry {
-  userName: string;
-}
 
 const DailyTopRankers = () => {
   const navigate = useNavigate();
@@ -19,27 +14,7 @@ const DailyTopRankers = () => {
     queryFn: getDailyTopRankers,
   });
 
-  const [entries, setEntries] = useState<RankEntry[]>([]);
-
-  useEffect(() => {
-    const load = async () => {
-      if (!data) return;
-      const withNames = await Promise.all(
-        data.map(async (e) => {
-          try {
-            const profile = await getUserProfile(e.userId);
-            return { ...e, userName: profile?.username || 'Anonymous' };
-          } catch {
-            return { ...e, userName: 'Anonymous' };
-          }
-        })
-      );
-      setEntries(withNames);
-    };
-    load();
-  }, [data]);
-
-  if (isLoading || (data && data.length > 0 && entries.length === 0)) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner className="h-8 w-8 text-primary" />
@@ -47,6 +22,7 @@ const DailyTopRankers = () => {
     );
   }
 
+  const entries = data || [];
   return (
     <div className="container mx-auto px-4 py-8">
       <Button variant="ghost" className="mb-6" onClick={() => navigate(-1)}>

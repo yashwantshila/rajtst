@@ -512,10 +512,25 @@ export const getDailyRankings = async (_req: Request, res: Response) => {
       return res.json([]);
     }
     const data = doc.data() as Record<string, number>;
-    const entries = Object.entries(data)
+    const baseEntries = Object.entries(data)
       .filter(([key]) => key !== 'lastUpdated')
-      .map(([userId, amount]) => ({ userId, totalPrize: Number(amount) }))
+      .map(([userId, amount]) => ({ userId, totalPrize: Number(amount) }));
+
+    const userDocs = await Promise.all(
+      baseEntries.map(e => db.collection('users').doc(e.userId).get()),
+    );
+    const userMap: Record<string, string> = {};
+    userDocs.forEach(doc => {
+      if (doc.exists) {
+        const data = doc.data() as { username?: string } | undefined;
+        userMap[doc.id] = data?.username || 'Anonymous';
+      }
+    });
+
+    const entries = baseEntries
+      .map(e => ({ ...e, userName: userMap[e.userId] || 'Anonymous' }))
       .sort((a, b) => b.totalPrize - a.totalPrize);
+
     res.json(entries);
   } catch (error) {
     console.error('Error fetching daily rankings:', error);

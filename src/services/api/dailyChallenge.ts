@@ -40,6 +40,7 @@ export interface ChallengeQuestion {
 export interface DailyRankEntry {
   userId: string;
   totalPrize: number;
+  userName: string;
 }
 
 export const getDailyChallenges = async (): Promise<DailyChallenge[]> => {
