@@ -23,6 +23,8 @@ app.use(cors({
 }));
 app.use(helmet());
 app.use(morgan('dev'));
+// Parse Razorpay webhook requests as raw body before JSON parsing
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

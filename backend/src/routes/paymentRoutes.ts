@@ -11,7 +11,7 @@ router.post('/create-order', authenticateUser, createPaymentOrder);
 router.post('/verify', authenticateUser, verifyPayment);
 
 // Razorpay webhook endpoint (No user auth - secured by signature verification)
-// This endpoint receives server-to-server updates from Razorpay
-router.post('/webhook', express.json(), razorpayWebhook);
+// Use express.raw to obtain the raw body for signature verification
+router.post('/webhook', express.raw({ type: 'application/json' }), razorpayWebhook);
 
 export default router;
