@@ -1,10 +1,16 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
 import { getStorage } from 'firebase-admin/storage';
+import { Query } from 'firebase-admin/firestore';
 
-export const getPaidContents = async (_req: Request, res: Response) => {
+export const getPaidContents = async (req: Request, res: Response) => {
   try {
-    const snapshot = await db.collection('paidContents').get();
+    const { category } = req.query as { category?: string };
+    let query: Query = db.collection('paidContents');
+    if (category) {
+      query = query.where('category', '==', category);
+    }
+    const snapshot = await query.get();
     const contents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     res.json(contents);
   } catch (error) {
