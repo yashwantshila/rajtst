@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
 import { auth, db } from '../config/firebase.js';
 import { env } from '../config/env.js';
 
@@ -136,14 +137,18 @@ export const adminLogin = async (req: Request, res: Response) => {
     
     // Check against environment variables
     if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-      // Generate a simple token (in production, use a proper JWT)
-      const token = Buffer.from(`${email}:${Date.now()}`).toString('base64');
-      
+      // Generate a signed JWT for admin authentication
+      const token = jwt.sign(
+        { email, role: 'admin' },
+        process.env.JWT_SECRET as string,
+        { expiresIn: '1h' }
+      );
+
       res.json({
         success: true,
         isAdmin: true,
         email: process.env.ADMIN_EMAIL,
-        token: token
+        token
       });
     } else {
       res.status(401).json({ error: 'Invalid admin credentials' });
