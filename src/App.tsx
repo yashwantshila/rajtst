@@ -86,7 +86,8 @@ const AppContent: React.FC = () => {
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ['settings'],
     queryFn: getSettings,
-    refetchInterval: 60000
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000,
   });
 
   const handleLogout = () => {

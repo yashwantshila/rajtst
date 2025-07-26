@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 import { getMegaTestParticipantCount } from '@/services/api/megaTest';
 
 interface MegaTestParticipantsProgressProps {
@@ -8,10 +10,11 @@ interface MegaTestParticipantsProgressProps {
 }
 
 const MegaTestParticipantsProgress = ({ megaTestId, maxParticipants }: MegaTestParticipantsProgressProps) => {
-  const { data: count } = useQuery({
+  const { data: count, refetch } = useQuery({
     queryKey: ['participant-count', megaTestId],
     queryFn: () => getMegaTestParticipantCount(megaTestId),
-    refetchInterval: 5000,
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000,
   });
 
   if (!maxParticipants || maxParticipants <= 0) return null;
@@ -34,6 +37,9 @@ const MegaTestParticipantsProgress = ({ megaTestId, maxParticipants }: MegaTestP
         >
           {remaining > 0 ? `${remaining} seats left` : 'Seats full'}
         </span>
+        <Button variant="ghost" size="icon" onClick={() => refetch()}>
+          <RefreshCw className="h-3 w-3" />
+        </Button>
       </div>
       <Progress value={percentage} className="h-2 rounded-full bg-muted" />
     </div>

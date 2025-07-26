@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Trophy, Medal, User, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trophy, Medal, User, Search, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { MegaTestLeaderboardEntry } from '../services/api/megaTest';
 import { getMegaTestLeaderboard } from '../services/api/megaTest';
 import { useQuery } from '@tanstack/react-query';
@@ -39,7 +39,9 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
 
       return entriesWithUserDetails.sort((a, b) => a.rank - b.rank);
     },
-    refetchInterval: 5000, // Refetch every 5 seconds for polling
+    // Disable automatic polling to avoid continuous requests
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 1000,
   });
 
   const getRankIcon = (rank: number) => {
@@ -91,7 +93,7 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Leaderboard</CardTitle>
-        <div className="relative">
+        <div className="relative flex items-center gap-2">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by name..."
@@ -99,6 +101,9 @@ const MegaTestLeaderboard = ({ megaTestId, standalone = false }: MegaTestLeaderb
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8"
           />
+          <Button variant="outline" size="icon" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
         {currentUserRank && (
           <div className="text-sm text-muted-foreground">
