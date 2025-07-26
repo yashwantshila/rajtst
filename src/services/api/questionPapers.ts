@@ -37,3 +37,10 @@ export const getQuestionPapersByCategory = async (categoryId: string): Promise<Q
   );
   return res.data;
 };
+
+export const downloadQuestionPaper = async (fileUrl: string): Promise<Blob> => {
+  const res = await axios.get(fileUrl, {
+    responseType: 'blob'
+  });
+  return res.data;
+};

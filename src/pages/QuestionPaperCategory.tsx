@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { slugify } from '../utils/slugify';
-import { getQuestionPapersByCategory, getQuestionPaperCategories } from '../services/api/questionPapers';
+import { getQuestionPapersByCategory, getQuestionPaperCategories, downloadQuestionPaper } from '../services/api/questionPapers';
 import type { QuestionPaper, QuestionPaperCategory } from '../services/api/questionPapers';
 import { ArrowLeft, Download, Calendar, FileText, Clock } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -44,6 +44,20 @@ export default function QuestionPaperCategory() {
 
     fetchData();
   }, [categorySlug]);
+
+  const handleDownload = async (paper: QuestionPaper) => {
+    try {
+      const blob = await downloadQuestionPaper(paper.fileUrl);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${paper.title}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download file:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -114,18 +128,12 @@ export default function QuestionPaperCategory() {
               </div>
             </CardContent>
             <CardFooter className="p-3 md:p-6 pt-0">
-              <Button 
+              <Button
                 className="w-full group-hover:bg-blue-600 transition-colors text-sm md:text-base"
-                asChild
+                onClick={() => handleDownload(paper)}
               >
-                <a
-                  href={paper.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
-                  Download
-                </a>
+                <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                Download
               </Button>
             </CardFooter>
           </Card>
