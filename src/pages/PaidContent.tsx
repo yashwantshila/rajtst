@@ -13,6 +13,7 @@ interface PaidContent {
   title: string;
   description: string;
   price: number;
+  category?: string;
   pdfUrl: string;
   samplePdfUrl?: string;
   thumbnailUrl?: string;
@@ -21,16 +22,29 @@ interface PaidContent {
 export default function PaidContentPage() { // Renamed component to avoid conflict if 'PaidContent' is also an interface name
   const [contents, setContents] = useState<PaidContent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const categories = Array.from(
+    new Set(contents.map(c => c.category || 'Uncategorized'))
+  );
+  const filteredContents =
+    selectedCategory === 'All'
+      ? contents
+      : contents.filter(
+          c => (c.category || 'Uncategorized') === selectedCategory
+        );
+
   useEffect(() => {
     fetchPaidContents();
-  }, []);
+  }, [selectedCategory]);
 
   const fetchPaidContents = async () => {
     try {
-      const list = await getPaidContents();
+      const list = await getPaidContents(
+        selectedCategory === 'All' ? undefined : selectedCategory
+      );
       setContents(list);
     } catch (error) {
       console.error('Error fetching paid contents:', error);
@@ -112,8 +126,23 @@ export default function PaidContentPage() { // Renamed component to avoid confli
           </p>
         </div>
 
+        <div className="mb-6 text-center">
+          <select
+            value={selectedCategory}
+            onChange={e => setSelectedCategory(e.target.value)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="All">All Categories</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {contents.map((content) => (
+          {filteredContents.map((content) => (
             <Card 
               key={content.id} 
               className="group transition-all duration-300 border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-400 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800 hover:shadow-lg"
@@ -128,6 +157,7 @@ export default function PaidContentPage() { // Renamed component to avoid confli
                 <CardDescription className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
                   {content.description}
                 </CardDescription>
+                <p className="text-xs text-gray-500">Category: {content.category || 'Uncategorized'}</p>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300 mb-4">
