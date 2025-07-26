@@ -21,9 +21,9 @@ export const getQuestionPapersByCategory = async (req: Request, res: Response) =
       .get();
     const papers = snapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .sort((a, b) => {
-        const aTime = (a.createdAt as any)?.toMillis?.() ?? 0;
-        const bTime = (b.createdAt as any)?.toMillis?.() ?? 0;
+      .sort((a: any, b: any) => {
+        const aTime = a.createdAt?.toMillis?.() ?? 0;
+        const bTime = b.createdAt?.toMillis?.() ?? 0;
         return bTime - aTime;
       });
     res.json(papers);
