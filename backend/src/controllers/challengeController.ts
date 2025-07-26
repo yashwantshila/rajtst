@@ -426,8 +426,8 @@ export const submitAnswer = async (req: Request, res: Response) => {
       updated.correctCount = correctCount;
     }
 
-    let completed = entry.completed;
-    let won = entry.won;
+    let completed: boolean = entry.completed;
+    let won: boolean = entry.won;
     if (correctCount >= required) {
       completed = true;
       won = true;
