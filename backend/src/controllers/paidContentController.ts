@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
 import { getStorage } from 'firebase-admin/storage';
+import { env } from '../config/env.js';
 
 export const getPaidContents = async (_req: Request, res: Response) => {
   try {
@@ -96,7 +97,7 @@ export const downloadPaidContent = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Invalid file path' });
     }
 
-    const bucketName = `${process.env.FIREBASE_PROJECT_ID}.appspot.com`;
+    const bucketName = `${env.FIREBASE_PROJECT_ID}.appspot.com`;
     const bucket = getStorage().bucket(bucketName);
     const file = bucket.file(filePath);
 
