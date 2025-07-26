@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { slugify } from '../utils/slugify';
 import { getQuestionPaperCategories } from '../services/api/questionPapers';
 import type { QuestionPaperCategory } from '../services/api/questionPapers';
 import { ArrowLeft, BookOpen, Download, Users, Clock, Star, TrendingUp } from 'lucide-react';
@@ -95,9 +96,9 @@ export default function QuestionPapers() {
               </div>
             </CardContent>
             <CardFooter className="p-3 md:p-6 pt-0">
-              <Button 
+              <Button
                 className="w-full group-hover:bg-blue-600 transition-colors text-sm md:text-base"
-                onClick={() => navigate(`/question-papers/${category.id}`)}
+                onClick={() => navigate(`/question-papers/${slugify(category.title)}`)}
               >
                 <Download className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                 View Papers

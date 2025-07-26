@@ -172,7 +172,7 @@ const AppContent: React.FC = () => {
       } />
       {/* Question Paper Routes */}
       <Route path="/question-papers" element={<QuestionPapers />} />
-      <Route path="/question-papers/:categoryId" element={<QuestionPaperCategory />} />
+      <Route path="/question-papers/:categorySlug" element={<QuestionPaperCategory />} />
       <Route path="/admin/question-paper-categories" element={
         <ProtectedRoute>
           <AdminQuestionPaperCategories />
