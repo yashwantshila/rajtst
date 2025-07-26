@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { getDailyChallenges, startChallenge, DailyChallenge, getChallengeStatus } from '@/services/api/dailyChallenge';
+import {
+  getDailyChallenges,
+  startChallenge,
+  DailyChallenge,
+  getChallengeStatus,
+} from '@/services/api/dailyChallenge';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Trophy, ListChecks, Clock } from 'lucide-react';
 import { useAuth } from '@/App';
 import { toast } from 'sonner';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 
 const DailyChallenges = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data: challenges, refetch } = useQuery({
+  const { data: challenges, refetch, isLoading } = useQuery({
     queryKey: ['daily-challenges'],
     queryFn: getDailyChallenges,
   });
@@ -68,6 +74,14 @@ const DailyChallenges = () => {
       toast.error(error.response?.data?.error || 'Error starting');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner className="h-8 w-8 text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-4 max-w-3xl">
