@@ -136,12 +136,22 @@ const AppContent: React.FC = () => {
           <QuizCategories />
         </ProtectedRoute>
       } />
-      <Route path="/category/:categoryId/subcategories" element={
+      <Route path="/category/:categorySlug/subcategories" element={
         <ProtectedRoute>
           <SubCategories />
         </ProtectedRoute>
       } />
-      <Route path="/category/:categoryId/subcategory/:subcategoryId/quizzes" element={
+      <Route path="/category/:categorySlug/subcategory/:subcategorySlug/quizzes" element={
+        <ProtectedRoute>
+          <CategoryQuizzes />
+        </ProtectedRoute>
+      } />
+      <Route path="/quizzes/:categorySlug" element={
+        <ProtectedRoute>
+          <CategoryQuizzes />
+        </ProtectedRoute>
+      } />
+      <Route path="/quizzes/:categorySlug/:subcategorySlug" element={
         <ProtectedRoute>
           <CategoryQuizzes />
         </ProtectedRoute>

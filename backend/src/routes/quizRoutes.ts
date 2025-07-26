@@ -9,8 +9,10 @@ import {
 const router = express.Router();
 
 router.get('/categories', getQuizCategories);
-router.get('/categories/:categoryId/sub-categories', getSubCategories);
-router.get('/quizzes', getQuizzesByCategory);
+router.get('/categories/:categoryIdentifier/sub-categories', getSubCategories);
+router.get('/categories/:categoryIdentifier/quizzes', getQuizzesByCategory);
+router.get('/categories/:categoryIdentifier/subcategories/:subcategoryIdentifier/quizzes', getQuizzesByCategory);
+router.get('/quizzes', getQuizzesByCategory); // legacy query based
 router.get('/quizzes/:quizId', getQuizById);
 
 export default router;

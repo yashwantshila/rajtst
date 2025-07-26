@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Loader2, Search } from 'lucide-react';
 import { getQuizCategories } from '@/services/api/quiz';
+import { slugify } from '@/utils/slugify';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -59,7 +60,7 @@ const QuizCategories = () => {
           <Card
             key={category.id}
             className="hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => navigate(`/category/${category.id}/subcategories`)}
+            onClick={() => navigate(`/category/${slugify(category.title)}/subcategories`)}
           >
             <CardHeader>
               <CardTitle>{category.title}</CardTitle>

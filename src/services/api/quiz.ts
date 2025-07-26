@@ -49,13 +49,14 @@ export const getSubCategories = async (categoryId: string): Promise<SubCategory[
 };
 
 export const getQuizzesByCategory = async (
-  categoryId: string,
-  subcategoryId?: string
+  category: string,
+  subcategory?: string
 ): Promise<Quiz[]> => {
   const token = await getOptionalAuthToken();
-  const params = new URLSearchParams({ categoryId });
-  if (subcategoryId) params.append('subcategoryId', subcategoryId);
-  const res = await axios.get(`${API_URL}/api/quiz/quizzes?${params.toString()}`, {
+  const url = subcategory
+    ? `${API_URL}/api/quiz/categories/${category}/subcategories/${subcategory}/quizzes`
+    : `${API_URL}/api/quiz/categories/${category}/quizzes`;
+  const res = await axios.get(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return res.data;

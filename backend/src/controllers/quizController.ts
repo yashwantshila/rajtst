@@ -1,5 +1,21 @@
 import { Request, Response } from 'express';
 import { db } from '../config/firebase.js';
+import { slugify } from '../utils/slugify.js';
+
+const findCategoryIdBySlug = async (slug: string): Promise<string | null> => {
+  const snapshot = await db.collection('quiz-categories').get();
+  const doc = snapshot.docs.find(d => slugify((d.data() as any).title || '') === slug);
+  return doc ? doc.id : null;
+};
+
+const findSubCategoryIdBySlug = async (categoryId: string, slug: string): Promise<string | null> => {
+  const snapshot = await db
+    .collection('sub-categories')
+    .where('categoryId', '==', categoryId)
+    .get();
+  const doc = snapshot.docs.find(d => slugify((d.data() as any).title || '') === slug);
+  return doc ? doc.id : null;
+};
 
 export const getQuizCategories = async (req: Request, res: Response) => {
   try {
@@ -14,7 +30,16 @@ export const getQuizCategories = async (req: Request, res: Response) => {
 
 export const getSubCategories = async (req: Request, res: Response) => {
   try {
-    const { categoryId } = req.params;
+    let { categoryId, categorySlug } = req.params as { categoryId?: string; categorySlug?: string };
+
+    if (!categoryId && categorySlug) {
+      categoryId = await findCategoryIdBySlug(categorySlug) || undefined;
+    }
+
+    if (!categoryId) {
+      return res.status(400).json({ error: 'categoryId or categorySlug is required' });
+    }
+
     const snapshot = await db
       .collection('sub-categories')
       .where('categoryId', '==', categoryId)
@@ -29,14 +54,26 @@ export const getSubCategories = async (req: Request, res: Response) => {
 
 export const getQuizzesByCategory = async (req: Request, res: Response) => {
   try {
-    const { categoryId, subcategoryId } = req.query;
-    if (!categoryId || typeof categoryId !== 'string') {
-      return res.status(400).json({ error: 'categoryId is required' });
+    let { categoryId, subcategoryId } = req.query as { categoryId?: string; subcategoryId?: string };
+    const { categorySlug, subcategorySlug } = req.params as { categorySlug?: string; subcategorySlug?: string };
+
+    if (!categoryId && categorySlug) {
+      categoryId = await findCategoryIdBySlug(categorySlug) || undefined;
     }
+
+    if (categoryId && !subcategoryId && subcategorySlug) {
+      const subId = await findSubCategoryIdBySlug(categoryId, subcategorySlug);
+      if (subId) subcategoryId = subId;
+    }
+
+    if (!categoryId) {
+      return res.status(400).json({ error: 'categoryId or categorySlug is required' });
+    }
+
     let queryRef: FirebaseFirestore.Query = db
       .collection('quizzes')
       .where('categoryId', '==', categoryId);
-    if (subcategoryId && typeof subcategoryId === 'string') {
+    if (subcategoryId) {
       queryRef = queryRef.where('subcategoryId', '==', subcategoryId);
     }
     const snapshot = await queryRef.get();

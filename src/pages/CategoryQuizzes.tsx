@@ -4,39 +4,41 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, Search } from 'lucide-react';
 import { getQuizzesByCategory, getQuizCategories, getSubCategories } from '@/services/api/quiz';
+import { slugify } from '@/utils/slugify';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 
 const CategoryQuizzes = () => {
-  const { categoryId, subcategoryId } = useParams();
+  const { categorySlug, subcategorySlug, categoryId, subcategoryId } = useParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleQuizzes, setVisibleQuizzes] = useState(10);
 
-  const { data: category } = useQuery({
-    queryKey: ['quiz-category', categoryId],
-    queryFn: async () => {
-      if (!categoryId) return null;
-      const categories = await getQuizCategories();
-      return categories.find(cat => cat.id === categoryId);
-    },
-    enabled: !!categoryId
+  const { data: categories = [] } = useQuery({
+    queryKey: ['quiz-categories'],
+    queryFn: getQuizCategories
   });
 
-  const { data: subCategory } = useQuery({
-    queryKey: ['sub-category', subcategoryId],
-    queryFn: async () => {
-      if (!subcategoryId) return null;
-      const subCategories = await getSubCategories(categoryId!);
-      return subCategories.find(subCat => subCat.id === subcategoryId);
-    },
-    enabled: !!subcategoryId && !!categoryId
+  const category = categories.find(
+    cat => slugify(cat.title) === (categorySlug || '') || cat.id === categoryId
+  );
+  const resolvedCategoryId = category?.id;
+
+  const { data: subCategories = [] } = useQuery({
+    queryKey: ['sub-categories', resolvedCategoryId],
+    queryFn: () => getSubCategories(resolvedCategoryId!),
+    enabled: !!resolvedCategoryId
   });
+
+  const subCategory = subCategories.find(
+    sub => slugify(sub.title) === (subcategorySlug || '') || sub.id === subcategoryId
+  );
+  const resolvedSubcategoryId = subCategory?.id;
 
   const { data: quizzes = [], isLoading } = useQuery({
-    queryKey: ['quizzes', categoryId, subcategoryId],
-    queryFn: () => getQuizzesByCategory(categoryId!, subcategoryId),
-    enabled: !!categoryId
+    queryKey: ['quizzes', resolvedCategoryId, resolvedSubcategoryId],
+    queryFn: () => getQuizzesByCategory(resolvedCategoryId!, resolvedSubcategoryId),
+    enabled: !!resolvedCategoryId
   });
 
   const filteredQuizzes = quizzes.filter(quiz => 
@@ -52,8 +54,10 @@ const CategoryQuizzes = () => {
   };
 
   const handleBack = () => {
-    if (subcategoryId) {
-      navigate(`/category/${categoryId}/subcategories`);
+    if (subcategorySlug) {
+      navigate(`/category/${categorySlug}/subcategories`);
+    } else if (categorySlug) {
+      navigate('/categories');
     } else {
       navigate(-1);
     }
@@ -81,7 +85,7 @@ const CategoryQuizzes = () => {
         <h2 className="text-2xl font-bold mb-6 flex items-center justify-center">
           <div className="relative group">
             <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-extrabold text-2xl tracking-wide uppercase">
-              {subcategoryId ? `${category?.title} - ${subCategory?.title}` : category?.title} - Quizzes
+              {subcategorySlug ? `${category?.title} - ${subCategory?.title}` : category?.title} - Quizzes
             </span>
             <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
             <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 rounded-full"></div>

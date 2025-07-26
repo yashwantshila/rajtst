@@ -79,7 +79,7 @@
 
   <!-- Category Quizzes -->
   <url>
-    <loc>https://rajtest.com/category-quizzes</loc>
+    <loc>https://rajtest.com/quizzes</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
