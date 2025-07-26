@@ -1,12 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
+import { env } from '../config/env.js';
 
 export const cookieConfig = {
-  secure: process.env.NODE_ENV === 'production',
+  secure: env.NODE_ENV === 'production',
   httpOnly: true,
   sameSite: 'strict' as const,
   maxAge: 24 * 60 * 60 * 1000, // 24 hours
   path: '/',
-  domain: process.env.COOKIE_DOMAIN || undefined
+  domain: env.COOKIE_DOMAIN || undefined
 };
 
 export const setCookie = (res: Response, name: string, value: string, options = {}) => {
@@ -26,7 +27,7 @@ export const cookieMiddleware = (req: Request, res: Response, next: NextFunction
   res.setHeader('X-Frame-Options', 'DENY');
   
   // Ensure cookies are only sent over HTTPS in production
-  if (process.env.NODE_ENV === 'production') {
+  if (env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
   

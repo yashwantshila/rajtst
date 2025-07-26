@@ -136,18 +136,18 @@ export const adminLogin = async (req: Request, res: Response) => {
     }
     
     // Check against environment variables
-    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+    if (email === env.ADMIN_EMAIL && password === env.ADMIN_PASSWORD) {
       // Generate a signed JWT for admin authentication
       const token = jwt.sign(
         { email, role: 'admin' },
-        process.env.JWT_SECRET as string,
+        env.JWT_SECRET as string,
         { expiresIn: '1h' }
       );
 
       res.json({
         success: true,
         isAdmin: true,
-        email: process.env.ADMIN_EMAIL,
+        email: env.ADMIN_EMAIL,
         token
       });
     } else {

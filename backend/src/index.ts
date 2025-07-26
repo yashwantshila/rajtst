@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import { env } from './config/env.js';
 import routes from './routes/index.js';
 import './config/firebase.js';
 import { scheduleDailyChallengeCleanup } from './scheduler/cleanupEntries.js';
@@ -11,12 +12,12 @@ import { scheduleDailyChallengeCleanup } from './scheduler/cleanupEntries.js';
 dotenv.config();
 
 const app = express();
-const port = parseInt(process.env.PORT || '8080', 10);
+const port = env.PORT;
 
 // Middleware
 // Configure CORS with specific options
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://raj-test-75qulz.web.app',
+  origin: env.FRONTEND_URL || 'https://raj-test-75qulz.web.app',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-rtb-fingerprint-id'],
   credentials: true,
@@ -49,6 +50,6 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 // Start server
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server is running on port ${port}`);
-  console.log('Environment:', process.env.NODE_ENV);
+  console.log('Environment:', env.NODE_ENV);
   console.log('Health check endpoint: /health');
 }); 

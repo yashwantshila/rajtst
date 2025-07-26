@@ -1,6 +1,7 @@
 import helmet from 'helmet';
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { env } from '../config/env.js';
 
 export const securityHeaders = [
   // Basic Helmet configuration
@@ -28,7 +29,7 @@ export const securityHeaders = [
     );
 
     // Cookie security headers
-    if (process.env.NODE_ENV === 'production') {
+    if (env.NODE_ENV === 'production') {
       res.setHeader('Set-Cookie', [
         `__Host-session=; Path=/; Secure; HttpOnly; SameSite=Strict`,
         `__Host-csrf=; Path=/; Secure; HttpOnly; SameSite=Strict`

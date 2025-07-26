@@ -2,22 +2,23 @@ import { Request, Response } from 'express';
 import Razorpay from 'razorpay';
 import { db } from '../config/firebase.js';
 import dotenv from 'dotenv';
+import { env } from '../config/env.js';
 import crypto from 'crypto';
 
 // Load environment variables
 dotenv.config();
 
 // Check if Razorpay credentials are available
-const razorpayKeyId = process.env.RAZORPAY_KEY_ID;
-const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET;
-const razorpayWebhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET;
+const razorpayKeyId = env.RAZORPAY_KEY_ID;
+const razorpayKeySecret = env.RAZORPAY_KEY_SECRET;
+const razorpayWebhookSecret = env.RAZORPAY_WEBHOOK_SECRET;
 
 if (!razorpayKeyId || !razorpayKeySecret) {
   console.error('Razorpay credentials are missing in environment variables');
   throw new Error('Razorpay credentials are required');
 }
 
-if (process.env.NODE_ENV !== 'production') {
+if (env.NODE_ENV !== 'production') {
   console.log('Initializing Razorpay...');
 }
 
@@ -28,7 +29,7 @@ try {
     key_id: razorpayKeyId,
     key_secret: razorpayKeySecret
   });
-  if (process.env.NODE_ENV !== 'production') {
+  if (env.NODE_ENV !== 'production') {
     console.log('Razorpay initialized successfully');
   }
 } catch (error) {
@@ -103,7 +104,7 @@ export const createPaymentOrder = async (req: Request, res: Response) => {
 
 export const verifyPayment = async (req: Request, res: Response) => {
   try {
-    if (process.env.NODE_ENV !== 'production') {
+    if (env.NODE_ENV !== 'production') {
       console.log('Verifying payment via frontend handler...');
     }
     const {
@@ -122,7 +123,7 @@ export const verifyPayment = async (req: Request, res: Response) => {
       .digest('hex');
 
     if (expectedSignature === razorpay_signature) {
-      if (process.env.NODE_ENV !== 'production') {
+      if (env.NODE_ENV !== 'production') {
         console.log('Payment verified successfully via frontend');
       }
 
