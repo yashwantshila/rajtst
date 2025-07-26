@@ -4,6 +4,7 @@ import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
 import { app } from './services/firebase/config';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
+import Seo from './components/Seo';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 import { useSingleTabEnforcer } from './hooks/useSingleTabEnforcer';
 import { initializeGTM } from './services/gtm';
@@ -219,6 +220,7 @@ const App: React.FC = () => {
       <AuthProvider>
         <Router>
           <Toaster position="bottom-center" richColors />
+          <Seo />
           <AppContent />
         </Router>
       </AuthProvider>
