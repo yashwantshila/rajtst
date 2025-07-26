@@ -281,9 +281,15 @@ export const getChallengeStatus = async (req: Request, res: Response) => {
     const challengeDoc = await db.collection('daily-challenges').doc(challengeId).get();
     const challenge = challengeDoc.data() as any;
     const timeLimit = challengeDoc.exists ? challenge.timeLimit : 0;
+    const questionSnap = await db
+      .collection('daily-challenges')
+      .doc(challengeId)
+      .collection('questions')
+      .get();
+    const totalQuestions = questionSnap.size;
 
     if (!entryDoc.exists) {
-      return res.json({ started: false, timeLimit });
+      return res.json({ started: false, timeLimit, totalQuestions });
     }
 
     const entryRef = db.collection('daily-challenge-entries').doc(entryId);
@@ -292,7 +298,7 @@ export const getChallengeStatus = async (req: Request, res: Response) => {
       entryDoc.data() as ChallengeEntry,
       challenge,
     );
-    res.json({ started: true, ...updatedEntry, timeLimit });
+    res.json({ started: true, ...updatedEntry, timeLimit, totalQuestions });
   } catch (error) {
     console.error('Error getting status:', error);
     res.status(500).json({ error: 'Failed to get status' });
@@ -487,6 +493,7 @@ export const submitAnswer = async (req: Request, res: Response) => {
       completed,
       won,
       timeLimit,
+      totalQuestions,
       nextQuestion,
     });
   } catch (error) {

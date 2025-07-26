@@ -167,7 +167,10 @@ const DailyChallengePlay = () => {
                       MCQ {currentIndex}
                     </div>
                     <div className="text-xs font-medium bg-muted px-2 py-0.5 rounded-full">
-                      Left: {Math.max(0, challengeInfo.requiredCorrect - currentIndex)}
+                      {(() => {
+                        const total = status?.totalQuestions ?? challengeInfo.requiredCorrect;
+                        return `Left: ${Math.max(0, total - currentIndex)}`;
+                      })()}
                     </div>
                   </>
                 )}

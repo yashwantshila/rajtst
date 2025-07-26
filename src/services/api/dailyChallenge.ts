@@ -28,6 +28,7 @@ export interface ChallengeStatus {
   startedAt?: string;
   completedAt?: string;
   timeLimit: number;
+  totalQuestions?: number;
 }
 
 export interface ChallengeQuestion {
