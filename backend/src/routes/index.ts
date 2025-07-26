@@ -27,7 +27,7 @@ router.use('/payments', paymentRoutes);
 router.use('/quiz', quizRoutes);
 
 // Question paper routes
-router.use('/question-papers', questionPaperRoutes);
+router.use('/pyqs', questionPaperRoutes);
 
 // Mega test routes
 router.use('/mega-tests', megaTestRoutes);

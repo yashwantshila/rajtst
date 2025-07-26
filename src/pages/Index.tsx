@@ -336,7 +336,7 @@ const Home = () => {
                     <Book className="h-4 w-4 mr-1" />
                     Guide
                   </Link>
-                  <Link to="/question-papers" className="text-sm font-medium hover:underline flex items-center">
+                  <Link to="/pyqs" className="text-sm font-medium hover:underline flex items-center">
                     <Book className="h-4 w-4 mr-1" />
                     PYQs
                   </Link>
@@ -403,7 +403,7 @@ const Home = () => {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link to="/question-papers" className="flex items-center">
+                      <Link to="/pyqs" className="flex items-center">
                         <Book className="h-4 w-4 mr-2" />
                         PYQs
                       </Link>

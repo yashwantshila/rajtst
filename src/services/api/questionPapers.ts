@@ -23,7 +23,7 @@ export interface QuestionPaper {
 
 export const getQuestionPaperCategories = async (): Promise<QuestionPaperCategory[]> => {
   const token = await getOptionalAuthToken();
-  const res = await axios.get(`${API_URL}/api/question-papers/categories`, {
+  const res = await axios.get(`${API_URL}/api/pyqs/categories`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return res.data;
@@ -32,7 +32,7 @@ export const getQuestionPaperCategories = async (): Promise<QuestionPaperCategor
 export const getQuestionPapersByCategory = async (categoryId: string): Promise<QuestionPaper[]> => {
   const token = await getOptionalAuthToken();
   const res = await axios.get(
-    `${API_URL}/api/question-papers/categories/${categoryId}/papers`,
+    `${API_URL}/api/pyqs/categories/${categoryId}/papers`,
     { headers: token ? { Authorization: `Bearer ${token}` } : {} }
   );
   return res.data;
