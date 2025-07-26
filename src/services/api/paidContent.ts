@@ -8,13 +8,15 @@ export interface PaidContent {
   title: string;
   description: string;
   price: number;
+  category?: string;
   pdfUrl: string;
   thumbnailUrl?: string;
 }
 
-export const getPaidContents = async (): Promise<PaidContent[]> => {
+export const getPaidContents = async (category?: string): Promise<PaidContent[]> => {
   const token = await getOptionalAuthToken();
   const res = await axios.get(`${API_URL}/api/paid-contents`, {
+    params: category ? { category } : {},
     headers: token ? { Authorization: `Bearer ${token}` } : {}
   });
   return res.data;

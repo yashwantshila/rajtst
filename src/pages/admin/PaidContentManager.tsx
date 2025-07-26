@@ -13,6 +13,7 @@ interface PaidContent {
   title: string;
   description: string;
   price: number;
+  category?: string;
   pdfUrl: string;
   samplePdfUrl?: string;
   thumbnailUrl?: string;
@@ -25,6 +26,7 @@ export default function PaidContentManager() {
     title: '',
     description: '',
     price: '',
+    category: '',
     pdfFile: null as File | null,
     samplePdfFile: null as File | null,
     thumbnailFile: null as File | null,
@@ -96,6 +98,7 @@ export default function PaidContentManager() {
         title: newContent.title,
         description: newContent.description,
         price: Number(newContent.price),
+        category: newContent.category,
         pdfUrl,
         samplePdfUrl: samplePdfUrl || null,
         thumbnailUrl: thumbnailUrl || null,
@@ -110,6 +113,7 @@ export default function PaidContentManager() {
         title: '',
         description: '',
         price: '',
+        category: '',
         pdfFile: null,
         samplePdfFile: null,
         thumbnailFile: null,
@@ -178,6 +182,15 @@ export default function PaidContentManager() {
                 required
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Category</label>
+              <Input
+                value={newContent.category}
+                onChange={(e) => setNewContent(prev => ({ ...prev, category: e.target.value }))}
+                required
+              />
+            </div>
             
             <div>
               <label className="block text-sm font-medium mb-1">PDF File</label>
@@ -227,6 +240,7 @@ export default function PaidContentManager() {
                   className="w-full h-48 object-cover rounded-md mb-4"
                 />
               )}
+              <p className="text-sm text-gray-500 mb-1">Category: {content.category || 'Uncategorized'}</p>
               <p className="text-gray-600 mb-2">{content.description}</p>
               <p className="text-xl font-semibold mb-4">₹{content.price}</p>
               <div className="flex space-x-2">

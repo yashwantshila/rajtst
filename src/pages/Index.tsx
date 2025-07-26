@@ -764,10 +764,9 @@ const Home = () => {
             <div className="relative">
               <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4">
                 {paidContents && paidContents.length > 0 ? (
-                  <>
-                    {paidContents.slice(0, 2).map((content) => (
-                      <Card 
-                        key={content.id} 
+                  paidContents.map((content) => (
+                      <Card
+                        key={content.id}
                         className="relative overflow-hidden w-[calc(100vw-2rem)] md:w-[calc(50vw-2rem)] lg:w-[calc(33vw-2rem)] flex-none snap-center snap-always mr-4 last:mr-0 hover:shadow-lg transition-all duration-300 border-2 hover:border-indigo-400 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800"
                       >
                         <CardHeader className="pb-2 space-y-2">
@@ -795,31 +794,7 @@ const Home = () => {
                           </Button>
                         </CardContent>
                       </Card>
-                    ))}
-                    {paidContents.length > 2 && (
-                      <Card 
-                        className="relative overflow-hidden w-[calc(100vw-2rem)] md:w-[calc(50vw-2rem)] lg:w-[calc(33vw-2rem)] flex-none snap-center snap-always mr-4 last:mr-0 hover:shadow-lg transition-all duration-300 border-2 hover:border-indigo-400 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800"
-                      >
-                        <CardContent className="flex flex-col items-center justify-center h-full min-h-[200px] p-6">
-                          <div className="text-center space-y-4">
-                            <p className="text-lg font-semibold text-indigo-700 dark:text-indigo-400">
-                              More Paid Content Available
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Explore our full collection of premium study materials
-                            </p>
-                            <Button 
-                              className="bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300" 
-                              variant="default"
-                              onClick={() => !isAuthenticated ? navigate('/auth') : navigate('/paid-content')}
-                            >
-                              {!isAuthenticated ? 'Sign in to View All' : 'View All Content'}
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </>
+                  ))
                 ) : (
                   <p className="text-muted-foreground col-span-2 text-center py-8">
                     No paid content available.
