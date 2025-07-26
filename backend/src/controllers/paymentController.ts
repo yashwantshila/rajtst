@@ -206,14 +206,14 @@ export const razorpayWebhook = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Webhook service not configured' });
   }
 
-  // Verify webhook signature
+  // Verify webhook signature using the raw request body
   const signature = req.headers['x-razorpay-signature'] as string;
-  const body = JSON.stringify(req.body);
+  const bodyBuffer = req.body as Buffer;
 
   try {
     const expectedSignature = crypto
       .createHmac('sha256', razorpayWebhookSecret)
-      .update(body)
+      .update(bodyBuffer)
       .digest('hex');
 
     if (expectedSignature !== signature) {
@@ -226,7 +226,7 @@ export const razorpayWebhook = async (req: Request, res: Response) => {
   }
 
   // Process the event
-  const event = req.body;
+  const event = JSON.parse(bodyBuffer.toString());
   if (event.event === 'payment.captured') {
     const paymentEntity = event.payload.payment.entity;
     const { order_id, id: paymentId, amount, notes } = paymentEntity;
