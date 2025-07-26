@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import dotenv from 'dotenv';
 import routes from './routes/index.js';
 import './config/firebase.js';
+import { scheduleDailyChallengeCleanup } from './scheduler/cleanupEntries.js';
 
 // Load environment variables
 dotenv.config();
@@ -30,6 +31,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api', routes);
+
+// Schedule daily cleanup of expired challenge entries
+scheduleDailyChallengeCleanup();
 
 // Basic health check route
 app.get('/health', (req, res) => {
