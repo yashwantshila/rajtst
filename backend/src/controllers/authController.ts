@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import { auth, db } from '../config/firebase.js';
+import { env } from '../config/env.js';
 
 
 export const register = async (req: Request, res: Response) => {
@@ -66,7 +67,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Verify credentials using Firebase Auth REST API
     await axios.post(
-      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${.env.FIREBASE_API_KEY}`,
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${env.FIREBASE_API_KEY}`,
       { email, password, returnSecureToken: true }
     );
 
