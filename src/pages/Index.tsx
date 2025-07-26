@@ -6,6 +6,7 @@ import { getMegaTests, registerForMegaTest, isUserRegistered, hasUserSubmittedMe
 import { getMegaTestQuestionCount } from '@/services/firebase/quiz';
 import { getDailyChallenges, DailyChallenge, startChallenge, getChallengeStatus } from '../services/api/dailyChallenge';
 import { parseTimestamp } from '@/utils/parseTimestamp';
+import { slugify } from '@/utils/slugify';
 import { AuthContext } from '../App';
 import { Card } from "@/components/ui/card";
 import { CardContent } from "@/components/ui/card";
@@ -849,7 +850,11 @@ const Home = () => {
                       <Button 
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-300" 
                         variant="default"
-                        onClick={() => !isAuthenticated ? navigate('/auth') : navigate(`/category/${category.id}/subcategories`)}
+                        onClick={() =>
+                          !isAuthenticated
+                            ? navigate('/auth')
+                            : navigate(`/category/${slugify(category.title)}/subcategories`)
+                        }
                       >
                         {!isAuthenticated ? 'Sign in to Browse' : 'Browse Quizzes'}
                       </Button>

@@ -6,6 +6,7 @@ import { getQuizCategories } from '@/services/api/quiz';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { slugify } from '@/utils/slugify';
 
 const QuizCategories = () => {
   const navigate = useNavigate();
@@ -59,7 +60,9 @@ const QuizCategories = () => {
           <Card
             key={category.id}
             className="hover:shadow-lg transition-shadow cursor-pointer"
-            onClick={() => navigate(`/category/${category.id}/subcategories`)}
+            onClick={() =>
+              navigate(`/category/${slugify(category.title)}/subcategories`)
+            }
           >
             <CardHeader>
               <CardTitle>{category.title}</CardTitle>

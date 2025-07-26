@@ -6,37 +6,39 @@ import { ArrowLeft, Loader2, Search } from 'lucide-react';
 import { getQuizzesByCategory, getQuizCategories, getSubCategories } from '@/services/api/quiz';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import { slugify } from '@/utils/slugify';
 
 const CategoryQuizzes = () => {
-  const { categoryId, subcategoryId } = useParams();
+  const { categorySlug, subcategorySlug } = useParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleQuizzes, setVisibleQuizzes] = useState(10);
 
   const { data: category } = useQuery({
-    queryKey: ['quiz-category', categoryId],
+    queryKey: ['quiz-category', categorySlug],
     queryFn: async () => {
-      if (!categoryId) return null;
+      if (!categorySlug) return null;
       const categories = await getQuizCategories();
-      return categories.find(cat => cat.id === categoryId);
+      return categories.find(cat => slugify(cat.title) === categorySlug);
     },
-    enabled: !!categoryId
+    enabled: !!categorySlug
   });
 
   const { data: subCategory } = useQuery({
-    queryKey: ['sub-category', subcategoryId],
+    queryKey: ['sub-category', subcategorySlug],
     queryFn: async () => {
-      if (!subcategoryId) return null;
-      const subCategories = await getSubCategories(categoryId!);
-      return subCategories.find(subCat => subCat.id === subcategoryId);
+      if (!subcategorySlug || !category) return null;
+      const subCategories = await getSubCategories(category.id);
+      return subCategories.find(subCat => slugify(subCat.title) === subcategorySlug);
     },
-    enabled: !!subcategoryId && !!categoryId
+    enabled: !!subcategorySlug && !!category
   });
 
   const { data: quizzes = [], isLoading } = useQuery({
-    queryKey: ['quizzes', categoryId, subcategoryId],
-    queryFn: () => getQuizzesByCategory(categoryId!, subcategoryId),
-    enabled: !!categoryId
+    queryKey: ['quizzes', categorySlug, subcategorySlug],
+    queryFn: () =>
+      category ? getQuizzesByCategory(category.id, subCategory?.id) : Promise.resolve([]),
+    enabled: !!category
   });
 
   const filteredQuizzes = quizzes.filter(quiz => 
@@ -52,8 +54,8 @@ const CategoryQuizzes = () => {
   };
 
   const handleBack = () => {
-    if (subcategoryId) {
-      navigate(`/category/${categoryId}/subcategories`);
+    if (subcategorySlug) {
+      navigate(`/category/${categorySlug}/subcategories`);
     } else {
       navigate(-1);
     }
@@ -81,7 +83,7 @@ const CategoryQuizzes = () => {
         <h2 className="text-2xl font-bold mb-6 flex items-center justify-center">
           <div className="relative group">
             <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-extrabold text-2xl tracking-wide uppercase">
-              {subcategoryId ? `${category?.title} - ${subCategory?.title}` : category?.title} - Quizzes
+              {subcategorySlug ? `${category?.title} - ${subCategory?.title}` : category?.title} - Quizzes
             </span>
             <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></div>
             <div className="absolute -bottom-2 left-0 w-full h-0.5 bg-gradient-to-r from-indigo-600/20 via-purple-600/20 to-pink-600/20 rounded-full"></div>

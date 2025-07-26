@@ -6,26 +6,28 @@ import { ArrowLeft, Loader2, Search } from 'lucide-react';
 import { getSubCategories, getQuizCategories } from '@/services/api/quiz';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import { slugify } from '@/utils/slugify';
 
 const SubCategories = () => {
-  const { categoryId } = useParams();
+  const { categorySlug } = useParams();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleSubCategories, setVisibleSubCategories] = useState(10);
 
   const { data: category } = useQuery({
-    queryKey: ['quiz-category', categoryId],
+    queryKey: ['quiz-category', categorySlug],
     queryFn: async () => {
+      if (!categorySlug) return null;
       const categories = await getQuizCategories();
-      return categories.find(cat => cat.id === categoryId);
+      return categories.find(cat => slugify(cat.title) === categorySlug);
     },
-    enabled: !!categoryId
+    enabled: !!categorySlug
   });
 
   const { data: subCategories = [], isLoading } = useQuery({
-    queryKey: ['sub-categories', categoryId],
-    queryFn: () => getSubCategories(categoryId!),
-    enabled: !!categoryId
+    queryKey: ['sub-categories', categorySlug],
+    queryFn: () => (category ? getSubCategories(category.id) : Promise.resolve([])),
+    enabled: !!category
   });
 
   const filteredSubCategories = subCategories.filter(subCat => 
@@ -92,7 +94,11 @@ const SubCategories = () => {
           <Card
             key={subCategory.id}
             className="overflow-hidden hover:shadow-lg transition-all duration-300 border-2 hover:border-blue-400 bg-gradient-to-br from-white to-blue-50 dark:from-gray-900 dark:to-gray-800"
-            onClick={() => navigate(`/category/${categoryId}/subcategory/${subCategory.id}/quizzes`)}
+            onClick={() =>
+              navigate(
+                `/category/${categorySlug}/subcategory/${slugify(subCategory.title)}/quizzes`
+              )
+            }
           >
             <CardHeader className="pb-2 space-y-1 sm:space-y-2">
               <CardTitle className="text-base sm:text-lg font-semibold text-blue-700 dark:text-blue-400 break-words">{subCategory.title}</CardTitle>

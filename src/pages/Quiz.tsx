@@ -4,16 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2, ChevronRight, ChevronLeft } from 'lucide-react';
-import { getQuizById } from '@/services/api/quiz';
+import { getQuizById, getQuizCategories, getSubCategories } from '@/services/api/quiz';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { slugify } from '@/utils/slugify';
 
 const Quiz = () => {
-  const { categoryId, quizId } = useParams();
+  const { quizId } = useParams();
   const navigate = useNavigate();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
@@ -27,6 +28,23 @@ const Quiz = () => {
     queryFn: () => getQuizById(quizId!),
     enabled: !!quizId
   });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['quiz-categories'],
+    queryFn: getQuizCategories
+  });
+
+  const category = categories.find(cat => cat.id === quiz?.categoryId);
+  const categorySlug = category ? slugify(category.title) : '';
+
+  const { data: subCategories = [] } = useQuery({
+    queryKey: ['sub-categories', quiz?.categoryId],
+    queryFn: () => (quiz ? getSubCategories(quiz.categoryId) : Promise.resolve([])),
+    enabled: !!quiz
+  });
+
+  const subCategory = subCategories.find(sub => sub.id === quiz?.subcategoryId);
+  const subCategorySlug = subCategory ? slugify(subCategory.title) : '';
 
   const handleAnswerSelect = (questionId: string, answerId: string) => {
     // Remove from skipped questions if it was previously skipped
@@ -106,9 +124,9 @@ const Quiz = () => {
   const handleBackClick = () => {
     if (isSubmitted) {
       if (quiz?.subcategoryId) {
-        navigate(`/category/${quiz.categoryId}/subcategory/${quiz.subcategoryId}/quizzes`);
+        navigate(`/category/${categorySlug}/subcategory/${subCategorySlug}/quizzes`);
       } else {
-        navigate(`/category/${quiz?.categoryId}/quizzes`);
+        navigate(`/category/${categorySlug}/quizzes`);
       }
     } else {
       setShowExitDialog(true);
@@ -118,18 +136,18 @@ const Quiz = () => {
   const handleExitConfirm = () => {
     handleSubmit();
     if (quiz?.subcategoryId) {
-      navigate(`/category/${quiz.categoryId}/subcategory/${quiz.subcategoryId}/quizzes`);
+      navigate(`/category/${categorySlug}/subcategory/${subCategorySlug}/quizzes`);
     } else {
-      navigate(`/category/${quiz?.categoryId}/quizzes`);
+      navigate(`/category/${categorySlug}/quizzes`);
     }
   };
 
   const handleExit = () => {
     if (window.confirm('Are you sure you want to exit? Your progress will be lost.')) {
       if (quiz?.subcategoryId) {
-        navigate(`/category/${quiz.categoryId}/subcategory/${quiz.subcategoryId}/quizzes`);
+        navigate(`/category/${categorySlug}/subcategory/${subCategorySlug}/quizzes`);
       } else {
-        navigate(`/category/${quiz?.categoryId}/quizzes`);
+        navigate(`/category/${categorySlug}/quizzes`);
       }
     }
   };
@@ -239,9 +257,9 @@ const Quiz = () => {
                 className="w-full mt-6" 
                 onClick={() => {
                   if (quiz?.subcategoryId) {
-                    navigate(`/category/${quiz.categoryId}/subcategory/${quiz.subcategoryId}/quizzes`);
+                    navigate(`/category/${categorySlug}/subcategory/${subCategorySlug}/quizzes`);
                   } else {
-                    navigate(`/category/${quiz?.categoryId}/quizzes`);
+                    navigate(`/category/${categorySlug}/quizzes`);
                   }
                 }}
               >
