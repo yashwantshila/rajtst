@@ -38,6 +38,12 @@ export function WithdrawalForm({
   const [upiId, setUpiId] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
+  const handleAmountChange = (value: string) => {
+    // Allow only numbers and decimal point; strip everything else
+    const sanitized = value.replace(/[^0-9.]/g, '');
+    setAmount(sanitized);
+  };
+
   const amountValue = parseFloat(amount);
   const feeAmount = isNaN(amountValue) ? 0 : amountValue * WITHDRAWAL_FEE_PERCENTAGE;
   const netAmount = isNaN(amountValue) ? 0 : amountValue - feeAmount;
@@ -137,7 +143,7 @@ export function WithdrawalForm({
               id="amount"
               type="number"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => handleAmountChange(e.target.value)}
               placeholder={`Enter amount to withdraw (min. ₹${MINIMUM_WITHDRAWAL_AMOUNT})`}
               min={MINIMUM_WITHDRAWAL_AMOUNT}
               max={currentBalance > 0 ? currentBalance.toString() : '0'}
@@ -168,7 +174,15 @@ export function WithdrawalForm({
         </div>
         <Button 
           onClick={handleWithdrawalSubmit} 
-          disabled={isProcessing || !amount || !upiId || parseFloat(amount) > currentBalance || parseFloat(amount) < MINIMUM_WITHDRAWAL_AMOUNT || !upiId.includes('@')}
+          disabled={
+            isProcessing ||
+            !amount ||
+            isNaN(amountValue) ||
+            amountValue <= 0 ||
+            amountValue > currentBalance ||
+            amountValue < MINIMUM_WITHDRAWAL_AMOUNT ||
+            !upiId.includes('@')
+          }
           className="gap-2"
         >
           {isProcessing ? (
