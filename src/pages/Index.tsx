@@ -859,8 +859,9 @@ const Home = () => {
                       <CardDescription className="text-sm text-gray-600 dark:text-gray-300 break-words">{category.description}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <Button 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-300" 
+                      <Button
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-300 text-xs sm:text-sm"
+                        size="sm"
                         variant="default"
                         onClick={() => !isAuthenticated ? navigate('/auth') : navigate(`/category/${category.id}/subcategories`)}
                       >
