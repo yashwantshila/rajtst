@@ -33,14 +33,13 @@ export const useSingleTabEnforcer = (isAuthenticated: boolean) => {
       }
     };
 
-    const existingLock = localStorage.getItem(TAB_LOCK_KEY);
-    if (existingLock && existingLock !== tabId) {
-      handleStorage(new StorageEvent('storage', { key: TAB_LOCK_KEY, newValue: existingLock }));
-    } else {
-      localStorage.setItem(TAB_LOCK_KEY, tabId);
-      window.addEventListener('storage', handleStorage);
-      window.addEventListener('beforeunload', handleBeforeUnload);
-    }
+    // Always claim the lock for this tab. If another tab is already active,
+    // it will receive a storage event and handle the logout itself. This
+    // prevents leftover stale locks from forcing an immediate logout when
+    // signing in again after a crash or unexpected close.
+    localStorage.setItem(TAB_LOCK_KEY, tabId);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     return () => {
       window.removeEventListener('storage', handleStorage);
