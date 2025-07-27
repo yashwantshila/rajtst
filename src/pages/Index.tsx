@@ -321,6 +321,21 @@ const Home = () => {
     return <div className="flex items-center justify-center min-h-screen">Error: {categoriesError?.message || megaTestsError?.message || dailyChallengesError?.message}</div>;
   }
 
+  const sortedMegaTests = megaTests
+    ? [...megaTests].sort((a, b) => {
+        const statusA = getMegaTestStatus(a);
+        const statusB = getMegaTestStatus(b);
+        const regA = statusA === 'registration';
+        const regB = statusB === 'registration';
+        if (regA && !regB) return -1;
+        if (!regA && regB) return 1;
+        return (
+          parseTimestamp(a.testStartTime).getTime() -
+          parseTimestamp(b.testStartTime).getTime()
+        );
+      })
+    : [];
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4" onMouseMove={resetTimeout} onKeyDown={resetTimeout}>
       <header className="sticky top-0 z-10 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -510,9 +525,9 @@ const Home = () => {
             </div>
             <div className="relative">
               <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4">
-                {megaTests && megaTests.length > 0 ? (
+                {sortedMegaTests && sortedMegaTests.length > 0 ? (
                   <>
-                    {megaTests.slice(0, 4).map((megaTest) => {
+                    {sortedMegaTests.slice(0, 4).map((megaTest) => {
                       const participantCount = queryClient.getQueryData<number>(['participant-count', megaTest.id]);
                       const seatsFull = megaTest.maxParticipants > 0 && (participantCount ?? 0) >= megaTest.maxParticipants;
                       const status = getMegaTestStatus(megaTest);
@@ -634,7 +649,7 @@ const Home = () => {
                         </Card>
                       );
                     })}
-                    {megaTests.length > 4 && (
+                    {sortedMegaTests.length > 4 && (
                       <>
                         <div className="flex items-center justify-center min-w-[200px] snap-center">
                           <Button

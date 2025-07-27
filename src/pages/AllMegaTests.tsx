@@ -131,6 +131,21 @@ const AllMegaTests = () => {
     }
   };
 
+  const sortedMegaTests = megaTests
+    ? [...megaTests].sort((a, b) => {
+        const statusA = getMegaTestStatus(a);
+        const statusB = getMegaTestStatus(b);
+        const regA = statusA === 'registration';
+        const regB = statusB === 'registration';
+        if (regA && !regB) return -1;
+        if (!regA && regB) return 1;
+        return (
+          parseTimestamp(a.testStartTime).getTime() -
+          parseTimestamp(b.testStartTime).getTime()
+        );
+      })
+    : [];
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -161,7 +176,7 @@ const AllMegaTests = () => {
       <h1 className="text-3xl font-bold mb-8">All Mega Tests</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {megaTests?.map((megaTest) => {
+        {sortedMegaTests.map((megaTest) => {
           const participantCount = queryClient.getQueryData<number>(['participant-count', megaTest.id]);
           const seatsFull = megaTest.maxParticipants > 0 && (participantCount ?? 0) >= megaTest.maxParticipants;
           const status = getMegaTestStatus(megaTest);
