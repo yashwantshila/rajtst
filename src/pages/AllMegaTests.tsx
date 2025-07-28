@@ -14,12 +14,14 @@ import MegaTestPrizes from '../components/MegaTestPrizes';
 import MegaTestParticipantsProgress from '../components/MegaTestParticipantsProgress';
 import { useState } from 'react';
 import RegistrationCountdown from '../components/RegistrationCountdown';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 const AllMegaTests = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [registeringId, setRegisteringId] = useState<string | null>(null);
+  const [registrationFilter, setRegistrationFilter] = useState<'all' | 'registered' | 'unregistered'>('all');
 
   const { data: megaTests, isLoading } = useQuery({
     queryKey: ['mega-tests'],
@@ -146,6 +148,12 @@ const AllMegaTests = () => {
       })
     : [];
 
+  const filteredMegaTests = sortedMegaTests.filter((test) => {
+    if (registrationFilter === 'registered') return registrationStatus?.[test.id];
+    if (registrationFilter === 'unregistered') return !registrationStatus?.[test.id];
+    return true;
+  });
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -175,8 +183,19 @@ const AllMegaTests = () => {
 
       <h1 className="text-3xl font-bold mb-8">All Mega Tests</h1>
 
+      <ToggleGroup
+        type="single"
+        value={registrationFilter}
+        onValueChange={(val) => val && setRegistrationFilter(val as 'all' | 'registered' | 'unregistered')}
+        className="mb-6"
+      >
+        <ToggleGroupItem value="all">All</ToggleGroupItem>
+        <ToggleGroupItem value="registered">Registered</ToggleGroupItem>
+        <ToggleGroupItem value="unregistered">Unregistered</ToggleGroupItem>
+      </ToggleGroup>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sortedMegaTests.map((megaTest) => {
+        {filteredMegaTests.map((megaTest) => {
           const participantCount = queryClient.getQueryData<number>(['participant-count', megaTest.id]);
           const seatsFull = megaTest.maxParticipants > 0 && (participantCount ?? 0) >= megaTest.maxParticipants;
           const status = getMegaTestStatus(megaTest);
