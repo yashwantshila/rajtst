@@ -36,6 +36,7 @@ import { getPaidContents, purchaseContent, downloadContent } from '../services/a
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { getDeviceId } from '../utils/deviceId';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface PaidContent {
   id: string;
@@ -235,6 +236,7 @@ const Home = () => {
     (['admin@example.com', 'ij@gmail.com', 'test@example.com', 'ww@gmail.com'].includes(user.email));
   
   const [isCustomAdmin, setIsCustomAdmin] = useState(false);
+  const [registrationFilter, setRegistrationFilter] = useState<'all' | 'registered' | 'unregistered'>('all');
   
   useEffect(() => {
     try {
@@ -340,6 +342,12 @@ const Home = () => {
         );
       })
     : [];
+
+  const filteredMegaTests = sortedMegaTests.filter((test) => {
+    if (registrationFilter === 'registered') return registrationStatus?.[test.id];
+    if (registrationFilter === 'unregistered') return !registrationStatus?.[test.id];
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4" onMouseMove={resetTimeout} onKeyDown={resetTimeout}>
@@ -509,7 +517,17 @@ const Home = () => {
                 <Trophy className="h-6 w-6 mr-2 text-amber-500" />
                 MegaTests
               </h2>
-              <div className="flex flex-col sm:flex-row gap-2 sm:ml-auto">
+              <div className="flex flex-col sm:flex-row gap-2 sm:ml-auto items-start sm:items-center">
+                <ToggleGroup
+                  type="single"
+                  value={registrationFilter}
+                  onValueChange={(val) => val && setRegistrationFilter(val as 'all' | 'registered' | 'unregistered')}
+                  className="mb-2 sm:mb-0"
+                >
+                  <ToggleGroupItem value="all">All</ToggleGroupItem>
+                  <ToggleGroupItem value="registered">Registered</ToggleGroupItem>
+                  <ToggleGroupItem value="unregistered">Unregistered</ToggleGroupItem>
+                </ToggleGroup>
                 <Button
                   onClick={() => navigate('/all-mega-tests')}
                   className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
@@ -530,9 +548,9 @@ const Home = () => {
             </div>
             <div className="relative">
               <div className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-4">
-                {sortedMegaTests && sortedMegaTests.length > 0 ? (
+                {filteredMegaTests && filteredMegaTests.length > 0 ? (
                   <>
-                    {sortedMegaTests.slice(0, 4).map((megaTest) => {
+                    {filteredMegaTests.slice(0, 4).map((megaTest) => {
                       const participantCount = queryClient.getQueryData<number>(['participant-count', megaTest.id]);
                       const seatsFull = megaTest.maxParticipants > 0 && (participantCount ?? 0) >= megaTest.maxParticipants;
                       const status = getMegaTestStatus(megaTest);
@@ -654,7 +672,7 @@ const Home = () => {
                         </Card>
                       );
                     })}
-                    {sortedMegaTests.length > 4 && (
+                    {filteredMegaTests.length > 4 && (
                       <>
                         <div className="flex items-center justify-center min-w-[200px] snap-center">
                           <Button
