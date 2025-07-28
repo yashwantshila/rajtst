@@ -57,6 +57,9 @@ const Home = () => {
   
   const { user, loading } = useContext(AuthContext);
   const isAuthenticated = user !== null;
+
+  // Toggle to enable/disable Daily Challenges section
+  const showDailyChallenges = false;
   
   const { data: quizCategories, isLoading: isLoadingCategories, error: categoriesError } = useQuery({
     queryKey: ['quiz-categories'],
@@ -71,6 +74,7 @@ const Home = () => {
   const { data: dailyChallenges, isLoading: isLoadingDailyChallenges, error: dailyChallengesError } = useQuery<DailyChallenge[]>({
     queryKey: ['daily-challenges-home'],
     queryFn: getDailyChallenges,
+    enabled: showDailyChallenges,
   });
 
   const { data: registrationStatus, isLoading: isLoadingRegistrations } = useQuery({
@@ -159,6 +163,7 @@ const Home = () => {
   });
 
   useEffect(() => {
+    if (!showDailyChallenges) return;
     const fetchStatuses = async () => {
       if (!user || !dailyChallenges) {
         setStatusLoading(false);
@@ -181,7 +186,7 @@ const Home = () => {
       }
     };
     fetchStatuses();
-  }, [user, dailyChallenges]);
+  }, [user, dailyChallenges, showDailyChallenges]);
 
   const handleStartChallenge = async (ch: DailyChallenge) => {
     if (!user) { toast.error('Please login first'); navigate('/auth'); return; }
@@ -681,6 +686,7 @@ const Home = () => {
           </div>
         </div>
 
+        {showDailyChallenges && (
         <div>
           <h2 className="text-2xl font-bold mb-6 flex items-center justify-center">
             <div className="relative group flex items-center">
@@ -765,6 +771,7 @@ const Home = () => {
             )}
           </div>
         </div>
+        )}
 
         <div>
           <h2 className="text-2xl font-bold mb-6 flex items-center justify-center">
