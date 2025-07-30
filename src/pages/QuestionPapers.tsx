@@ -3,16 +3,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { slugify } from '../utils/slugify';
 import { getQuestionPaperCategories } from '../services/api/questionPapers';
 import type { QuestionPaperCategory } from '../services/api/questionPapers';
-import { ArrowLeft, BookOpen, Download, Users, Clock, Star, TrendingUp } from 'lucide-react';
+import { ArrowLeft, BookOpen, Download, Users, Clock, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
 
 export default function QuestionPapers() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<QuestionPaperCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -46,6 +48,11 @@ export default function QuestionPapers() {
     );
   }
 
+  const filteredCategories = categories.filter(category =>
+    category.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    category.description.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header Section */}
@@ -64,11 +71,22 @@ export default function QuestionPapers() {
         </div>
       </div>
 
-      
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <Input
+            type="text"
+            placeholder="Search categories..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
 
       {/* Categories Grid */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-        {categories.map((category) => (
+        {filteredCategories.map((category) => (
           <Card key={category.id} className="group hover:shadow-lg transition-all duration-300">
             <CardHeader className="p-3 md:p-6">
               <div className="flex items-center justify-between">
@@ -108,7 +126,7 @@ export default function QuestionPapers() {
         ))}
       </div>
 
-      {categories.length === 0 && (
+      {filteredCategories.length === 0 && (
         <div className="text-center text-gray-500 mt-8">
           <BookOpen className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p className="text-lg">No question paper categories available yet.</p>
