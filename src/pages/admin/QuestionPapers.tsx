@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getQuestionPapersByCategory, getQuestionPaperCategories, uploadQuestionPaper, deleteQuestionPaper } from '../../services/firebase/questionPapers';
 import type { QuestionPaper, QuestionPaperCategory } from '../../services/firebase/questionPapers';
+import { Search } from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 
 export default function AdminQuestionPapers() {
   const { categoryId } = useParams<{ categoryId: string }>();
@@ -19,6 +22,8 @@ export default function AdminQuestionPapers() {
     year: new Date().getFullYear(),
     file: null as File | null
   });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [yearFilter, setYearFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchData();
@@ -112,6 +117,14 @@ export default function AdminQuestionPapers() {
       </div>
     );
   }
+
+  const years = Array.from(new Set(papers.map(p => p.year))).sort((a, b) => b - a);
+  const filteredPapers = papers.filter(
+    p =>
+      (yearFilter === 'all' || p.year === Number(yearFilter)) &&
+      (p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -214,8 +227,34 @@ export default function AdminQuestionPapers() {
         </div>
       )}
 
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative md:flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <Input
+            type="text"
+            placeholder="Search papers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div>
+          <Select value={yearFilter} onValueChange={setYearFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Filter by year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {years.map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {papers.map((paper) => (
+        {filteredPapers.map((paper) => (
           <div key={paper.id} className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold mb-2">{paper.title}</h2>
             <p className="text-gray-600 mb-4">{paper.description}</p>
@@ -242,7 +281,7 @@ export default function AdminQuestionPapers() {
         ))}
       </div>
 
-      {papers.length === 0 && !showUploadForm && (
+      {filteredPapers.length === 0 && !showUploadForm && (
         <div className="text-center text-gray-500 mt-8">
           No question papers available in this category yet.
         </div>

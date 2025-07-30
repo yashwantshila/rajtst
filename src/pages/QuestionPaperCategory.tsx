@@ -3,10 +3,12 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { slugify } from '../utils/slugify';
 import { getQuestionPapersByCategory, getQuestionPaperCategories } from '../services/api/questionPapers';
 import type { QuestionPaper, QuestionPaperCategory } from '../services/api/questionPapers';
-import { ArrowLeft, Download, Calendar, FileText, Clock } from 'lucide-react';
+import { ArrowLeft, Download, Calendar, FileText, Clock, Search } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 
 export default function QuestionPaperCategory() {
   const navigate = useNavigate();
@@ -15,6 +17,8 @@ export default function QuestionPaperCategory() {
   const [category, setCategory] = useState<QuestionPaperCategory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [yearFilter, setYearFilter] = useState<string>('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -69,6 +73,14 @@ export default function QuestionPaperCategory() {
     );
   }
 
+  const years = Array.from(new Set(papers.map(p => p.year))).sort((a, b) => b - a);
+  const filteredPapers = papers.filter(
+    paper =>
+      (yearFilter === 'all' || paper.year === Number(yearFilter)) &&
+      (paper.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        paper.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-4 mb-8">
@@ -86,8 +98,34 @@ export default function QuestionPaperCategory() {
         </div>
       </div>
 
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative md:flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <Input
+            type="text"
+            placeholder="Search papers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <div>
+          <Select value={yearFilter} onValueChange={setYearFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Filter by year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {years.map(y => (
+                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6">
-        {papers.map((paper) => (
+        {filteredPapers.map((paper) => (
           <Card key={paper.id} className="group hover:shadow-lg transition-all duration-300">
             <CardHeader className="p-3 md:p-6">
               <div className="flex items-center justify-between">
@@ -132,7 +170,7 @@ export default function QuestionPaperCategory() {
         ))}
       </div>
 
-      {papers.length === 0 && (
+      {filteredPapers.length === 0 && (
         <div className="text-center text-gray-500 mt-8">
           <FileText className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p className="text-lg">No question papers available in this category yet.</p>
