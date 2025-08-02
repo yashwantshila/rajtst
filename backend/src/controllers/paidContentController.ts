@@ -14,6 +14,21 @@ export const getPaidContents = async (_req: Request, res: Response) => {
   }
 };
 
+export const getPaidContentBySlug = async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+    const snapshot = await db.collection('paidContents').where('slug', '==', slug).limit(1).get();
+    if (snapshot.empty) {
+      return res.status(404).json({ error: 'Content not found' });
+    }
+    const doc = snapshot.docs[0];
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (error) {
+    console.error('Error fetching paid content by slug:', error);
+    res.status(500).json({ error: 'Failed to fetch paid content' });
+  }
+};
+
 export const getPurchasedContent = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params;

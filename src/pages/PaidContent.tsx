@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 interface PaidContent {
   id: string;
   title: string;
+  slug: string;
   description: string;
   price: number;
   pdfUrl: string;
@@ -146,6 +147,13 @@ export default function PaidContentPage() { // Renamed component to avoid confli
                     View Sample
                   </Button>
                 )}
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full mb-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50 dark:border-gray-600 dark:text-indigo-300 dark:hover:bg-gray-700"
+                >
+                  <Link to={`/paid-content/${content.slug}`}>View Details</Link>
+                </Button>
                 <Button
                   onClick={() => handlePurchase(content)}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300"

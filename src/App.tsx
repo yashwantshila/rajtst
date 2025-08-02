@@ -29,6 +29,7 @@ const QuestionPaperCategory = React.lazy(() => import('./pages/QuestionPaperCate
 const AdminQuestionPaperCategories = React.lazy(() => import('./pages/admin/QuestionPaperCategories'));
 const AdminQuestionPapers = React.lazy(() => import('./pages/admin/QuestionPapers'));
 const PaidContent = React.lazy(() => import('./pages/PaidContent'));
+const PaidContentDetail = React.lazy(() => import('./pages/PaidContentDetail'));
 const PaidContentManager = React.lazy(() => import('./pages/admin/PaidContentManager'));
 const PurchasedContent = React.lazy(() => import('./pages/PurchasedContent'));
 const MaintenancePage = React.lazy(() => import('./pages/Maintenance'));
@@ -186,6 +187,7 @@ const AppContent: React.FC = () => {
       } />
       {/* Paid Content Routes */}
       <Route path="/paid-content" element={<PaidContent />} />
+      <Route path="/paid-content/:slug" element={<PaidContentDetail />} />
       <Route path="/purchased-content" element={
         <ProtectedRoute>
           <PurchasedContent />

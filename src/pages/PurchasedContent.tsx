@@ -11,9 +11,10 @@ import { Skeleton } from '../components/ui/skeleton';
 interface PurchasedContent {
   id: string;
   title: string;
+  slug: string;
   description: string;
   pdfUrl: string;
-  purchaseDate?: string; 
+  purchaseDate?: string;
 }
 
 export default function PurchasedContentPage() { // Renamed component

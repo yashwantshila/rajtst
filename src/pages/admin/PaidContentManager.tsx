@@ -7,10 +7,12 @@ import { Input } from '../../components/ui/input';
 import { Textarea } from '../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { toast } from 'sonner';
+import { slugify } from '../../utils/slugify';
 
 interface PaidContent {
   id: string;
   title: string;
+  slug: string;
   description: string;
   price: number;
   pdfUrl: string;
@@ -93,6 +95,7 @@ export default function PaidContentManager() {
 
       // Add to Firestore
       const contentData = {
+        slug: slugify(newContent.title),
         title: newContent.title,
         description: newContent.description,
         price: Number(newContent.price),
