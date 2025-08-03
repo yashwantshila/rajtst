@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { getUserBalance, updateUserBalance, UserBalance } from '../services/api/balance';
 import { DollarSign, FileText, Loader2, BookOpen, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { slugify } from '../utils/slugify';
 
 interface PaidContent {
   id: string;
@@ -120,7 +121,11 @@ export default function PaidContentPage() { // Renamed component to avoid confli
             >
               <CardHeader className="space-y-2 pb-2"> {/* Adjusted spacing from reference */}
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-lg font-semibold text-indigo-700 dark:text-indigo-400 line-clamp-2 flex-1">{content.title}</CardTitle>
+                  <Link to={`/paid-content/${slugify(content.title)}`} className="flex-1">
+                    <CardTitle className="text-lg font-semibold text-indigo-700 dark:text-indigo-400 line-clamp-2 hover:underline">
+                      {content.title}
+                    </CardTitle>
+                  </Link>
                   <div className="bg-indigo-600 text-white px-2 py-1 rounded-full text-sm font-medium ml-2 shrink-0"> {/* Added shrink-0 */}
                     ₹{content.price}
                   </div>

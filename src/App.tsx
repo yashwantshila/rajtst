@@ -31,6 +31,7 @@ const AdminQuestionPapers = React.lazy(() => import('./pages/admin/QuestionPaper
 const PaidContent = React.lazy(() => import('./pages/PaidContent'));
 const PaidContentManager = React.lazy(() => import('./pages/admin/PaidContentManager'));
 const PurchasedContent = React.lazy(() => import('./pages/PurchasedContent'));
+const PaidContentDetails = React.lazy(() => import('./pages/PaidContentDetails'));
 const MaintenancePage = React.lazy(() => import('./pages/Maintenance'));
 import { SessionTimer } from './components/SessionTimer';
 import { Button } from './components/ui/button';
@@ -186,6 +187,7 @@ const AppContent: React.FC = () => {
       } />
       {/* Paid Content Routes */}
       <Route path="/paid-content" element={<PaidContent />} />
+      <Route path="/paid-content/:slug" element={<PaidContentDetails />} />
       <Route path="/purchased-content" element={
         <ProtectedRoute>
           <PurchasedContent />
