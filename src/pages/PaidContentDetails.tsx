@@ -107,6 +107,15 @@ export default function PaidContentDetails() {
             </Button>
           </Link>
         </div>
+        {content.thumbnailUrl && (
+          <div className="flex justify-center mb-8">
+            <img
+              src={content.thumbnailUrl}
+              alt={content.title}
+              className="w-full max-w-2xl rounded-lg shadow-md"
+            />
+          </div>
+        )}
         <Card className="max-w-2xl mx-auto border-2 border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-indigo-50 dark:from-gray-900 dark:to-gray-800">
           <CardHeader className="space-y-2">
             <CardTitle className="text-2xl font-bold text-indigo-700 dark:text-indigo-400">
@@ -135,6 +144,16 @@ export default function PaidContentDetails() {
                 <FileText className="h-4 w-4 mr-2" />
                 View Sample
               </Button>
+            )}
+            {content.highlights && content.highlights.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-indigo-700 dark:text-indigo-400">What's Inside</h3>
+                <ul className="list-disc pl-5 space-y-1 mt-2 text-gray-700 dark:text-gray-300">
+                  {content.highlights.map((h, idx) => (
+                    <li key={idx}>{h}</li>
+                  ))}
+                </ul>
+              </div>
             )}
             <Button
               onClick={handlePurchase}
