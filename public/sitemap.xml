@@ -38,7 +38,43 @@
   <!-- Question Papers -->
   <url>
     <loc>https://rajtest.com/pyqs</loc>
-    <changefreq>weekly</changefreq>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rajtest.com/pyqs/ugc-net-history</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rajtest.com/pyqs/rpsc-school-lecturer-first-grade-previous-year-question-papers-solved</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rajtest.com/pyqs/rajasthan-patwar-previous-year-question-papers-solved</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rajtest.com/pyqs/rpsc-ras-previous-year-question-papers-solved-free-pdf</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rajtest.com/pyqs/rajasthan-vdo-previous-year-question-papers-solved</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://rajtest.com/pyqs/rpsc-sub-inspector-previous-year-question-papers-solved-free-pdf</loc>
+    <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
@@ -61,26 +97,5 @@
     <loc>https://rajtest.com/daily-top-rankers</loc>
     <changefreq>daily</changefreq>
     <priority>0.6</priority>
-  </url>
-
-  <!-- Daily Challenges -->
-  <url>
-    <loc>https://rajtest.com/daily-challenges</loc>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <!-- Profile -->
-  <url>
-    <loc>https://rajtest.com/profile</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>
-
-  <!-- Authentication -->
-  <url>
-    <loc>https://rajtest.com/auth</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
   </url>
 </urlset>
