@@ -869,12 +869,12 @@ const Home = () => {
                             <p className="text-sm text-muted-foreground">
                               Explore our full collection of premium study materials
                             </p>
-                            <Button 
-                              className="bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300" 
+                            <Button
+                              className="bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300"
                               variant="default"
-                              onClick={() => !isAuthenticated ? navigate('/auth') : navigate('/paid-content')}
+                              onClick={() => navigate('/paid-content')}
                             >
-                              {!isAuthenticated ? 'Sign in to View All' : 'View All Content'}
+                              View All Content
                             </Button>
                           </div>
                         </CardContent>
