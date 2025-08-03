@@ -32,12 +32,12 @@ import {
 } from "../components/ui/dropdown-menu";
 import { SessionTimer } from '../components/SessionTimer';
 import { useSessionTimeout } from '../hooks/useSessionTimeout';
-import { getPaidContents, purchaseContent, downloadContent } from '../services/api/paidContent';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { getPaidContents } from '../services/api/paidContent';
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { getDeviceId } from '../utils/deviceId';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import Seo from '@/components/Seo';
+import { slugify } from '../utils/slugify';
 
 interface PaidContent {
   id: string;
@@ -291,43 +291,6 @@ const Home = () => {
   };
 
   const { resetTimeout } = useSessionTimeout(!!user);
-
-  const [selectedContent, setSelectedContent] = useState<PaidContent | null>(null);
-  const [isPurchasing, setIsPurchasing] = useState(false);
-
-  const handlePurchase = async (content: PaidContent) => {
-    if (!user) {
-      toast.error('Please login to purchase content');
-      navigate('/auth');  // Redirect to auth page
-      return;
-    }
-
-    try {
-      setIsPurchasing(true);
-      await purchaseContent(user.uid, content.id);
-      toast.success('Purchase successful!');
-
-      try {
-        const blob = await downloadContent(content.id);
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${content.title}.pdf`;
-        link.click();
-        window.URL.revokeObjectURL(url);
-      } catch (err) {
-        console.error('Failed to download file:', err);
-        toast.error('Unable to download file');
-      }
-      
-    } catch (error) {
-      console.error('Error processing purchase:', error);
-      toast.error('Failed to process purchase');
-    } finally {
-      setIsPurchasing(false);
-    }
-  };
-
 
   if (isLoadingCategories || isLoadingMegaTests || isLoadingRegistrations || isLoadingSubmissions || isLoadingPaidContents || isLoadingDailyChallenges) {
     return (
@@ -833,7 +796,11 @@ const Home = () => {
                       >
                         <CardHeader className="pb-2 space-y-2">
                           <div className="flex justify-between items-start">
-                            <CardTitle className="text-lg font-semibold text-indigo-700 dark:text-indigo-400 line-clamp-2">{content.title}</CardTitle>
+                            <Link to={`/paid-content/${slugify(content.title)}`} className="flex-1">
+                              <CardTitle className="text-lg font-semibold text-indigo-700 dark:text-indigo-400 line-clamp-2 hover:underline">
+                                {content.title}
+                              </CardTitle>
+                            </Link>
                             <div className="bg-indigo-600 text-white px-2 py-1 rounded-full text-sm font-medium ml-2">
                               ₹{content.price}
                             </div>
@@ -847,10 +814,14 @@ const Home = () => {
                               <span>PDF Format</span>
                             </div>
                           </div>
-                          <Button 
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300" 
+                          <Button
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-300"
                             variant="default"
-                            onClick={() => !isAuthenticated ? navigate('/auth') : setSelectedContent(content)}
+                            onClick={() =>
+                              !isAuthenticated
+                                ? navigate('/auth')
+                                : navigate(`/paid-content/${slugify(content.title)}`)
+                            }
                           >
                             {!isAuthenticated ? 'Sign in to View' : 'View Details'}
                           </Button>
@@ -963,57 +934,6 @@ const Home = () => {
         </div>
       </footer>
 
-      {/* Content Details Modal */}
-      <Dialog open={!!selectedContent} onOpenChange={() => setSelectedContent(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">{selectedContent?.title}</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground">
-              {selectedContent?.description}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <FileText className="h-4 w-4 mr-1" />
-                <span>PDF Format</span>
-              </div>
-              <div className="text-lg font-semibold text-indigo-600">
-                ₹{selectedContent?.price}
-              </div>
-            </div>
-            {selectedContent?.thumbnailUrl && (
-              <img
-                src={selectedContent.thumbnailUrl}
-                alt={selectedContent.title}
-                className="w-full h-48 object-cover rounded-md mb-4"
-              />
-            )}
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSelectedContent(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="bg-indigo-600 hover:bg-indigo-700"
-              onClick={() => selectedContent && handlePurchase(selectedContent)}
-              disabled={isPurchasing}
-            >
-              {isPurchasing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Processing...
-                </>
-              ) : (
-                'Purchase Now'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
     </>
   );
