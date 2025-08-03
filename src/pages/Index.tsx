@@ -37,6 +37,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { getDeviceId } from '../utils/deviceId';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import Seo from '@/components/Seo';
 
 interface PaidContent {
   id: string;
@@ -160,7 +161,10 @@ const Home = () => {
       toast.success('Challenge started');
       navigate(`/daily-challenges/${id}`);
     },
-    onError: (err: any) => toast.error(err.response?.data?.error || 'Failed to start'),
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { error?: string } } };
+      toast.error(error.response?.data?.error || 'Failed to start');
+    },
   });
 
   useEffect(() => {
@@ -207,9 +211,18 @@ const Home = () => {
     }
     setRegisteringId(megaTestId);
     try {
-      await registerMutation.mutateAsync({ megaTestId, userId: user.uid, username: user.displayName || '', email: user.email || '' });
-    } catch (error: any) {
-      const msg: string | undefined = error?.response?.data?.error || error.message;
+      await registerMutation.mutateAsync({
+        megaTestId,
+        userId: user.uid,
+        username: user.displayName || '',
+        email: user.email || ''
+      });
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { data?: { error?: string } };
+        message?: string;
+      };
+      const msg: string | undefined = error.response?.data?.error || error.message;
       if (error.message?.includes('Insufficient balance')) {
         toast.error(error.message);
         navigate('/profile');
@@ -350,8 +363,10 @@ const Home = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-4" onMouseMove={resetTimeout} onKeyDown={resetTimeout}>
-      <header className="sticky top-0 z-10 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+    <>
+      <Seo />
+      <div className="min-h-screen bg-background text-foreground p-4" onMouseMove={resetTimeout} onKeyDown={resetTimeout}>
+        <header className="sticky top-0 z-10 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container flex h-16 items-center justify-between py-4">
           <Link to="/" className="mr-4 flex items-center space-x-2">
             <Avatar className="h-8 w-8">
@@ -529,20 +544,24 @@ const Home = () => {
                   <ToggleGroupItem value="unregistered">Unregistered</ToggleGroupItem>
                 </ToggleGroup>
                 <Button
-                  onClick={() => navigate('/all-mega-tests')}
+                  asChild
                   className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
                   aria-label="View All Mega Tests"
                 >
-                  View All Mega Tests
-                  <ArrowUpRight className="h-4 w-4" />
+                  <Link to="/all-mega-tests">
+                    View All Mega Tests
+                    <ArrowUpRight className="h-4 w-4" />
+                  </Link>
                 </Button>
                 <Button
-                  onClick={() => navigate('/daily-top-rankers')}
+                  asChild
                   className="flex items-center gap-2 px-4 py-1.5 font-bold rounded-full shadow-lg bg-gradient-to-r from-yellow-400 via-orange-500 to-amber-600 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
                   aria-label="Daily Top Rankers"
                 >
-                  <Trophy className="h-4 w-4" />
-                  Daily Top Rankers
+                  <Link to="/daily-top-rankers">
+                    <Trophy className="h-4 w-4" />
+                    Daily Top Rankers
+                  </Link>
                 </Button>
               </div>
             </div>
@@ -676,11 +695,13 @@ const Home = () => {
                       <>
                         <div className="flex items-center justify-center min-w-[200px] snap-center">
                           <Button
-                            onClick={() => navigate('/all-mega-tests')}
+                            asChild
                             className="flex items-center gap-2 px-4 py-2 font-bold rounded-full shadow-lg bg-gradient-to-r from-pink-500 via-yellow-400 to-green-400 text-white text-sm tracking-wide transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:ring-offset-2"
                           >
-                            View More MegaTests
-                            <ArrowUpRight className="h-4 w-4" />
+                            <Link to="/all-mega-tests">
+                              View More MegaTests
+                              <ArrowUpRight className="h-4 w-4" />
+                            </Link>
                           </Button>
                         </div>
                         <div className="min-w-8" />
@@ -994,6 +1015,7 @@ const Home = () => {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 };
 

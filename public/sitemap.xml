@@ -55,4 +55,32 @@
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
-</urlset> 
+
+  <!-- Daily Top Rankers -->
+  <url>
+    <loc>https://rajtest.com/daily-top-rankers</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Daily Challenges -->
+  <url>
+    <loc>https://rajtest.com/daily-challenges</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Profile -->
+  <url>
+    <loc>https://rajtest.com/profile</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Authentication -->
+  <url>
+    <loc>https://rajtest.com/auth</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+</urlset>
