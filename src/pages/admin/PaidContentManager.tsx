@@ -16,6 +16,7 @@ interface PaidContent {
   pdfUrl: string;
   samplePdfUrl?: string;
   thumbnailUrl?: string;
+  highlights?: string[];
 }
 
 export default function PaidContentManager() {
@@ -24,6 +25,7 @@ export default function PaidContentManager() {
   const [newContent, setNewContent] = useState({
     title: '',
     description: '',
+    highlights: '',
     price: '',
     pdfFile: null as File | null,
     samplePdfFile: null as File | null,
@@ -95,6 +97,10 @@ export default function PaidContentManager() {
       const contentData = {
         title: newContent.title,
         description: newContent.description,
+        highlights: newContent.highlights
+          .split('\n')
+          .map(h => h.trim())
+          .filter(Boolean),
         price: Number(newContent.price),
         pdfUrl,
         samplePdfUrl: samplePdfUrl || null,
@@ -109,6 +115,7 @@ export default function PaidContentManager() {
       setNewContent({
         title: '',
         description: '',
+        highlights: '',
         price: '',
         pdfFile: null,
         samplePdfFile: null,
@@ -166,6 +173,15 @@ export default function PaidContentManager() {
                 value={newContent.description}
                 onChange={(e) => setNewContent(prev => ({ ...prev, description: e.target.value }))}
                 required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Highlights (one per line)</label>
+              <Textarea
+                value={newContent.highlights}
+                onChange={(e) => setNewContent(prev => ({ ...prev, highlights: e.target.value }))}
+                placeholder={'Point 1\nPoint 2'}
               />
             </div>
             
@@ -228,6 +244,13 @@ export default function PaidContentManager() {
                 />
               )}
               <p className="text-gray-600 mb-2">{content.description}</p>
+              {content.highlights && content.highlights.length > 0 && (
+                <ul className="list-disc pl-5 mb-4 text-sm text-gray-700">
+                  {content.highlights.map((h, idx) => (
+                    <li key={idx}>{h}</li>
+                  ))}
+                </ul>
+              )}
               <p className="text-xl font-semibold mb-4">₹{content.price}</p>
               <div className="flex space-x-2">
                 <Button

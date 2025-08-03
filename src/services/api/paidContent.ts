@@ -10,6 +10,8 @@ export interface PaidContent {
   price: number;
   pdfUrl: string;
   thumbnailUrl?: string;
+  samplePdfUrl?: string;
+  highlights?: string[];
 }
 
 export const getPaidContents = async (): Promise<PaidContent[]> => {
