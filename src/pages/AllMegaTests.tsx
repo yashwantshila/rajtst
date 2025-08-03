@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Clock, ListChecks, CreditCard, Trophy, Loader2 } from 'lucide-react';
-import { getMegaTests, isUserRegistered, hasUserSubmittedMegaTest, registerForMegaTest } from '@/services/api/megaTest';
+import { getMegaTests, isUserRegistered, hasUserSubmittedMegaTest, registerForMegaTest, MegaTest } from '@/services/api/megaTest';
 import { getMegaTestQuestionCount } from '@/services/firebase/quiz';
 import { parseTimestamp } from '@/utils/parseTimestamp';
 import { format } from 'date-fns';
@@ -15,6 +15,7 @@ import MegaTestParticipantsProgress from '../components/MegaTestParticipantsProg
 import { useState } from 'react';
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import Seo from '@/components/Seo';
 
 const AllMegaTests = () => {
   const navigate = useNavigate();
@@ -82,7 +83,7 @@ const AllMegaTests = () => {
     enabled: !!megaTests
   });
 
-  const getMegaTestStatus = (megaTest: any) => {
+  const getMegaTestStatus = (megaTest: MegaTest) => {
     const now = new Date();
     const registrationStart = parseTimestamp(megaTest.registrationStartTime);
     const registrationEnd = parseTimestamp(megaTest.registrationEndTime);
@@ -118,8 +119,12 @@ const AllMegaTests = () => {
       toast.success('Successfully registered for the mega test!');
       await queryClient.invalidateQueries({ queryKey: ['registrations', user.uid] });
       await queryClient.invalidateQueries({ queryKey: ['participant-count', megaTestId] });
-    } catch (error: any) {
-      const msg: string | undefined = error?.response?.data?.error || error.message;
+    } catch (err: unknown) {
+      const error = err as {
+        response?: { data?: { error?: string } };
+        message?: string;
+      };
+      const msg: string | undefined = error.response?.data?.error || error.message;
       if (error.message?.includes('Insufficient balance')) {
         toast.error(error.message);
         navigate('/profile');
@@ -156,22 +161,27 @@ const AllMegaTests = () => {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-muted rounded w-1/4"></div>
-          <div className="h-4 bg-muted rounded w-1/2"></div>
-          <div className="space-y-2">
-            <div className="h-4 bg-muted rounded"></div>
-            <div className="h-4 bg-muted rounded"></div>
-            <div className="h-4 bg-muted rounded"></div>
+      <>
+        <Seo />
+        <div className="container mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 bg-muted rounded w-1/4"></div>
+            <div className="h-4 bg-muted rounded w-1/2"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-muted rounded"></div>
+              <div className="h-4 bg-muted rounded"></div>
+              <div className="h-4 bg-muted rounded"></div>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      <Seo />
+      <div className="container mx-auto px-4 py-8">
       <Button
         variant="ghost"
         className="mb-6"
@@ -194,8 +204,8 @@ const AllMegaTests = () => {
         <ToggleGroupItem value="unregistered">Unregistered</ToggleGroupItem>
       </ToggleGroup>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMegaTests.map((megaTest) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredMegaTests.map((megaTest) => {
           const participantCount = queryClient.getQueryData<number>(['participant-count', megaTest.id]);
           const seatsFull = megaTest.maxParticipants > 0 && (participantCount ?? 0) >= megaTest.maxParticipants;
           const status = getMegaTestStatus(megaTest);
@@ -314,8 +324,9 @@ const AllMegaTests = () => {
             </Card>
           );
         })}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
