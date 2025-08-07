@@ -40,6 +40,7 @@ import { User as UserIcon, Book, LogOut } from 'lucide-react';
 import { api } from './api/config';
 import ProtectedRoute from './components/ProtectedRoute';
 import { getSettings } from './services/api/settings';
+import ScrollRestoration from './components/ScrollRestoration';
 const QuizCategories = React.lazy(() => import('./pages/QuizCategories'));
 const SubCategories = React.lazy(() => import('./pages/SubCategories'));
 const AllMegaTests = React.lazy(() => import('./pages/AllMegaTests'));
@@ -224,6 +225,7 @@ const App: React.FC = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Router>
+          <ScrollRestoration />
           <Toaster position="bottom-center" richColors />
           <Seo />
           <AppContent />
