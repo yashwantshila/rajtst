@@ -26,6 +26,7 @@ const Guide = React.lazy(() => import('./pages/Guide'));
 const MegaTestPrizesPage = React.lazy(() => import('./pages/MegaTestPrizes'));
 const QuestionPapers = React.lazy(() => import('./pages/QuestionPapers'));
 const QuestionPaperCategory = React.lazy(() => import('./pages/QuestionPaperCategory'));
+const QuestionPaperDetails = React.lazy(() => import('./pages/QuestionPaperDetails'));
 const AdminQuestionPaperCategories = React.lazy(() => import('./pages/admin/QuestionPaperCategories'));
 const AdminQuestionPapers = React.lazy(() => import('./pages/admin/QuestionPapers'));
 const PaidContent = React.lazy(() => import('./pages/PaidContent'));
@@ -175,6 +176,7 @@ const AppContent: React.FC = () => {
       {/* Question Paper Routes */}
       <Route path="/pyqs" element={<QuestionPapers />} />
       <Route path="/pyqs/:categorySlug" element={<QuestionPaperCategory />} />
+      <Route path="/pyqs/:categorySlug/:paperSlug" element={<QuestionPaperDetails />} />
       <Route path="/admin/question-paper-categories" element={
         <ProtectedRoute>
           <AdminQuestionPaperCategories />

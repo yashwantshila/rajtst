@@ -129,8 +129,13 @@ export default function QuestionPaperCategory() {
           <Card key={paper.id} className="group hover:shadow-lg transition-all duration-300">
             <CardHeader className="p-3 md:p-6">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base md:text-xl font-semibold group-hover:text-blue-600 transition-colors line-clamp-2">
-                  {paper.title}
+                <CardTitle className="text-base md:text-xl font-semibold line-clamp-2">
+                  <Link
+                    to={`/pyqs/${categorySlug}/${slugify(paper.title)}`}
+                    className="group-hover:text-blue-600 transition-colors"
+                  >
+                    {paper.title}
+                  </Link>
                 </CardTitle>
                 <FileText className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground flex-shrink-0" />
               </div>
